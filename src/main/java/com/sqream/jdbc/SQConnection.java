@@ -140,10 +140,13 @@ public class SQConnection implements Connection {
 			use_ssl = true;
 		}
 		
+		String service = connectionInfo.getProperty("service");
+		if (service.equals("-1"))
+			service="sqream";
 		
 		//boolean use_ssl= SSL_Connection != null && !SSL_Connection.isEmpty()? true:false;
 		globalClient = new ConnectionHandle(ipaddress, Integer.parseInt(s_port), usr, pswd,db_name
-				,use_ssl);
+				,use_ssl, service);
 
 		globalClient.connect();
 		
