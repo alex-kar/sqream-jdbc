@@ -20,17 +20,25 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	Connector client = null;
 	ColumnMetadata[] meta;
 	String db_name;
+	int row_length;
+	
+	static void print(Object printable) {
+		System.out.println(printable);
+	}
 	
 	public SQResultSetMetaData(Connector _client, String catalog) throws IOException, SQLException, ConnException {
 
 		client = _client;
 		// Fill up meta in a loop using api stuff
 		db_name = catalog;
-
-		for (int idx = 0; idx < client.get_row_length(); idx++) 
-			meta[idx] = new ColumnMetadata(client.get_col_name(idx), client.get_col_type(idx), client.get_col_size(idx), client.is_col_nullable(idx));
-	}
-
+		row_length = client.get_row_length();
+		meta = new ColumnMetadata[row_length];
+		for (int idx = 0; idx < row_length; idx++) {
+			meta[idx] = new ColumnMetadata(client.get_col_name(idx +1), client.get_col_type(idx +1), client.get_col_size(idx +1), client.is_col_nullable(idx +1));
+		}
+	}	
+	
+	
 	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
 		// TODO Auto-generated method stub

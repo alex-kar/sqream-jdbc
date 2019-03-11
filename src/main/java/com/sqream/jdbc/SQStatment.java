@@ -126,7 +126,7 @@ public class SQStatment implements Statement {
 			   Connection.RemoveItem(this); 
 		} catch (IOException | ScriptException e) {
 			e.printStackTrace();
-			throw new SQLException("Statement already closed");
+			throw new SQLException("Statement already closed. Error: " + e);
 		} 
 		
 //		catch (NullPointerException e) {}
