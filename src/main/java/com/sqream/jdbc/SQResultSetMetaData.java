@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
 
-//import com.sqream.connector.ConnectionHandle;
+import com.sqream.jdbc.Connector;
 import com.sqream.connector.StatementHandle;
 import com.sqream.connector.ColumnMetadata;
 
@@ -17,13 +17,15 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	 * @param args
 	 */
 
-	StatementHandle stmt = null;
+	Connector client = null;
 	ColumnMetadata[] meta;
 	String db_name;
 	
-	public SQResultSetMetaData(StatementHandle statementHandle, String catalog) throws IOException, SQLException {
+	public SQResultSetMetaData(Connector _client, String catalog) throws IOException, SQLException {
 
-		stmt = statementHandle;
+		client = _client;
+		
+		
 		meta = stmt.getMetadata();
 		db_name = catalog;
 	}
