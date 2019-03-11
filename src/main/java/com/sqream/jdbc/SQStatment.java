@@ -118,7 +118,7 @@ public class SQStatment implements Statement {
 	@Override
 	public void close() throws SQLException {
 		try {
-			if(Client !=null) {
+			if(Client !=null && Client.is_open()) {
 				Client.close();
 				Client.close_connection(); // since each statement creates a new client connection.
 			}
