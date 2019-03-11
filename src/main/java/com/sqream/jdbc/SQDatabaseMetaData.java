@@ -6,19 +6,14 @@ package com.sqream.jdbc;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import javax.script.ScriptException;
 
-//import com.sqream.connector.Connector;
-//import com.sqream.connector.StatementHandle;
-import com.sqream.connector.ColumnMetadata;
 import com.sqream.jdbc.Connector;
 
 /**
@@ -139,22 +134,17 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	}
 
 	
-	SQResultSet metadataStatement(String sql) throws IOException, SQLException {
+	SQResultSet metadataStatement(String sql) throws IOException, SQLException, ScriptException {
 		
 		Connector client = null;
-		try {
-			String ip =  Conn.sqlb.ip; //  Conn.sqlb.Cluster ? Conn.sqlb.LB_ip : Conn.sqlb.ip;
-			int port = Conn.sqlb.port; //Conn.sqlb.Cluster ? Conn.sqlb.LB_port : Conn.sqlb.port;
+		String ip =  Conn.sqlb.ip; //  Conn.sqlb.Cluster ? Conn.sqlb.LB_ip : Conn.sqlb.ip;
+		int port = Conn.sqlb.port; //Conn.sqlb.Cluster ? Conn.sqlb.LB_port : Conn.sqlb.port;
 
-			client = new Connector(ip, port, Conn.sqlb.Cluster, Conn.sqlb.Use_ssl);
-			client.connect(Conn.sqlb.DB_name, Conn.sqlb.User, Conn.sqlb.Password, Conn.sqlb.service);
-			client.execute(sql);
-		} catch (KeyManagementException | NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		client = new Connector(ip, port, Conn.sqlb.Cluster, Conn.sqlb.Use_ssl);
+		client.connect(Conn.sqlb.DB_name, Conn.sqlb.User, Conn.sqlb.Password, Conn.sqlb.service);
+		client.execute(sql);
 		
-		return new SQResultSet(client, stmt, db_name, true);
+		return new SQResultSet(client, db_name, true);
 	}
 	
 	@Override
@@ -164,7 +154,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 			return metadataStatement("select get_catalogs()");
 		}
 		
-		catch (IOException e) {
+		catch (IOException | ScriptException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new SQLException(e.getMessage());
@@ -208,7 +198,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 			return metadataStatement(sql);
 		}
 		
-		catch (IOException e) {
+		catch (IOException | ScriptException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new SQLException(e.getMessage());
@@ -530,7 +520,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 		ResultSet rs = null;
 		try {
 			rs = metadataStatement("select database_name as PROCEDURE_CAT, null as PROCEDURE_SCHEM, function_name as PROCEDURE_NAME, null as UNUSED, null as UNUSED2, null as UNUSED3, ' ' as REMARKS, 0 as PROCEDURE_TYPE, function_name as SPECIFIC_NAME from sqream_catalog.user_defined_functions");	
-		} catch (IOException e) {
+		} catch (IOException | ScriptException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -576,7 +566,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 			return metadataStatement("select get_schemas()");
 		}
 		
-		catch (IOException e) {
+		catch (IOException | ScriptException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new SQLException(e.getMessage());
@@ -659,7 +649,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 		
 		try {
 			return metadataStatement("select get_table_types()");
-		} catch (IOException e) {
+		} catch (IOException | ScriptException e) {
 			// TODO Auto-generated catch block
 			throw new SQLException(e.getMessage());
 		}
@@ -720,7 +710,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 				+ ")";
 		try {
 			return metadataStatement(sql);
-		} catch (IOException e) {
+		} catch (IOException | ScriptException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new SQLException(e.getMessage());
@@ -741,7 +731,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 
 		try {
 			return metadataStatement("select get_type_info()");
-		} catch (IOException e) {
+		} catch (IOException | ScriptException e) {
 			// TODO Auto-generated catch block
 			throw new SQLException(e.getMessage());
 		}

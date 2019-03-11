@@ -30,7 +30,7 @@ import javax.script.ScriptException;
 import com.sqream.jdbc.Connector;
 import com.sqream.jdbc.Connector.ConnException;
 //import com.sqream.connector.Client;
-import com.sqream.connector.ColumnMetadata;
+
 
 class SQResultSet implements ResultSet {
 
@@ -339,7 +339,7 @@ class SQResultSet implements ResultSet {
 		ResultSetMetaData rsmd = null;
 		try {
 			rsmd = new SQResultSetMetaData(Client, db_name);
-		} catch (IOException e) {
+		} catch (IOException | ConnException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -388,7 +388,7 @@ class SQResultSet implements ResultSet {
 		
 		String type = "";
 		try {
-			type = Client.get_type(columnIndex);
+			type = Client.get_col_type(columnIndex);
 		} catch (ConnException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -461,7 +461,7 @@ class SQResultSet implements ResultSet {
 		String value = null;
 		String type = "";
 		try {
-			type = Client.get_type(columnIndex);
+			type = Client.get_col_type(columnIndex);
 		} catch (ConnException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

@@ -7,8 +7,8 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
 
 import com.sqream.jdbc.Connector;
-import com.sqream.connector.StatementHandle;
-import com.sqream.connector.ColumnMetadata;
+import com.sqream.jdbc.Connector.ConnException;
+import com.sqream.jdbc.ColumnMetadata;
 
 
 public class SQResultSetMetaData implements ResultSetMetaData {
@@ -21,13 +21,14 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	ColumnMetadata[] meta;
 	String db_name;
 	
-	public SQResultSetMetaData(Connector _client, String catalog) throws IOException, SQLException {
+	public SQResultSetMetaData(Connector _client, String catalog) throws IOException, SQLException, ConnException {
 
 		client = _client;
-		
-		
-		meta = stmt.getMetadata();
+		// Fill up meta in a loop using api stuff
 		db_name = catalog;
+
+		for (int idx = 0; idx < client.get_row_length(); idx++) 
+			meta[idx] = new ColumnMetadata(client.get_col_name(idx), client.get_col_type(idx), client.get_col_size(idx), client.is_col_nullable(idx));
 	}
 
 	@Override

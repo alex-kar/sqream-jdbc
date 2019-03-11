@@ -1,11 +1,6 @@
 package com.sqream.jdbc;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Array;
@@ -396,10 +391,7 @@ public class SQConnection implements Connection {
 		SQPreparedStatment SQPS = null;
 		try {
 			SQPS = new SQPreparedStatment(globalClient, sql, this, db_name);
-		} catch (KeyManagementException | NoSuchAlgorithmException e) {
-			throw new SQLException(e);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (KeyManagementException | NoSuchAlgorithmException | IOException | SQLException | ScriptException | ConnException e) {
 			throw new SQLException(e);
 		} return SQPS;
 	}
@@ -430,10 +422,8 @@ public class SQConnection implements Connection {
 		SQPreparedStatment SQPS = null;
 		try {
 			SQPS = new SQPreparedStatment(globalClient, sql, this, db_name);
-		} catch (KeyManagementException | NoSuchAlgorithmException e) {
-			throw new SQLException(e);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (KeyManagementException | NoSuchAlgorithmException | IOException | ScriptException | ConnException e) {
+			e.printStackTrace();
 			throw new SQLException(e);
 		} 
 		return SQPS;

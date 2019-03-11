@@ -31,7 +31,6 @@ public class ColumnMetadata {
 		}
 		
 	}
-
 	
 	public class SqreamType {
 		public SqreamTypeId tid;
@@ -59,24 +58,17 @@ public class ColumnMetadata {
 		}
 	}
 
-	
 	public String  name;
 	//public String  type;   
 	public SqreamType type;  
 	int	   typeSize;	// no modifier = available in class and package						
-	int    scale;		// no modifier = available in class and package	
     public Boolean isNul;
-    public Boolean isTvc;
 	
     
-    
-	public ColumnMetadata(String _name, String _type, int _size, boolean _is_nul, boolean is_tvc, int _scale) {
+	public ColumnMetadata(String _name, String _type, int _size, boolean _is_nullable) {
 		name = 			_name;   
 		type = 			new SqreamType(_type, _size);
-		isNul = 		_is_nul;
-		isTvc = 		is_tvc;
-		
-		scale = 		_scale;
+		isNul = 		_is_nullable;
 	}
 	
 	

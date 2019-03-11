@@ -4,14 +4,17 @@ package com.sqream.jdbc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
-import java.net.ConnectException;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Array;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.script.ScriptException;
+
 import java.util.ArrayList;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -30,13 +33,11 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import com.sqream.connector.ConnectionHandle;
-import com.sqream.connector.StatementHandle;
-import com.sqream.connector.ColumnMetadata;
+
+import com.sqream.jdbc.Connector;
+import com.sqream.jdbc.Connector.ConnException;
+
 
 public class SQPreparedStatment implements PreparedStatement {
 
@@ -54,8 +55,8 @@ public class SQPreparedStatment implements PreparedStatement {
     List<Integer> setsPerBatch = new ArrayList<>(); 
 
     
-    public SQPreparedStatment(ConnectionHandle client, String Sql, SQConnection conn, String catalog) throws SQLException,
-            IOException, KeyManagementException, NoSuchAlgorithmException {
+    public SQPreparedStatment(Connector client, String Sql, SQConnection conn, String catalog) throws SQLException,
+            IOException, KeyManagementException, NoSuchAlgorithmException, ScriptException, ConnException {
         Tuple<String, Integer> params;
         
         Connection = conn;
@@ -71,7 +72,7 @@ public class SQPreparedStatment implements PreparedStatement {
 
         Client.connect(Connection.sqlb.DB_name, Connection.sqlb.User, Connection.sqlb.Password, "sqream");  // default service
         sql = Sql;
-        statement_id = Client.prepare(sql);
+        statement_id = Client.execute(sql);
         metaData = new SQResultSetMetaData(Client, Connection.sqlb.DB_name);
 
     }
@@ -103,8 +104,8 @@ public class SQPreparedStatment implements PreparedStatement {
         // TODO Auto-generated method stub
 
         try {
-            stmt.close();
-        } catch (IOException e) {
+            Client.close();
+        } catch (IOException | ScriptException e) {
             // TODO Auto-generated catch block
             throw new SQLException(e);
         } 
@@ -375,13 +376,13 @@ public class SQPreparedStatment implements PreparedStatement {
     @Override
     public void addBatch() throws SQLException {
         try {
-            stmt.nextRow();
+            Client.next();
             // Update nextRow counter
             rowsInBatch++;  
             // Remember how many set commands were issued for this row in case it comes handy
             setsPerBatch.add(setCounter);  
             setCounter = 0;
-        } catch (IOException e) {
+        } catch (IOException | ConnException | ScriptException e) {
             // TODO Auto-generated catch block
             throw new SQLException(e.getMessage());
         }
@@ -395,7 +396,7 @@ public class SQPreparedStatment implements PreparedStatement {
     @Override
     public boolean execute() throws SQLException {
         try {
-            SQRS = new SQResultSet(stmt, db_name);
+            SQRS = new SQResultSet(Client, db_name);
         } catch (IOException e1) {
             // TODO Auto-generated catch block
             e1.printStackTrace();
@@ -410,7 +411,7 @@ public class SQPreparedStatment implements PreparedStatement {
         // TODO Auto-generated method stub
 
         try {
-            SQRS = new SQResultSet(stmt, db_name);
+            SQRS = new SQResultSet(Client, db_name);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -506,14 +507,24 @@ public class SQPreparedStatment implements PreparedStatement {
     public void setBoolean(int arg0, boolean arg1) throws SQLException {
         // TODO Auto-generated method stub
         
-        stmt.setBoolean(arg0, arg1); setCounter++;      
+        try {
+			Client.set_boolean(arg0, arg1);
+		} catch (ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++;      
         
     }
 
     @Override
     public void setByte(int arg0, byte arg1) throws SQLException {
         // TODO Auto-generated method stub
-        stmt.setByte(arg0, arg1); setCounter++; 
+        try {
+			Client.set_ubyte(arg0, arg1);
+		} catch (ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++; 
         
     }
 
@@ -555,13 +566,23 @@ public class SQPreparedStatment implements PreparedStatement {
     @Override
     public void setDate(int arg0, Date arg1) throws SQLException {
         // TODO Auto-generated method stub
-        stmt.setDate(arg0, arg1); setCounter++; 
+        try {
+			Client.set_date(arg0, arg1);
+		} catch (UnsupportedEncodingException | ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++; 
     }
 
     @Override
     public void setDate(int arg0, Date arg1, Calendar arg2) throws SQLException {
         // TODO Auto-generated method stub
-        stmt.setDate(arg0, arg1); setCounter++; 
+        try {
+			Client.set_date(arg0, arg1);
+		} catch (UnsupportedEncodingException | ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++; 
     }
 
     static int convertDateToInt(java.sql.Date Output) {
@@ -585,19 +606,34 @@ public class SQPreparedStatment implements PreparedStatement {
     @Override
         public void setDouble(int arg0, double arg1) throws SQLException {
         
-         stmt.setDouble(arg0, arg1); setCounter++;  
+         try {
+			Client.set_double(arg0, arg1);
+		} catch (ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++;  
        }
 
     @Override
     public void setFloat(int arg0, float arg1) throws SQLException {
         // TODO Auto-generated method stub
-        stmt.setFloat(arg0, arg1); setCounter++;    
+        try {
+			Client.set_float(arg0, arg1);
+		} catch (ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++;    
     }
 
     @Override
     public void setInt(int arg0, int arg1) throws SQLException {
         // TODO Auto-generated method stub
-          stmt.setInt(arg0, arg1); setCounter++;    
+          try {
+			Client.set_int(arg0, arg1);
+		} catch (ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++;    
         
         
     }
@@ -607,7 +643,12 @@ public class SQPreparedStatment implements PreparedStatement {
         // TODO Auto-generated method stub
         
             //SqreamLog.writeInfo("", Client);
-            stmt.setLong(arg0, arg1); setCounter++; 
+            try {
+				Client.set_long(arg0, arg1);
+			} catch (ConnException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} setCounter++; 
         
             }
 
@@ -643,23 +684,50 @@ public class SQPreparedStatment implements PreparedStatement {
     @Override
     public void setNString(int arg0, String arg1) throws SQLException {
         // TODO Auto-generated method stub
-        stmt.setNvarchar(arg0, arg1); setCounter++; 
+        try {
+			Client.set_nvarchar(arg0, arg1);
+		} catch (UnsupportedEncodingException | ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++; 
     }
 
     @Override
     public void setNull(int arg0, int arg1) throws SQLException {
         // TODO Auto-generated method stub
-        
+        String type = "";
         // SqrmTypes sqrmType = SqrmTypes.getSqreamTypeBySqlType(arg1);
         
           try {
-            stmt.setNull(arg0); setCounter++;   
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } 
-          
-         
+        	    type = Client.get_col_type(arg0);
+        	  	if (type.equals("ftBool")) 
+        	  		Client.set_boolean(arg0, null);
+	      		else if (type.equals("ftUByte"))
+	      			Client.set_ubyte(arg0, null);
+	      		else if (type.equals("ftShort")) 
+	      			Client.set_short(arg0, null);
+	      		else if (type.equals("ftInt")) 	
+	      			Client.set_int(arg0, null);
+	      		else if (type.equals("ftLong")) 
+	      			Client.set_long(arg0, null);
+	      		else if (type.equals("ftFloat")) 
+	      			Client.set_float(arg0, null);
+	      		else if (type.equals("ftDouble"))
+	      			Client.set_double(arg0, null);
+	      		else if (type.equals("ftDate")) 
+	      			Client.set_date(arg0, null);
+	      		else if (type.equals("ftDateTime"))
+	      			Client.set_datetime(arg0, null);
+	      		else if (type.equals("ftVarchar")) 
+	      			Client.set_varchar(arg0, null);
+	      		else if (type.equals("ftBlob")) 	
+	      			Client.set_nvarchar(arg0, null);
+      		
+        	    setCounter++;   
+        } catch (ConnException | UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
     }
 
     @Override
@@ -674,7 +742,6 @@ public class SQPreparedStatment implements PreparedStatement {
      * @param ts
      * @return
      */
-    @SuppressWarnings("deprecation")
     static long convertTimeStampToLong(java.sql.Timestamp ts) {
         return DatetimeLogic.convertTimeStampToLong(ts);
     }
@@ -737,7 +804,12 @@ public class SQPreparedStatment implements PreparedStatement {
 
     @Override
     public void setShort(int arg0, short arg1) throws SQLException {
-    stmt.setShort(arg0, arg1); setCounter++;    
+    try {
+		Client.set_short(arg0, arg1);
+	} catch (ConnException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	} setCounter++;    
 
     }
 
@@ -745,9 +817,19 @@ public class SQPreparedStatment implements PreparedStatement {
     public void setString(int arg0, String arg1) throws SQLException {
         String type = getMetaData().getColumnTypeName(arg0);
         if (type.equals("Varchar"))
-                stmt.setVarchar(arg0, arg1);
-        else if (type.equals("NVarchar"))
-            stmt.setNvarchar(arg0, arg1);
+			try {
+				Client.set_varchar(arg0, arg1);
+			} catch (ConnException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		else if (type.equals("NVarchar"))
+			try {
+				Client.set_nvarchar(arg0, arg1);
+			} catch (UnsupportedEncodingException | ConnException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         setCounter++;   
     }
 
@@ -767,12 +849,22 @@ public class SQPreparedStatment implements PreparedStatement {
     @Override
     public void setTimestamp(int arg0, Timestamp arg1) throws SQLException {
         // TODO Auto-generated method stub
-        stmt.setDatetime(arg0, arg1); setCounter++; 
+        try {
+			Client.set_datetime(arg0, arg1);
+		} catch (UnsupportedEncodingException | ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++; 
     }
 
     @Override
     public void setTimestamp(int arg0, Timestamp arg1, Calendar arg2) throws SQLException {
-        stmt.setDatetime(arg0, arg1); setCounter++; 
+        try {
+			Client.set_datetime(arg0, arg1);
+		} catch (UnsupportedEncodingException | ConnException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} setCounter++; 
 
     }
 
