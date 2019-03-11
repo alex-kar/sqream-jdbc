@@ -16,9 +16,11 @@ import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 
-import com.sqream.connector.ConnectionHandle;
-import com.sqream.connector.StatementHandle;
+//import com.sqream.connector.Connector;
+//import com.sqream.connector.StatementHandle;
 import com.sqream.connector.ColumnMetadata;
+import com.sqream.jdbc.Connector;
+
 /**
  * @author root
  * 
@@ -29,8 +31,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	/**
 	 * 
 	 */
-	ConnectionHandle Client;
-	StatementHandle StatementHandle = null;
+	Connector Client;
 	SQConnection Conn=null;
 	String user;
 	String DatabaseProductName = "SqreamDB";
@@ -42,7 +43,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	String DriverVersion = "1.0";
 	String db_name;
 	
-	public SQDatabaseMetaData(ConnectionHandle client,SQConnection conn, String user_, String catalog) throws SQLException, NumberFormatException, UnknownHostException, IOException
+	public SQDatabaseMetaData(Connector client,SQConnection conn, String user_, String catalog) throws SQLException, NumberFormatException, UnknownHostException, IOException
 			 {
 		Client = client;
 		Conn=conn;
@@ -140,17 +141,14 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	
 	SQResultSet metadataStatement(String sql) throws IOException, SQLException {
 		
-		StatementHandle stmt = null;
-		ConnectionHandle client = null;
+		Connector client = null;
 		try {
 			String ip =  Conn.sqlb.ip; //  Conn.sqlb.Cluster ? Conn.sqlb.LB_ip : Conn.sqlb.ip;
 			int port = Conn.sqlb.port; //Conn.sqlb.Cluster ? Conn.sqlb.LB_port : Conn.sqlb.port;
 
-			client = new ConnectionHandle(ip, port, Conn.sqlb.User,Conn.sqlb.Password,Conn.sqlb.DB_name,Conn.sqlb.Use_ssl);
-			client.connect();
-			stmt = new StatementHandle(client,sql );
-			stmt.prepare();
-			stmt.execute();
+			client = new Connector(ip, port, Conn.sqlb.Cluster, Conn.sqlb.Use_ssl);
+			client.connect(Conn.sqlb.DB_name, Conn.sqlb.User, Conn.sqlb.Password, Conn.sqlb.service);
+			client.execute(sql);
 		} catch (KeyManagementException | NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

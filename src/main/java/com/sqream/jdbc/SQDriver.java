@@ -181,8 +181,8 @@ public class SQDriver implements java.sql.Driver {
 		try {
 
 			SQC = new SQConnection(info);
-			String[] lables = { "url", "info" };
-			String[] values = { url, info.toString() };
+			//String[] lables = { "url", "info" };
+			//String[] values = { url, info.toString() };
 
 			
 		} catch (KeyManagementException | NoSuchAlgorithmException e) {

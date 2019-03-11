@@ -34,18 +34,17 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.List;
 import com.sqream.connector.ConnectionHandle;
 import com.sqream.connector.StatementHandle;
 import com.sqream.connector.ColumnMetadata;
 
 public class SQPreparedStatment implements PreparedStatement {
 
-    StatementHandle stmt = null;
-    private ConnectionHandle Client = null;
+    //StatementHandle stmt = null;
+    private Connector Client = null;
     SQResultSet SQRS = null;
     private SQResultSetMetaData metaData = null;
-    String Sql;
+    String sql;
     private SQConnection Connection =null;  
     int statement_id;
     String db_name;
@@ -55,28 +54,25 @@ public class SQPreparedStatment implements PreparedStatement {
     List<Integer> setsPerBatch = new ArrayList<>(); 
 
     
-    public SQPreparedStatment(ConnectionHandle client, String sql, SQConnection conn, String catalog) throws SQLException,
+    public SQPreparedStatment(ConnectionHandle client, String Sql, SQConnection conn, String catalog) throws SQLException,
             IOException, KeyManagementException, NoSuchAlgorithmException {
         Tuple<String, Integer> params;
         
         Connection = conn;
         db_name = catalog;
+        // Should be done in connector level
         if(conn.sqlb.Cluster) {
             params = Utils.getLBConnection(Connection.sqlb.LB_ip, Connection.sqlb.LB_port);
             Connection.sqlb.ip = params.host;
             Connection.sqlb.port = params.port;
         }
         
-        Client = new ConnectionHandle(Connection.sqlb.ip, Connection.sqlb.port, Connection.sqlb.User, Connection.sqlb.Password, Connection.sqlb.DB_name, Connection.sqlb.Use_ssl);
+        Client = new Connector(Connection.sqlb.ip, Connection.sqlb.port, conn.sqlb.Cluster, Connection.sqlb.Use_ssl);
 
-        Client.connect();
-
-        Sql = sql;
-        stmt = new StatementHandle(Client, sql);
-        statement_id = stmt.getStatementId();
-        stmt.prepare();
-        stmt.execute();
-        metaData = new SQResultSetMetaData(stmt, Connection.sqlb.DB_name);
+        Client.connect(Connection.sqlb.DB_name, Connection.sqlb.User, Connection.sqlb.Password, "sqream");  // default service
+        sql = Sql;
+        statement_id = Client.prepare(sql);
+        metaData = new SQResultSetMetaData(Client, Connection.sqlb.DB_name);
 
     }
 
