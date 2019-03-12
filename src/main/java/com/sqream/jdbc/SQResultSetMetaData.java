@@ -5,10 +5,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
-
-import com.sqream.jdbc.Connector;
-import com.sqream.jdbc.Connector.ConnException;
 import com.sqream.jdbc.ColumnMetadata;
+
+import com.sqream.connector.Connector;
+import com.sqream.connector.Connector.ConnException;
 
 
 public class SQResultSetMetaData implements ResultSetMetaData {

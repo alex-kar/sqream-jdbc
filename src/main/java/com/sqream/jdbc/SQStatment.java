@@ -13,7 +13,7 @@ import java.sql.Statement;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.script.ScriptException;
 
-import com.sqream.jdbc.Connector;
+import com.sqream.connector.Connector;
 
 
 public class SQStatment implements Statement {
