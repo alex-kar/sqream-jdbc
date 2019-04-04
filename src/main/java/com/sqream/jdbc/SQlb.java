@@ -10,6 +10,7 @@ class SQlb {
 	String User;
 	String Password;
 	String DB_name;
+	String Service;
 	Boolean Use_ssl;
 	
 	static void main(String[] args) {

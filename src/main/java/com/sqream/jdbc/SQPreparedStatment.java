@@ -67,7 +67,7 @@ public class SQPreparedStatment implements PreparedStatement {
             Connection.sqlb.port = params.port;
         }
         
-        Client = new ConnectionHandle(Connection.sqlb.ip, Connection.sqlb.port, Connection.sqlb.User, Connection.sqlb.Password, Connection.sqlb.DB_name, Connection.sqlb.Use_ssl);
+        Client = new ConnectionHandle(Connection.sqlb.ip, Connection.sqlb.port, Connection.sqlb.User, Connection.sqlb.Password, Connection.sqlb.DB_name, Connection.sqlb.Use_ssl, Connection.sqlb.Service);
 
         Client.connect();
 

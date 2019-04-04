@@ -146,7 +146,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 			String ip =  Conn.sqlb.ip; //  Conn.sqlb.Cluster ? Conn.sqlb.LB_ip : Conn.sqlb.ip;
 			int port = Conn.sqlb.port; //Conn.sqlb.Cluster ? Conn.sqlb.LB_port : Conn.sqlb.port;
 
-			client = new ConnectionHandle(ip, port, Conn.sqlb.User,Conn.sqlb.Password,Conn.sqlb.DB_name,Conn.sqlb.Use_ssl);
+			client = new ConnectionHandle(ip, port, Conn.sqlb.User,Conn.sqlb.Password,Conn.sqlb.DB_name,Conn.sqlb.Use_ssl,Conn.sqlb.Service);
 			client.connect();
 			stmt = new StatementHandle(client,sql );
 			stmt.prepare();

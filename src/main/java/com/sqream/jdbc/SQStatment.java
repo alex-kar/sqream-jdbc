@@ -51,7 +51,7 @@ public class SQStatment implements Statement {
 		  conn.sqlb.port=params.port;
 		}
 		
-		Client = new ConnectionHandle(conn.sqlb.ip, conn.sqlb.port,conn.sqlb.User , conn.sqlb.Password, conn.sqlb.DB_name, conn.sqlb.Use_ssl);
+		Client = new ConnectionHandle(conn.sqlb.ip, conn.sqlb.port,conn.sqlb.User , conn.sqlb.Password, conn.sqlb.DB_name, conn.sqlb.Use_ssl, conn.sqlb.Service);
 		Client.connect();
 
 	}
@@ -87,7 +87,7 @@ public class SQStatment implements Statement {
 		StatementHandle cancel_stmt=null;
 					
 		try {
-			cancel = new ConnectionHandle(Connection.sqlb.ip, Connection.sqlb.port, Connection.sqlb.User , Connection.sqlb.Password, Connection.sqlb.DB_name, Connection.sqlb.Use_ssl);
+			cancel = new ConnectionHandle(Connection.sqlb.ip, Connection.sqlb.port, Connection.sqlb.User , Connection.sqlb.Password, Connection.sqlb.DB_name, Connection.sqlb.Use_ssl, Connection.sqlb.Service);
 			cancel.connect();
 			cancel_stmt = new StatementHandle (cancel, sql);
 			cancel_stmt.prepare();

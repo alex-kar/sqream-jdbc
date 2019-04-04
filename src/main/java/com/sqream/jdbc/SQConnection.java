@@ -86,6 +86,11 @@ public class SQConnection implements Connection {
 		if (s_port.equals("-1"))
 			throw new SQLException("missing database name error");
 
+		//Always gets a value
+		String service = connectionInfo.containsKey("service") == true ? connectionInfo.getProperty("service") : ConnectionHandle.DEFAULT_SERVICE;
+		if(service == null)
+			throw new SQLException("error setting value to service");
+		
 		String usr = connectionInfo.getProperty("user");
 		username = usr;
 		if (usr.equals("-1"))
@@ -143,7 +148,7 @@ public class SQConnection implements Connection {
 		
 		//boolean use_ssl= SSL_Connection != null && !SSL_Connection.isEmpty()? true:false;
 		globalClient = new ConnectionHandle(ipaddress, Integer.parseInt(s_port), usr, pswd,db_name
-				,use_ssl);
+				,use_ssl,service);
 
 		globalClient.connect();
 		
@@ -154,6 +159,7 @@ public class SQConnection implements Connection {
 		sqlb.Password=pswd;
 		sqlb.User=usr;
 		sqlb.Use_ssl=use_ssl;
+		sqlb.Service=service;
 		IsClosed.set(false);
 		
 	}

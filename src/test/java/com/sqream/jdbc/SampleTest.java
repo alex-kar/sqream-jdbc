@@ -16,7 +16,7 @@ import java.sql.SQLException;
 public class SampleTest {
     
     // Replace with your respective URL
-    static final String url = "jdbc:Sqream://127.0.0.1:5000/master;user=sqream;password=sqream;cluster=false;ssl=false";
+    static final String url = "jdbc:Sqream://127.0.0.1:5000/master;user=sqream;password=sqream;service= ;cluster=false;ssl=false";
     
     Connection conn  = null;
     Statement stmt = null;
