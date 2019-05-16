@@ -11,45 +11,60 @@ import java.nio.file.Paths;
 import java.sql.*;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+
 
 public class NetworkInsertTool {
 
     private static final Integer MAX_BATCH_SIZE = 1000000;
 
-    public static void main(String[] args) throws SQLException, ClassNotFoundException, IOException{
+    public static void main(String[] args) throws SQLException, IOException{
         JDBCArgs arguments = new JDBCArgs(args);
-        run(arguments);
+        insertCsvToTable(arguments);
 
     }
 
-    private static void run(JDBCArgs arguments) throws SQLException, ClassNotFoundException, IOException {
-        Connection connection = DriverManager.getConnection(arguments.getConnectionURL(), arguments.user, arguments.password);
-        Reader reader = Files.newBufferedReader(arguments.csvPath);
-        ResultSet columns = connection.getMetaData().getColumns(null, null, arguments.table, "%");
-        int numberOfColumns = 0;
+    private static void insertCsvToTable(JDBCArgs arguments) throws SQLException, IOException {
+
+        try(Connection connection = DriverManager.getConnection(arguments.getConnectionURL(), arguments.user, arguments.password);
+            Reader reader = Files.newBufferedReader(arguments.csvPath)){
+
+            ArrayList<Integer> columnTypes = getColumnTypes(connection, arguments.table);
+            int numberOfColumns = columnTypes.size();
+
+            try(PreparedStatement ps = connection.prepareStatement(buildInsertStatementBase(arguments, numberOfColumns));
+                CSVReader csvReader = new CSVReader(reader)){
+
+                String[] csvLine;
+                int statementsInBatch = 0;
+
+                while ((csvLine = csvReader.readNext()) != null) {
+                    for (int i=0; i < numberOfColumns; i++) {
+                        // columns indices start with 1, hence the entryIndex: i + 1
+                        preparedStatementSetColumnEntry(ps, i + 1, csvLine[i], columnTypes.get(i));
+                    }
+                    if(++statementsInBatch == MAX_BATCH_SIZE){
+                        ps.executeBatch();
+                        statementsInBatch = 0;
+                    }
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+        }
+
+    }
+
+    private static ArrayList<Integer> getColumnTypes(Connection connection, String table) throws SQLException{
+        ResultSet columns = connection.getMetaData().getColumns(null, null, table, "%");
         ArrayList<Integer> columnTypes = new ArrayList<>();
         while(columns.next()){
-            numberOfColumns++;
             columnTypes.add(columns.getInt("DATA_TYPE"));
         }
-
-        PreparedStatement ps = connection.prepareStatement(buildInsertStatementBase(arguments, numberOfColumns));
-
-        CSVReader csvReader = new CSVReader(reader);
-        String[] nextRecord;
-        int statementsInBatch = 0;
-        while ((nextRecord = csvReader.readNext()) != null) {
-            for (int i=0; i < numberOfColumns; i++) {
-                preparedStatementSetColumnEntry(ps, i + 1, nextRecord[i], columnTypes.get(i));
-            }
-            if(++statementsInBatch == MAX_BATCH_SIZE){
-                ps.executeBatch();
-                statementsInBatch = 0;
-            }
-            ps.addBatch();
-        }
-        ps.executeBatch();
-        ps.close();
+        return columnTypes;
     }
 
     private static String buildInsertStatementBase(JDBCArgs arguments, int numberOfColumns){
@@ -67,16 +82,32 @@ public class NetworkInsertTool {
 
     private static void preparedStatementSetColumnEntry(PreparedStatement ps, int entryIndex, String entry, int columnType) throws SQLException{
         switch(columnType){
+            //https://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf?AuthParam=1558015624_39ea3110b30a6a0f04af8450c4971182 Page 191
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.NCHAR:
+            case Types.NVARCHAR:
+            case Types.LONGNVARCHAR: ps.setString(entryIndex, entry); break;
+            case Types.NUMERIC: ps.setBigDecimal(entryIndex, new BigDecimal(entry)); break;
+            case Types.BIT:
             case Types.BOOLEAN: ps.setBoolean(entryIndex, Boolean.parseBoolean(entry)); break;
+            case Types.TINYINT: ps.setByte(entryIndex, Byte.parseByte(entry)); break;
+            case Types.SMALLINT: ps.setShort(entryIndex, Short.parseShort(entry)); break;
             case Types.INTEGER: ps.setInt(entryIndex, Integer.parseInt(entry)); break;
-            case Types.BIGINT: ps.setLong(entryIndex, Integer.parseInt(entry)); break;
-            case Types.FLOAT: ps.setFloat(entryIndex, Float.parseFloat(entry)); break;
+            case Types.BIGINT: ps.setLong(entryIndex, Long.parseLong(entry)); break;
+            case Types.REAL: ps.setFloat(entryIndex, Float.parseFloat(entry)); break;
             case Types.DOUBLE: ps.setDouble(entryIndex, Double.parseDouble(entry)); break;
             case Types.DATE: ps.setDate(entryIndex, Date.valueOf(entry)); break;
+            case Types.TIME: ps.setTime(entryIndex, Time.valueOf(entry)); break;
             case Types.TIMESTAMP: ps.setTimestamp(entryIndex, Timestamp.valueOf(entry)); break;
-            case Types.VARCHAR:
-            case Types.NVARCHAR: ps.setString(entryIndex, entry); break;
-            default: throw new IllegalArgumentException("Invalid entry type for " + entry);
+            //            case Types.BINARY:
+//                case Types.VARBINARY:
+//                    case Types.LONGVARBINARY: ps.setBytes(entryIndex, entry.getBytes()); break; // TODO: not sure if that's the right conversion to byte[] type
+
+            default:
+                throw new IllegalArgumentException("Invalid entry " + entry + " to column number " + entryIndex
+                        + " of type " + Integer.toString(columnType) + " (refer to com.java.sql Types class for)");
         }
 
     }
