@@ -22,7 +22,6 @@ import java.sql.Timestamp;
 
 public class NetworkInsertTool {
 
-    private static final Integer MAX_BATCH_SIZE = 1000000;
     private static final String NULL_ENTRY_STRING = "\\N";
 
     public static void main(String[] args) throws SQLException, IOException{
@@ -49,10 +48,6 @@ public class NetworkInsertTool {
                     for (int i=0; i < numberOfColumns; i++) {
                         // columns indices start with 1, hence the entryIndex: i + 1
                         preparedStatementSetColumnEntry(ps, i + 1, csvLine[i], columnTypes.get(i));
-                    }
-                    if(++statementsInBatch == MAX_BATCH_SIZE){
-                        ps.executeBatch();
-                        statementsInBatch = 0;
                     }
                     ps.addBatch();
                 }
@@ -185,7 +180,7 @@ public class NetworkInsertTool {
                 } else{
                     delimiter = delimiter_str.charAt(0);
                 }
-                
+
 
                 if(cmd.hasOption(IP_OPT)){
                     ip = cmd.getOptionValue(IP_OPT);
