@@ -1,6 +1,9 @@
 package com.sqream.jdbc;
 
+import com.opencsv.CSVParser;
+import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
+import com.opencsv.CSVReaderBuilder;
 import org.apache.commons.cli.*;
 
 import java.io.IOException;
@@ -37,7 +40,7 @@ public class NetworkInsertTool {
             int numberOfColumns = columnTypes.size();
 
             try(PreparedStatement ps = connection.prepareStatement(buildInsertStatementBase(arguments, numberOfColumns));
-                CSVReader csvReader = new CSVReader(reader)){
+                CSVReader csvReader = new CSVReaderBuilder(reader).withCSVParser(new CSVParserBuilder().withSeparator(arguments.delimiter).build()).build()){
 
                 String[] csvLine;
                 int statementsInBatch = 0;
@@ -82,7 +85,7 @@ public class NetworkInsertTool {
     }
 
     private static void preparedStatementSetColumnEntry(PreparedStatement ps, int entryIndex, String entry, int columnType) throws SQLException{
-        if(entry.equals(NULL_ENTRY_STRING)){
+        if(entry.equalsIgnoreCase(NULL_ENTRY_STRING)){
             ps.setNull(entryIndex, columnType);
             return;
         }
@@ -116,6 +119,7 @@ public class NetworkInsertTool {
 
     private static class JDBCArgs {
 
+        Character delimiter;
         String ip;
         String port;
         String database;
@@ -126,6 +130,11 @@ public class NetworkInsertTool {
         Boolean cluster;
         Boolean ssl;
         Path csvPath;
+
+        private static final String DEFAULT_IP = "127.0.0.1";
+
+        private static final String DELIMITER_OPT = "d";
+        private static final String DELIMITER_OPT_LONG = "delimiter";
 
         private static final String IP_OPT = "i";
         private static final String IP_OPT_LONG = "ip";
@@ -169,7 +178,21 @@ public class NetworkInsertTool {
                 CommandLineParser parser = new DefaultParser();
                 cmd = parser.parse(options, args);
 
-                ip = cmd.getOptionValue(IP_OPT);
+                String delimiter_str = cmd.getOptionValue(DELIMITER_OPT);
+
+                if(delimiter_str.length() != 1){
+                    throw new IllegalArgumentException("invalid delimiter char " + delimiter_str);
+                } else{
+                    delimiter = delimiter_str.charAt(0);
+                }
+                
+
+                if(cmd.hasOption(IP_OPT)){
+                    ip = cmd.getOptionValue(IP_OPT);
+                } else{
+                    ip = DEFAULT_IP;
+                }
+
                 port = cmd.getOptionValue(PORT_OPT);
                 database = cmd.getOptionValue(DBNAME_OPT);
                 table = cmd.getOptionValue(TABLENAME_OPT);
@@ -223,7 +246,9 @@ public class NetworkInsertTool {
         private Options getJDBCOptions(){
             Options options = new Options();
 
-            addOption(IP_OPT, IP_OPT_LONG, true, "sqreamd ip address", true, options);
+            addOption(DELIMITER_OPT, DELIMITER_OPT_LONG, true, "csv delimiter character", true, options);
+
+            addOption(IP_OPT, IP_OPT_LONG, true, "sqreamd ip address", false, options);
 
             addOption(PORT_OPT, PORT_OPT_LONG, true, "sqreamd port", true, options);
 
