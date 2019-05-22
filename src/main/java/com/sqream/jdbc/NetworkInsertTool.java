@@ -20,6 +20,7 @@ import java.sql.Timestamp;
 public class NetworkInsertTool {
 
     private static final Integer MAX_BATCH_SIZE = 1000000;
+    private static final String NULL_ENTRY_STRING = "\\N";
 
     public static void main(String[] args) throws SQLException, IOException{
         JDBCArgs arguments = new JDBCArgs(args);
@@ -81,6 +82,11 @@ public class NetworkInsertTool {
     }
 
     private static void preparedStatementSetColumnEntry(PreparedStatement ps, int entryIndex, String entry, int columnType) throws SQLException{
+        if(entry.equals(NULL_ENTRY_STRING)){
+            ps.setNull(entryIndex, columnType);
+            return;
+        }
+
         switch(columnType){
             //https://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf?AuthParam=1558015624_39ea3110b30a6a0f04af8450c4971182 Page 191
             case Types.CHAR:
@@ -101,15 +107,11 @@ public class NetworkInsertTool {
             case Types.DATE: ps.setDate(entryIndex, Date.valueOf(entry)); break;
             case Types.TIME: ps.setTime(entryIndex, Time.valueOf(entry)); break;
             case Types.TIMESTAMP: ps.setTimestamp(entryIndex, Timestamp.valueOf(entry)); break;
-            //            case Types.BINARY:
-//                case Types.VARBINARY:
-//                    case Types.LONGVARBINARY: ps.setBytes(entryIndex, entry.getBytes()); break; // TODO: not sure if that's the right conversion to byte[] type
 
             default:
                 throw new IllegalArgumentException("Invalid entry " + entry + " to column number " + entryIndex
                         + " of type " + Integer.toString(columnType) + " (refer to com.java.sql Types class for)");
         }
-
     }
 
     private static class JDBCArgs {
