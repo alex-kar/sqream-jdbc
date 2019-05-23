@@ -40,6 +40,7 @@ import javax.script.ScriptEngineManager;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import jdk.nashorn.internal.runtime.JSONListAdapter;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashMap;
 import java.text.MessageFormat;
 
@@ -51,12 +52,16 @@ import java.util.BitSet;
 // Unicode related
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
 // Date / Time related
 import java.sql.Date;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -70,6 +75,11 @@ import java.util.stream.IntStream;
 
 //Exceptions
 import javax.script.ScriptException;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import javax.net.ssl.SSLException;
@@ -133,7 +143,8 @@ public class Connector {
     byte protocol_version = 6;
     byte is_text;  // Catching the 2nd byte of a response
     long response_length;
-    int connection_id, statement_id;
+    int connection_id = -1;
+    int statement_id = -1;
     static Charset UTF8 = StandardCharsets.UTF_8;
     
     // Connection related
@@ -225,6 +236,9 @@ public class Connector {
     static LocalDate local_date;
     static LocalDateTime local_datetime;
 
+    // Managing stop_statement
+    AtomicBoolean IsCancelStatement = new AtomicBoolean(false);
+    
     
     // Communication Strings
     // ---------------------
@@ -300,9 +314,9 @@ public class Connector {
         if (ts == null) 
             return 0;
         
-        //LocalDateTime datetime = ts.toInstant().atZone(zone).toLocalDateTime(); 
+        LocalDateTime datetime = ts.toInstant().atZone(zone).toLocalDateTime(); 
         
-        LocalDateTime datetime = ts.toLocalDateTime(); 
+        //LocalDateTime datetime = ts.toLocalDateTime(); 
         year  = datetime.getYear();
         month = datetime.getMonthValue();
         day   = datetime.getDayOfMonth();
@@ -379,6 +393,25 @@ public class Connector {
             super(message);
         }
     }
+    
+    // Logging
+    // -------
+    
+    boolean logging = true;
+	boolean log(String line, String log_path) throws SQLException { 
+		if (!logging)
+			return true;
+		
+		try {
+			Files.write(Paths.get(log_path), Arrays.asList(new String[] {line}), UTF_8, CREATE, APPEND);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new SQLException ("Error writing to SQDriver log");
+		}
+		
+		return true;
+	}
+    
     
     /*//Experimental Sock class, not in use 
     class Sock {
@@ -484,8 +517,8 @@ public class Connector {
     public Connector(String _ip, int _port, boolean _cluster, boolean _ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException, ScriptException {
         /* JSON parsing engine setup, initial socket connection */
         
-        ScriptEngineManager sem = new ScriptEngineManager();
-        engine = sem.getEngineByName("javascript");
+    	// https://stackoverflow.com/questions/25332640/getenginebynamenashorn-returns-null
+        engine = new ScriptEngineManager(null).getEngineByName("javascript");
         json = (ScriptObjectMirror) engine.eval("JSON");
         engine_bindings = engine.getContext().getBindings(ScriptContext.GLOBAL_SCOPE);
         port = _port;
@@ -501,7 +534,9 @@ public class Connector {
             response_buffer.clear();
             bytes_read = s.read(response_buffer);
             response_buffer.flip();     
-            
+	    if (bytes_read == -1) {
+		throw new IOException("Socket closed");
+            }            
             // Read size of IP address (7-15 bytes) and get the IP
             byte [] ip_bytes = new byte[response_buffer.getInt()]; // Retreiving ip from clustered connection
             response_buffer.get(ip_bytes);
@@ -592,6 +627,10 @@ public class Connector {
     int _get_parse_header() throws IOException, ConnException {
         header.clear();
         bytes_read = (use_ssl) ? ss.read(header) : s.read(header);
+        // is connection open
+        if (bytes_read == -1) {
+  		throw new IOException("Socket closed");
+ 	}
         if (header.position() != 10)
         	throw new ConnException("bad header size from SQream - " + header.position() + ", possibly reading out of order");
         	
@@ -624,6 +663,9 @@ public class Connector {
             response_message = ByteBuffer.allocate(_get_parse_header());
             bytes_read = (use_ssl) ? ss.read(response_message) : s.read(response_message);
             response_message.flip();
+	    if (bytes_read == -1) {
+                throw new IOException("Socket closed");
+ 	    }
         }   
         
         return (get_response) ? decode(response_message) : "" ;
@@ -685,7 +727,7 @@ public class Connector {
             // Calculate number of rows to flush at
             row_size = IntStream.of(col_sizes).sum() + col_nullable.cardinality();    // not calculating nvarc lengths for now
             rows_per_flush = FLUSH_SIZE / row_size;
-            //rows_per_flush = 10000;
+            // rows_per_flush = 500000;
             // Buffer arrays for column storage
             data_columns = new ByteBuffer[row_length];
             null_columns = new ByteBuffer[row_length];
@@ -761,6 +803,9 @@ public class Connector {
             bytes_read = _get_parse_header();   // Get header out of the way
             do {
                 bytes_read = (int)((use_ssl) ? ss.read(fetch_buffers) : s.read(fetch_buffers));
+        	if (bytes_read == -1) {
+                    throw new IOException("Socket closed");
+ 		}
                 //print ("binary bytes read: " + bytes_read);
             }
             while (bytes_read >0);
@@ -928,7 +973,7 @@ public class Connector {
             // Were all columns set
             //if (!IntStream.range(0, columns_set.length).allMatch(i -> columns_set[i]))
             if (columns_set.cardinality() < row_length)
-                throw new ConnException ("All columns must be set before calling next()");
+                throw new ConnException ("All columns must be set before calling next(). Set " + columns_set.cardinality() +  " columns out of "  + row_length);
             
             // Nullify column flags and update counter
             columns_set.clear();  
@@ -1005,7 +1050,7 @@ public class Connector {
     
     public boolean close_connection() throws IOException, ScriptException, ConnException {
         
-    	close();
+    	// close();
         _validate_response(_send_message(form_json("closeConnection"), true), form_json("connectionClosed"));
         
         if (use_ssl) {
@@ -1082,7 +1127,10 @@ public class Connector {
     	
     	if (col_types[col_num].equals("ftInt"))
 	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (long)data_columns[col_num].getInt(row_counter * 4) : null;
-        
+    	else if (col_types[col_num].equals("ftShort"))
+	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (long)data_columns[col_num].getShort(row_counter * 2) : null;
+	    else if (col_types[col_num].equals("ftUByte"))
+	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (long)(data_columns[col_num].get(row_counter) & 0xFF) : null;
 	        
         return (_validate_get(col_num, "ftLong")) ? data_columns[col_num].getLong(row_counter * 8) : null;
     }
@@ -1090,16 +1138,33 @@ public class Connector {
     
     public Float get_float(int col_num) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
-        return (_validate_get(col_num, "ftFloat")) ? data_columns[col_num].getFloat(row_counter * 4) : null;
+        
+    	if (col_types[col_num].equals("ftInt"))
+	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (float)data_columns[col_num].getInt(row_counter * 4) : null;
+    	else if (col_types[col_num].equals("ftShort"))
+	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (float)data_columns[col_num].getShort(row_counter * 2) : null;
+	    else if (col_types[col_num].equals("ftUByte"))
+	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (float)(data_columns[col_num].get(row_counter) & 0xFF) : null;
+	        
+    	return (_validate_get(col_num, "ftFloat")) ? data_columns[col_num].getFloat(row_counter * 4) : null;
     }
     
     
     public Double get_double(int col_num) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
-    	//*
+    	
 	    if (col_types[col_num].equals("ftFloat"))
 	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (double)data_columns[col_num].getFloat(row_counter * 4) : null;
-		//*/
+        else if (col_types[col_num].equals("ftLong"))
+	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (double)data_columns[col_num].getLong(row_counter * 8) : null;
+        else if (col_types[col_num].equals("ftInt"))
+	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (double)data_columns[col_num].getInt(row_counter * 4) : null;
+    	else if (col_types[col_num].equals("ftShort"))
+	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (double)data_columns[col_num].getShort(row_counter * 2) : null;
+	    else if (col_types[col_num].equals("ftUByte"))
+	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (double)(data_columns[col_num].get(row_counter) & 0xFF) : null;
+	        
+        
         return (_validate_get(col_num, "ftDouble")) ? data_columns[col_num].getDouble(row_counter * 8) : null;
     }
     
@@ -1137,21 +1202,21 @@ public class Connector {
     }
     
     
-    public Date get_date(int col_num) throws ConnException {  
-    
-    	return get_date(col_num, UTC); // system_tz, UTC
-    }
-    
-    
     public Timestamp get_datetime(int col_num, ZoneId zone) throws ConnException {   col_num--;  // set / get work with starting index 1
 		_validate_index(col_num);
-    	return (_validate_get(col_num, "ftDateTime")) ? long_to_dt(data_columns[col_num].getLong(8* row_counter), zone) : null;
+		return (_validate_get(col_num, "ftDateTime")) ? long_to_dt(data_columns[col_num].getLong(8* row_counter), zone) : null;
+	}
+
+    
+    public Date get_date(int col_num) throws ConnException {  
+    
+    	return get_date(col_num, system_tz); // system_tz, UTC
     }
     
     
     public Timestamp get_datetime(int col_num) throws ConnException {   // set / get work with starting index 1
     	
-        return get_datetime(col_num, UTC); // system_tz, UTC
+        return get_datetime(col_num, system_tz); // system_tz, UTC
     }
 
     // -o-o-o-o-o  By column name -o-o-o-o-o
@@ -1414,6 +1479,12 @@ public class Connector {
         return --col_num;
     }
     
+    public int get_statement_id() {
+
+        return statement_id;
+    }
+
+
     public String get_query_type() {
         
         return statement_type;

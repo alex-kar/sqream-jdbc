@@ -17,10 +17,35 @@ import javax.script.ScriptException;
 
 import com.sqream.jdbc.Connector.ConnException;
 
+// Logging
+import java.util.Arrays;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
 
 
 public class SQDriver implements java.sql.Driver {
-
+	
+	boolean logging = true;
+	Path SQDriver_log = Paths.get("./SQDriver.txt");
+	boolean log(String line) throws SQLException {
+		if (!logging)
+			return true;
+		
+		try {
+			Files.write(SQDriver_log, Arrays.asList(new String[] {line}), UTF_8, CREATE, APPEND);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new SQLException ("Error writing to SQDriver log");
+		}
+		
+		return true;
+	}
+	
+	
 	// Extended uri data
 	class uriEx {
 		public URI uri;
@@ -36,7 +61,7 @@ public class SQDriver implements java.sql.Driver {
 		public String cluster;
 		public String service;
 		public String ssl;
-
+		
 		uriEx(String url) throws SQLException {
 			try {
 				// System.err.println("URL = "+url.substring(5));
@@ -107,12 +132,12 @@ public class SQDriver implements java.sql.Driver {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	@Override
 	public boolean acceptsURL(String url) throws SQLException {
-
+		
+		log("inside acceptsURL in SQDriver");
 		uriEx UEX = new uriEx(url); // parse the url to object.
 		if (!UEX.provider.toLowerCase().equals("sqream")) {
 
@@ -123,11 +148,14 @@ public class SQDriver implements java.sql.Driver {
 	
 	@Override
 	public java.sql.Connection connect(String url, Properties info) throws SQLException {
+		
+		log("inside connect in SQDriver");
 
 		String prfx = "jdbc:Sqream";
 
 		if (!url.trim().substring(0, prfx.length()).equals(prfx))
-			return null; // assaf: don't try to this url, it was not ment for
+			
+			throw new SQLException("Wrong prefix for connection string. Should be jdbc:Sqream but got: " + url.trim().substring(0, prfx.length())); // assaf: don't try to this url, it was not ment for
 							// sqream. (propegate it on..)
 
 		if (info == null)
@@ -136,7 +164,7 @@ public class SQDriver implements java.sql.Driver {
 		uriEx UEX = new uriEx(url.trim()); // parse the url to object.
 		if (!UEX.provider.toLowerCase().equals("sqream")) {
 
-			return null; // cause it is an other provider, not us..
+			throw new SQLException("Bad provider in connection string. Should be sqream but got: " + UEX.provider.toLowerCase()); 
 		}
 
 		if (UEX.user == null && info.getProperty("user") == null || UEX.pswd == null && info.getProperty("password") == null) {
@@ -189,16 +217,29 @@ public class SQDriver implements java.sql.Driver {
 
 	@Override
 	public int getMajorVersion() {
+		try {
+			log("inside getMajorVersion in SQDriver");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return 4;
 	}
 
 	@Override
 	public int getMinorVersion() {
+		try {
+			log("inside getMinorVersion in SQDriver");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return 0;
 	}
 
 	@Override
 	public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
+		log("inside getPropertyInfo in SQDriver");
 
 		DPIArray = new DriverPropertyInfo[0];
 
@@ -207,11 +248,24 @@ public class SQDriver implements java.sql.Driver {
 
 	@Override
 	public boolean jdbcCompliant() {
+		try {
+			log("inside jdbcCompliant in SQDriver");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		return true;
 	}
 
 	@Override
 	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+		try {
+			log("inside getParentLogger in SQDriver");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		throw new SQLFeatureNotSupportedException();
 	}
 

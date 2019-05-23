@@ -30,7 +30,7 @@ public class SQStatment implements Statement {
     AtomicBoolean IsCancelStatement = new AtomicBoolean(false);
     enum statementType {DML, INSERT, SELECT};
     String db_name;
-    
+    boolean is_closed = true;
     	
 	public SQStatment(Connector client,SQConnection conn, String catalog) throws NumberFormatException,
 			UnknownHostException, IOException, 
@@ -40,10 +40,14 @@ public class SQStatment implements Statement {
 		db_name = catalog;
 		Client = new Connector(conn.sqlb.ip, conn.sqlb.port, conn.sqlb.Cluster, conn.sqlb.Use_ssl);
 		Client.connect(conn.sqlb.DB_name, conn.sqlb.User, conn.sqlb.Password, conn.sqlb.service);
-
+		is_closed = false;
 	}
-
-	@Override
+	
+	static void print(Object printable) {
+	        System.out.println(printable);
+    }
+	
+	 @Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
 		return false;
 	}
@@ -51,17 +55,23 @@ public class SQStatment implements Statement {
 	@Override
 	public void cancel() throws SQLException  {
 		
-		if (IsCancelStatement.get())
+		if (Client.IsCancelStatement.getAndSet(true))
 			return;
-
+		
+		/*
+		if (!Client.is_open_statement())
+			return;
+		//*/
+		
+		statement_id = Client.get_statement_id();
 		String sql = "select stop_statement(" + statement_id + ")";
-		IsCancelStatement.set(true);
 		
 		Connector cancel=null;
 		try {
 			cancel = new Connector(Connection.sqlb.ip, Connection.sqlb.port, Connection.sqlb.Cluster, Connection.sqlb.Use_ssl);
 			cancel.connect(Connection.sqlb.DB_name, Connection.sqlb.User, Connection.sqlb.Password, Connection.sqlb.service);
-			cancel.execute(sql);			
+			cancel.execute(sql);	
+			Client.open_statement = false;
 		}catch (IOException | ConnException | ScriptException | NoSuchAlgorithmException | KeyManagementException e) {
 			e.printStackTrace();
 			throw new SQLException(e.getMessage());
@@ -70,7 +80,7 @@ public class SQStatment implements Statement {
 			// TODO Auto-generated catch block
 			if(cancel !=null && cancel.is_open())
 				try {
-					if (Client.is_open_statement())
+					if (cancel.is_open_statement())
 						cancel.close();
 					cancel.close_connection();
 				} catch (IOException | ConnException | ScriptException e) {
@@ -81,7 +91,9 @@ public class SQStatment implements Statement {
 						throw new SQLException(e.getMessage());
 					}
 				}
+			IsCancelStatement.set(false);
 		}
+		
 	}
 
 	@Override
@@ -108,6 +120,8 @@ public class SQStatment implements Statement {
 			e.printStackTrace();
 			throw new SQLException("Statement already closed. Error: " + e);
 		} 
+	    is_closed = true;
+
 //		catch (NullPointerException e) {}
 		// TODO Auto-generated catch block
 	}	
@@ -168,7 +182,7 @@ public class SQStatment implements Statement {
 		return result;
 	}
 
-
+	/*
 	private void execute_set(String sql) throws ConnException, SQLException, KeyManagementException, NoSuchAlgorithmException, ScriptException {
 		try {
 			Client.execute(sql);
@@ -191,7 +205,7 @@ public class SQStatment implements Statement {
 			throw new SQLException(e);
 		} 
 	}
-
+	//*/
 	
 	public ResultSet executeQuery(String sql) throws SQLException {
 		try {
@@ -432,7 +446,7 @@ public class SQStatment implements Statement {
 
 	@Override
 	public boolean isClosed() throws SQLException {
-		throw new SQLFeatureNotSupportedException();
+		return is_closed;
 	}
 
 	@Override

@@ -50,7 +50,8 @@ class SQResultSet implements ResultSet {
 	boolean Empty = false;
 	boolean RemoveSpaces = false;
 	boolean isNull = true;
-	
+    boolean is_closed = true;
+
     
 	static void print(Object printable) {
         System.out.println(printable);
@@ -108,6 +109,8 @@ class SQResultSet implements ResultSet {
 		Status = RS_STAT.OPEN;
 		db_name = catalog;
 		RemoveSpaces = removeSpaces;
+	    is_closed = false;
+
 	}
 	
 	
@@ -124,6 +127,8 @@ class SQResultSet implements ResultSet {
 	@Override
 	public void close() throws SQLException {
 		
+		is_closed = true;
+		/*
 		if (!Empty) {  // Empty result sets don't start with a Client
 			try {
 				if (Client!= null && Client.is_open()) {
@@ -134,7 +139,9 @@ class SQResultSet implements ResultSet {
 			} catch (IOException | ConnException | ScriptException e) {
 				e.printStackTrace();
 			}
+		    is_closed = true;
 		}
+		//*/
 	}
 
 	@Override
@@ -422,6 +429,8 @@ class SQResultSet implements ResultSet {
 
 	@Override
 	public Date getDate(String columnLabel, Calendar cal) throws SQLException {
+        throw  new SQLFeatureNotSupportedException("getDate with calendar parameter");
+        /*
 		try {
 			Date res = Client.get_date(columnLabel.toLowerCase());
 			if (res != null) {
@@ -435,10 +444,13 @@ class SQResultSet implements ResultSet {
 			throw new SQLException("columnLabel '" + columnLabel.trim()
 					+ "' not found");
 		}
+		//*/
 	}
 	
 	@Override
 	public Date getDate(int columnIndex, Calendar cal) throws SQLException {
+        throw  new SQLFeatureNotSupportedException("getDate with calendar parameter");
+        /*
 		try {
 			Date res = Client.get_date(columnIndex);
 			if (res != null) {
@@ -451,6 +463,7 @@ class SQResultSet implements ResultSet {
 			e.printStackTrace();
 			throw new SQLException("");
 		}
+		//*/
 	}
 	
 	@Override
@@ -481,6 +494,8 @@ class SQResultSet implements ResultSet {
 	
 	@Override
 	public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
+        throw  new SQLFeatureNotSupportedException("getTimestamp with calendar parameter");
+        /*
 		try {
 			Timestamp utcDateTime = Client.get_datetime(columnIndex);
 			if (utcDateTime!= null) {
@@ -493,11 +508,14 @@ class SQResultSet implements ResultSet {
 			e.printStackTrace();
 			throw new SQLException("");
 		}
-
+		//*/
 	}
 	
 	@Override
 	public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
+        throw  new SQLFeatureNotSupportedException("getTimestamp with calendar parameter");
+
+		/*
 		try {
 			Timestamp utcDateTime = Client.get_datetime(columnLabel.toLowerCase());
 			if (utcDateTime!= null) {
@@ -510,6 +528,7 @@ class SQResultSet implements ResultSet {
 			e.printStackTrace();
 			throw new SQLException("");
 		}
+		//*/
 	}
 	
 	@Override
@@ -586,6 +605,9 @@ class SQResultSet implements ResultSet {
 		if (RemoveSpaces && res != null) 
 			res = res.trim();
 		
+		if (type.equals("ftBool")) 
+			res = res.equals("0") ? "false" : "true";
+		
 		isNull = (res == null) ? true : false;
 		
 		return (res == null) ? null : res;
@@ -599,7 +621,6 @@ class SQResultSet implements ResultSet {
 		} catch (IOException | ConnException e) {
 			e.printStackTrace();
 		}
-
 		return rsmd;
 	}
 
@@ -757,13 +778,15 @@ class SQResultSet implements ResultSet {
 			 boolean nextResult = this.Client.next();
 			 return nextResult;
 		} catch (Exception e2) {
+			//e2.printStackTrace();
 			try {
 				if (Client!= null && Client.is_open() && Client.is_open_statement()) 
 					Client.close();
 			} catch (IOException | ConnException | ScriptException e) {
 				e.printStackTrace();
 				throw new SQLException(e.getMessage());
-			}			
+			}
+			e2.printStackTrace();
 			throw new SQLException(e2.getMessage());
 	   } 
 	}
@@ -1476,8 +1499,7 @@ class SQResultSet implements ResultSet {
 
 	@Override
 	public boolean isClosed() throws SQLException {
-		this.baseUsageError();
-		throw new SQLFeatureNotSupportedException();
+		return is_closed;
 	}
 
 	@Override
