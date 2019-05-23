@@ -126,7 +126,7 @@ public class NetworkInsertTool {
 
         private static final String DEFAULT_IP = "127.0.0.1";
 
-        private static final String DELIMITER_OPT = "d";
+        private static final String DELIMITER_OPT = "del";
         private static final String DELIMITER_OPT_LONG = "delimiter";
 
         private static final String IP_OPT = "i";
