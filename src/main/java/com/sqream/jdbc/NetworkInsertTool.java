@@ -1,6 +1,5 @@
 package com.sqream.jdbc;
 
-import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
@@ -42,7 +41,6 @@ public class NetworkInsertTool {
                 CSVReader csvReader = new CSVReaderBuilder(reader).withCSVParser(new CSVParserBuilder().withSeparator(arguments.delimiter).build()).build()){
 
                 String[] csvLine;
-                int statementsInBatch = 0;
 
                 while ((csvLine = csvReader.readNext()) != null) {
                     for (int i=0; i < numberOfColumns; i++) {
