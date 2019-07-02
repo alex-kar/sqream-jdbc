@@ -168,9 +168,11 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 				throw new SQLException("error", "Got " + logTypes
 						+ " and couldn't find TABLE or VIEW");
 			}
-		} else {
+		} 
+		else {
 			strTypes = "*";
 		}
+		
 		String sql = "select get_tables(" + CheckNull(catalog) + ","
 				+ CheckNull(schemaPattern) + ",'*'," + CheckNull(strTypes)
 				+ ")";

@@ -10,10 +10,11 @@ val json_str = """{"queryTypeNamed":[{"isTrueVarChar":false,"name":"?column?","n
 val json_lst = Json.parse(json_str).asObject().get("queryTypeNamed").asArray()
 
 val is_tvc = json_lst.get(0).asObject().get("isTrueVarChar")
+val bla = json_lst.get(0).asObject().get("shoko")
 
 
-println(is_tvc)
+println(json_lst.size())
 
 
-Object json_object;
+// Object json_object;
 // json_object = Json.parse(json).asObject();

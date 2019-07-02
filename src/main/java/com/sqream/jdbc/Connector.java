@@ -174,10 +174,10 @@ public class Connector {
     String json_wrapper = "Java.asJSONCompatible({0})";
     //@SuppressWarnings("rawtypes") // Remove "Map is a raw type"  warning
     //https://stackoverflow.com/questions/2770321/what-is-a-raw-type-and-why-shouldnt-we-use-it
-    Map<String, Object> response_json, col_data;
-    JSONListAdapter query_type; // JSONListAdapter represents a list inside a JSON
-    JSONListAdapter col_type_data; 
-    JSONListAdapter fetch_sizes;
+    // Map<String, Object> col_data;  // response_json
+    JsonObject response_json, col_data;
+    // JSONListAdapter col_type_data, query_type,  fetch_sizes;   // JSONListAdapter represents a list inside a JSON
+    JsonArray fetch_sizes, query_type, col_type_data;
     Map<String, String> prepare_map;
     
     // Message sending related
@@ -590,13 +590,18 @@ public class Connector {
     
     // (1) 
     //@SuppressWarnings("rawtypes")  // Remove "Map is a raw type" warning
-    Map<String,Object> _parse_sqream_json(String json) throws ScriptException, ConnException { 
+    // Map<String,Object>
+    JsonObject _parse_sqream_json(String json) throws ScriptException, ConnException { 
     	
     	String error;
     	
-    	response_json = (Map<String, Object>) engine.eval(MessageFormat.format(json_wrapper, json));
-        if (response_json.containsKey("error")) {
-            error = (String)response_json.get("error");
+    	// response_json = (Map<String, Object>) engine.eval(MessageFormat.format(json_wrapper, json));
+    	response_json = Json.parse(json).asObject();
+    	
+    	//if (response_json.containsKey("error")) {
+		if (response_json.get("error") != null) {
+            //error = (String)response_json.get("error");
+            error = response_json.get("error").asString();
             
             if (!error.contains("stop_statement could not find a statement"))
         		throw new ConnException("Error from SQream:" + error);
@@ -604,6 +609,13 @@ public class Connector {
     	
     	return response_json;
     }
+    
+    
+
+	// Usage:
+	// JsonArray json_lst = Json.parse(json_str).asObject().get("queryTypeNamed").asArray();
+    // boolean is_tvc = json_lst.get(0).asObject().get("isTrueVarChar").asBoolean();
+	//
     
     
     Boolean _validate_open(String statement_type) throws ConnException {
@@ -700,8 +712,9 @@ public class Connector {
     
     // ()  /* Unpack the json of column data arriving via queryType/(named). Called by prepare()  */
     //@SuppressWarnings("rawtypes") // "Map is a raw type" @ col_data = (Map)query_type.get(idx);
-    void _parse_query_type(JSONListAdapter query_type) throws IOException, ScriptException{
-        
+    // void _parse_query_type(JSONListAdapter query_type) throws IOException, ScriptException{
+    void _parse_query_type(JsonArray query_type) throws IOException, ScriptException{
+
         row_length = query_type.size();
         if(row_length ==0)
             return;
@@ -719,16 +732,18 @@ public class Connector {
         // An internal item looks like: {"isTrueVarChar":false,"nullable":true,"type":["ftInt",4,0]}
         for(int idx=0; idx < row_length; idx++) {
             // Parse JSON to correct objects
-            col_data = (Map<String,Object>)query_type.get(idx);
-            col_type_data = (JSONListAdapter)col_data.get("type"); // type is a list of 3 items
-            
+            // col_data = (Map<String,Object>)query_type.get(idx);
+            // col_type_data = (JSONListAdapter)col_data.get("type"); // type is a list of 3 items
+            col_data = query_type.get(idx).asObject();
+        	col_type_data = col_data.get("type").asArray(); // type is a list of 3 items
+
             // Assign data from parsed JSON objects to metadata arrays
-            col_nullable.set(idx, (boolean)col_data.get("nullable")); 
-            col_tvc.set(idx, (boolean)col_data.get("isTrueVarChar")); 
-            col_names[idx] = statement_type.equals("SELECT") ? (String)col_data.get("name"): "denied";
+            col_nullable.set(idx, (boolean)col_data.get("nullable").asBoolean()); 
+            col_tvc.set(idx, (boolean)col_data.get("isTrueVarChar").asBoolean()); 
+            col_names[idx] = statement_type.equals("SELECT") ? (String)col_data.get("name").asString(): "denied";
             col_names_map.put(col_names[idx].toLowerCase(), idx +1);
-            col_types[idx] = (String) col_type_data.get(0);
-            col_sizes[idx] = (int) col_type_data.get(1);
+            col_types[idx] = (String) col_type_data.get(0).asString();
+            col_sizes[idx] = (int) col_type_data.get(1).asInt();
         }
         
         // Create Storage for insert / select operations
@@ -776,8 +791,12 @@ public class Connector {
         
         // Send fetch request and get metadata on data to be received
         response_json = _parse_sqream_json(_send_message(form_json("fetch"), true));
-        new_rows_fetched = (int) response_json.get("rows");
-        fetch_sizes =  (JSONListAdapter) response_json.get("colSzs");  // Chronological sizes of all rows recieved, only needed for nvarchars
+        //new_rows_fetched = (int) response_json.get("rows");
+        new_rows_fetched = response_json.get("rows").asInt();
+
+        // fetch_sizes =  (JSONListAdapter) response_json.get("colSzs");  // Chronological sizes of all rows recieved, only needed for nvarchars
+        fetch_sizes =  response_json.get("colSzs").asArray();  // Chronological sizes of all rows recieved, only needed for nvarchars
+
         if (new_rows_fetched == 0)
             return new_rows_fetched;
         
@@ -785,7 +804,7 @@ public class Connector {
         // All buffers in a single array to use SocketChannel's read(ByteBuffer[] dsts)
         fetch_buffers = new ByteBuffer[fetch_sizes.size()]; 
         for (int idx=0; idx < fetch_sizes.size(); idx++) 
-            fetch_buffers[idx] = ByteBuffer.allocateDirect((int)fetch_sizes.get(idx)).order(ByteOrder.LITTLE_ENDIAN);
+            fetch_buffers[idx] = ByteBuffer.allocateDirect((int)fetch_sizes.get(idx).asInt()).order(ByteOrder.LITTLE_ENDIAN);
             
         // Sort buffers to appropriate arrays (row_length determied during _query_type())
         for (int idx=0, buf_idx = 0; idx < row_length; idx++, buf_idx++) {  
@@ -886,9 +905,10 @@ public class Connector {
         
         String connStr = MessageFormat.format(connectDatabase, database, user, password, service);
         response_json = _parse_sqream_json(_send_message(connStr, true));
-        connection_id = (int) response_json.get("connectionId"); 
-        varchar_encoding = (String)response_json.getOrDefault("varcharEncoding", "ascii");
-    	varchar_encoding = (varchar_encoding.contains("874"))? "cp874" : "ascii";
+        connection_id = (int) response_json.get("connectionId").asInt(); 
+        // varchar_encoding = (String)response_json.getOrDefault("varcharEncoding", "ascii");
+        varchar_encoding = (String)response_json.getString("varcharEncoding", "ascii");
+        varchar_encoding = (varchar_encoding.contains("874"))? "cp874" : "ascii";
         
         return connection_id;
     }
@@ -905,8 +925,9 @@ public class Connector {
     	open_statement = true;
 
         // Get statement ID, send prepareStatement and get response parameters
-        statement_id = (int) _parse_sqream_json(_send_message(form_json("getStatementId"), true)).get("statementId");
-        
+        //statement_id = (int) _parse_sqream_json(_send_message(form_json("getStatementId"), true)).get("statementId");
+        statement_id = _parse_sqream_json(_send_message(form_json("getStatementId"), true)).get("statementId").asInt();
+
         // Generating a valid json string via external library
         JsonObject prepare_jsonify;
         try
@@ -929,11 +950,19 @@ public class Connector {
         response_json =  _parse_sqream_json(_send_message(prepareStr, true));
         
         // Parse response parameters
+        /*
         listener_id =   (int) response_json.get("listener_id");
         port =          (int) response_json.get("port");
         port_ssl =      (int) response_json.get("port_ssl");
         reconnect =     (boolean) response_json.get("reconnect");
         ip =            (String) response_json.get("ip");
+        //*/
+        
+        listener_id =   (int) response_json.get("listener_id").asInt();
+        port =          (int) response_json.get("port").asInt();
+        port_ssl =      (int) response_json.get("port_ssl").asInt();
+        reconnect =     (boolean) response_json.get("reconnect").asBoolean();
+        ip =            (String) response_json.get("ip").asString();
         
         port = use_ssl ? port_ssl : port; 
         // Reconnect and reestablish statement if redirected by load balancer
@@ -958,11 +987,13 @@ public class Connector {
          
         // Getting query type manouver and setting the type of query
         _validate_response(_send_message(form_json("execute"), true), form_json("executed"));  
-        query_type =  (JSONListAdapter)_parse_sqream_json(_send_message(form_json("queryTypeIn"), true)).get("queryType");
-        
+        // query_type =  (JSONListAdapter)_parse_sqream_json(_send_message(form_json("queryTypeIn"), true)).get("queryType");
+        query_type = _parse_sqream_json(_send_message(form_json("queryTypeIn"), true)).get("queryType").asArray();
+
         if (query_type.isEmpty()) {
-            query_type =  (JSONListAdapter)_parse_sqream_json(_send_message(form_json("queryTypeOut"), true)).get("queryTypeNamed");
-            statement_type = query_type.isEmpty() ? "DML" : "SELECT";
+            //query_type =  (JSONListAdapter)_parse_sqream_json(_send_message(form_json("queryTypeOut"), true)).get("queryTypeNamed");
+            query_type = _parse_sqream_json(_send_message(form_json("queryTypeOut"), true)).get("queryTypeNamed").asArray();
+        	statement_type = query_type.isEmpty() ? "DML" : "SELECT";
         }
         else {
             statement_type = "INSERT";
