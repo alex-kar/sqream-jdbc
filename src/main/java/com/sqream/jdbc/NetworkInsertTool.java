@@ -22,7 +22,11 @@ import java.sql.Timestamp;
 public class NetworkInsertTool {
 
     private static final String NULL_ENTRY_STRING = "\\N";
-
+    
+    static void print(Object printable) {
+        System.out.println(printable);
+    }
+    
     public static void main(String[] args) throws SQLException, IOException{
         JDBCArgs arguments = new JDBCArgs(args);
         insertCsvToTable(arguments);
@@ -34,9 +38,9 @@ public class NetworkInsertTool {
         try(Connection connection = DriverManager.getConnection(arguments.getConnectionURL(), arguments.user, arguments.password);
             Reader reader = Files.newBufferedReader(arguments.csvPath)){
 
-            ArrayList<Integer> columnTypes = getColumnTypes(connection, arguments.table);
+            ArrayList<Integer> columnTypes = getColumnTypes(connection, arguments.schema, arguments.database, arguments.table);
             int numberOfColumns = columnTypes.size();
-
+            
             try(PreparedStatement ps = connection.prepareStatement(buildInsertStatementBase(arguments, numberOfColumns));
                 CSVReader csvReader = new CSVReaderBuilder(reader).withCSVParser(new CSVParserBuilder().withSeparator(arguments.delimiter).build()).build()){
 
@@ -55,8 +59,8 @@ public class NetworkInsertTool {
 
     }
 
-    private static ArrayList<Integer> getColumnTypes(Connection connection, String table) throws SQLException{
-        ResultSet columns = connection.getMetaData().getColumns(null, null, table, "%");
+    private static ArrayList<Integer> getColumnTypes(Connection connection, String schema, String database, String table) throws SQLException{
+        ResultSet columns = connection.getMetaData().getColumns(database, schema, table, "%");
         ArrayList<Integer> columnTypes = new ArrayList<>();
         while(columns.next()){
             columnTypes.add(columns.getInt("DATA_TYPE"));
@@ -115,6 +119,7 @@ public class NetworkInsertTool {
         Character delimiter;
         String ip;
         String port;
+        String schema = "public";
         String database;
         String table;
         String user;
@@ -137,7 +142,10 @@ public class NetworkInsertTool {
 
         private static final String DBNAME_OPT = "d";
         private static final String DBNAME_OPT_LONG = "database";
-
+        
+        private static final String SCHEMA_OPT = "s";
+        private static final String SCHEMA_OPT_LONG = "schema";
+        
         private static final String TABLENAME_OPT = "t";
         private static final String TABLENAME_OPT_LONG = "table";
 
@@ -147,7 +155,7 @@ public class NetworkInsertTool {
         private static final String PASSWORD_OPT = "pw";
         private static final String PASSWORD_OPT_LONG = "pass";
 
-        private static final String SERVICE_OPT = "s";
+        private static final String SERVICE_OPT = "se";
         private static final String SERVICE_OPT_LONG = "service";
 
         private static final String CLUSTER_OPT = "c";
@@ -188,6 +196,7 @@ public class NetworkInsertTool {
 
                 port = cmd.getOptionValue(PORT_OPT);
                 database = cmd.getOptionValue(DBNAME_OPT);
+                schema = cmd.getOptionValue(SCHEMA_OPT);
                 table = cmd.getOptionValue(TABLENAME_OPT);
                 user = cmd.getOptionValue(USER_OPT);
                 password = cmd.getOptionValue(PASSWORD_OPT);
@@ -246,6 +255,8 @@ public class NetworkInsertTool {
             addOption(PORT_OPT, PORT_OPT_LONG, true, "sqreamd port", true, options);
 
             addOption(DBNAME_OPT, DBNAME_OPT_LONG, true, "sqream database name", true, options);
+
+            addOption(SCHEMA_OPT, SCHEMA_OPT_LONG, true, "sqream schema name", false, options);
 
             addOption(TABLENAME_OPT, TABLENAME_OPT_LONG, true, "sqream table name", true, options);
 
