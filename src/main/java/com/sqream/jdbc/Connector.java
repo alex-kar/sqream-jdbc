@@ -146,6 +146,8 @@ public class Connector {
     int connection_id = -1;
     int statement_id = -1;
     static Charset UTF8 = StandardCharsets.UTF_8;
+    boolean charitable = false;
+    int msg_len;
     
     // Connection related
     SocketChannel s = SocketChannel.open();
@@ -181,7 +183,7 @@ public class Connector {
     ByteBuffer message_buffer;
     ByteBuffer response_buffer = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
     ByteBuffer header = ByteBuffer.allocateDirect(10).order(ByteOrder.LITTLE_ENDIAN);
-    ByteBuffer response_message;
+    ByteBuffer response_message = ByteBuffer.allocateDirect(1000 * 1024).order(ByteOrder.LITTLE_ENDIAN);;
     int message_length, bytes_read;
     String response_string;
     boolean fetch_msg = false;
@@ -667,8 +669,10 @@ public class Connector {
         
         // Sending null for data will get us here directly, allowing to only get socket response if needed
         if(get_response) {
-            response_message = ByteBuffer.allocate(_get_parse_header());
-            bytes_read = (use_ssl) ? ss.read(response_message) : s.read(response_message);
+        	msg_len = _get_parse_header();
+            //response_message = ByteBuffer.allocate(_get_parse_header());
+        	response_message.clear();
+        	bytes_read = (use_ssl) ? ss.read(response_message) : s.read(response_message);
             response_message.flip();
 	    if (bytes_read == -1) {
                 throw new IOException("Socket closed");
