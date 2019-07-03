@@ -560,8 +560,10 @@ class SQResultSet implements ResultSet {
 		
 		if (RemoveSpaces && res != null) 
 			res = res.trim();
-		
-		
+		/*
+		if (type.equals("ftBool")) 
+			res = res.equals("0") ? "false" : "true";
+		//*/
 		isNull = (res == null) ? true : false;
 		
 		return (res == null) ? null : res;
@@ -600,8 +602,10 @@ class SQResultSet implements ResultSet {
 		if (RemoveSpaces && res != null) 
 			res = res.trim();
 		
+		/*
 		if (type.equals("ftBool")) 
 			res = res.equals("0") ? "false" : "true";
+		//*/
 		
 		isNull = (res == null) ? true : false;
 		
