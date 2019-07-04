@@ -672,12 +672,26 @@ public class Connector {
         // Sending null for data will get us here directly, allowing to only get socket response if needed
         if(get_response) {
         	msg_len = _get_parse_header();
-            response_message = ByteBuffer.allocate(Math.max(64000, msg_len));
+            response_message = ByteBuffer.allocate(msg_len);
+			ByteBuffer tmp_message = ByteBuffer.allocate(msg_len);
         	response_message.clear();
-        	//response_message.limit(msg_len);
-        	bytes_read = (use_ssl) ? ss.read(response_message) : s.read(response_message);
-        	if (response_message.position() != msg_len)
-		    	print ("Json header inidcated size of " + msg_len + " but got " + response_message.position());
+        	response_message.limit(msg_len);
+        	//bytes_read = (use_ssl) ? ss.read(response_message) : s.read(response_message);
+  //      	if (response_message.position() != msg_len)
+//		    	print ("Json header inidcated size of " + msg_len + " but got " + response_message.position());
+            int numLeft = msg_len;
+      		int len = 0;
+	        int numBytes = 0;
+     		do {
+            	bytes_read = (use_ssl) ? ss.read(tmp_message) : s.read(tmp_message);
+            	response_message.position(len);
+                len += bytes_read;
+           		numLeft -= bytes_read;
+                tmp_message.flip();
+                response_message.put(tmp_message);
+                tmp_message.clear();
+       		} while(bytes_read > 0 && len < msg_len);
+            //} while(false);
         	response_message.flip();
              // print ("response message buffer position: " + response_message.position());
 		    if (bytes_read == -1) {
