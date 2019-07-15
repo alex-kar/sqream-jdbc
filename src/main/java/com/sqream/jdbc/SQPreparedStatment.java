@@ -176,6 +176,17 @@ public class SQPreparedStatment implements PreparedStatement {
 		} setCounter++; 
     }
     
+    /*
+    public void setByte(int arg0, short arg1) throws SQLException {
+        
+    	try {
+			Client.set_short(arg0, arg1);
+		} catch (ConnException e) {
+			e.printStackTrace();
+		} setCounter++; 
+    }
+    //*/
+    
     @Override
     public void setShort(int arg0, short arg1) throws SQLException {
 	    try {
@@ -225,10 +236,10 @@ public class SQPreparedStatment implements PreparedStatement {
     }
     
     @Override
-    public void setDate(int colNum, Date date) throws SQLException {
+    public void setDate(int col_num, Date date) throws SQLException {
         // TODO Auto-generated method stub
         try {
-			Client.set_date(colNum, date);
+			Client.set_date(col_num, date);
 		} catch (UnsupportedEncodingException | ConnException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -236,13 +247,13 @@ public class SQPreparedStatment implements PreparedStatement {
     }
 
     @Override
-    public void setDate(int colNum, Date date, Calendar cal) throws SQLException {
+    public void setDate(int col_num, Date date, Calendar cal) throws SQLException {
         throw  new SQLFeatureNotSupportedException("setDate with calendar parameter");
 
     	/*
     	try {
         	ZonedDateTime zonedDate = Instant.ofEpochMilli(date.getTime()).atZone(cal.getTimeZone().toZoneId()); 
-			Client.set_date(colNum, Date.valueOf(zonedDate.toLocalDate()));
+			Client.set_date(col_num, Date.valueOf(zonedDate.toLocalDate()));
 		} catch (UnsupportedEncodingException | ConnException e) {
 			e.printStackTrace();
 		} setCounter++;
@@ -250,22 +261,22 @@ public class SQPreparedStatment implements PreparedStatement {
     }
     
     @Override
-    public void setTimestamp(int colNum, Timestamp datetime) throws SQLException {
+    public void setTimestamp(int col_num, Timestamp datetime) throws SQLException {
         
     	try {
-			Client.set_datetime(colNum, datetime);
+			Client.set_datetime(col_num, datetime);
 		} catch (UnsupportedEncodingException | ConnException e) {
 			e.printStackTrace();
 		} setCounter++; 
     }
 
     @Override
-    public void setTimestamp(int colNum, Timestamp datetime, Calendar cal) throws SQLException {
+    public void setTimestamp(int col_num, Timestamp datetime, Calendar cal) throws SQLException {
         throw  new SQLFeatureNotSupportedException("setTimestamp with calendar parameter");
     	/*
     	try {
         	ZonedDateTime zonedDate = datetime.toInstant().atZone(cal.getTimeZone().toZoneId()); 
-			Client.set_datetime(colNum, Timestamp.valueOf(zonedDate.toLocalDateTime()));
+			Client.set_datetime(col_num, Timestamp.valueOf(zonedDate.toLocalDateTime()));
 		} catch (UnsupportedEncodingException | ConnException e) {
 			e.printStackTrace();
 		} setCounter++;
@@ -273,18 +284,18 @@ public class SQPreparedStatment implements PreparedStatement {
     }
     
     @Override
-    public void setString(int arg0, String arg1) throws SQLException {
+    public void setString(int col_num, String value) throws SQLException {
         
-    	String type = getMetaData().getColumnTypeName(arg0);
+    	String type = getMetaData().getColumnTypeName(col_num);
         if (type.equals("Varchar"))
 			try {
-				Client.set_varchar(arg0, arg1);
+				Client.set_varchar(col_num, value);
 			} catch (ConnException | UnsupportedEncodingException e) {
 				e.printStackTrace();
 			}
 		else if (type.equals("NVarchar"))
 			try {
-				Client.set_nvarchar(arg0, arg1);
+				Client.set_nvarchar(col_num, value);
 			} catch (UnsupportedEncodingException | ConnException e) {
 				e.printStackTrace();
 			}
@@ -293,44 +304,44 @@ public class SQPreparedStatment implements PreparedStatement {
     }
 
     @Override
-    public void setNString(int arg0, String arg1) throws SQLException {
+    public void setNString(int col_num, String arg1) throws SQLException {
         try {
-			Client.set_nvarchar(arg0, arg1);
+			Client.set_nvarchar(col_num, arg1);
 		} catch (UnsupportedEncodingException | ConnException e) {
 			e.printStackTrace();
 		} setCounter++; 
     }
     
     @Override
-    public void setNull(int arg0, int arg1) throws SQLException {
+    public void setNull(int col_num, int arg1) throws SQLException {
         
     	String type = "";
     	
     	try {
-    	    type = Client.get_col_type(arg0);
+    	    type = Client.get_col_type(col_num);
     	  	
     	    if (type.equals("ftBool")) 
-    	  		Client.set_boolean(arg0, null);
+    	  		Client.set_boolean(col_num, null);
       		else if (type.equals("ftUByte"))
-      			Client.set_ubyte(arg0, null);
+      			Client.set_ubyte(col_num, null);
       		else if (type.equals("ftShort")) 
-      			Client.set_short(arg0, null);
+      			Client.set_short(col_num, null);
       		else if (type.equals("ftInt")) 	
-      			Client.set_int(arg0, null);
+      			Client.set_int(col_num, null);
       		else if (type.equals("ftLong")) 
-      			Client.set_long(arg0, null);
+      			Client.set_long(col_num, null);
       		else if (type.equals("ftFloat")) 
-      			Client.set_float(arg0, null);
+      			Client.set_float(col_num, null);
       		else if (type.equals("ftDouble"))
-      			Client.set_double(arg0, null);
+      			Client.set_double(col_num, null);
       		else if (type.equals("ftDate")) 
-      			Client.set_date(arg0, null);
+      			Client.set_date(col_num, null);
       		else if (type.equals("ftDateTime"))
-      			Client.set_datetime(arg0, null);
+      			Client.set_datetime(col_num, null);
       		else if (type.equals("ftVarchar")) 
-      			Client.set_varchar(arg0, null);
+      			Client.set_varchar(col_num, null);
       		else if (type.equals("ftBlob")) 	
-      			Client.set_nvarchar(arg0, null);
+      			Client.set_nvarchar(col_num, null);
   		
     	    setCounter++;   
         } catch (ConnException | UnsupportedEncodingException e) {
@@ -339,28 +350,28 @@ public class SQPreparedStatment implements PreparedStatement {
     }
 
     @Override
-    public void setObject(int colIndex, Object value) throws SQLException {
+    public void setObject(int col_num, Object value) throws SQLException {
         
         if (value instanceof Boolean) {
-            setBoolean(colIndex, ((Boolean) value).booleanValue());
+            setBoolean(col_num, ((Boolean) value).booleanValue());
         } else if (value instanceof Byte) {
-            setByte(colIndex, ((Byte) value).byteValue());
+            setByte(col_num, ((Byte) value).byteValue());
         } else if (value instanceof Short) {
-            setShort(colIndex, ((Short) value).shortValue());
+            setShort(col_num, ((Short) value).shortValue());
         } else if (value instanceof Integer) {
-            setInt(colIndex, ((Integer) value).intValue());
+            setInt(col_num, ((Integer) value).intValue());
         } else if (value instanceof Long) {
-            setLong(colIndex, ((Long) value).longValue());
+            setLong(col_num, ((Long) value).longValue());
         } else if (value instanceof Float) {
-            setFloat(colIndex, ((Float) value).floatValue());
+            setFloat(col_num, ((Float) value).floatValue());
         } else if (value instanceof Double) {
-            setDouble(colIndex, ((Double) value).doubleValue());
+            setDouble(col_num, ((Double) value).doubleValue());
         }  else if (value instanceof Date) {
-            setDate(colIndex, (Date) value);
+            setDate(col_num, (Date) value);
         } else if (value instanceof Timestamp) {
-            setTimestamp(colIndex, (Timestamp) value);
+            setTimestamp(col_num, (Timestamp) value);
         } else if (value instanceof String) {
-            setString(colIndex, (String) value);
+            setString(col_num, (String) value);
         } else 
             throw new SQLException("Type for setObject not supported");
     }
@@ -519,7 +530,7 @@ public class SQPreparedStatment implements PreparedStatement {
     
     @Override
     public ParameterMetaData getParameterMetaData() throws SQLException {
-        throw new SQLFeatureNotSupportedException("getParameterMetaData in SQPreparedStatement");
+    	return new SQParameterMetaData(Client);
     }
     
     // Unsupported

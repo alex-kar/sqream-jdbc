@@ -88,7 +88,6 @@ public class SQConnection implements Connection {
     Properties connInfo;
     String db_name;
     String DEFAULT_SERVICE = "sqream";
-    
 	public SQConnection(Connector client) throws IOException {
 		globalClient = client;
 	}
@@ -172,6 +171,8 @@ public class SQConnection implements Connection {
 		sqlb.Use_ssl=use_ssl;
 		sqlb.service = service;
 		IsClosed.set(false);
+		
+		
 	}
 
 

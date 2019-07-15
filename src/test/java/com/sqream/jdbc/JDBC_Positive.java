@@ -154,7 +154,8 @@ public class JDBC_Positive {
     	conn = DriverManager.getConnection(url,"sqream","sqream");
     	
     }
-    
+     
+ 
     public boolean bool_as_string() throws SQLException {
     	
     	boolean a_ok = false;

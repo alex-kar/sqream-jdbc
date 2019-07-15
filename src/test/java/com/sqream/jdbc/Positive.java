@@ -78,6 +78,49 @@ public class Positive {
 		return System.currentTimeMillis();
 	}
 	
+	public boolean varchar_encoding() throws Exception, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException  {
+	    /* Test that get_varchar returns corect results for all types */
+		
+		boolean a_ok = false;
+		Connector conn = new Connector("127.0.0.1", 5000, false, false);
+		conn.connect("master", "sqream", "sqream", "sqream");
+		
+		// Prepare Table
+		String sql = "create or replace table varcs (v varchar(10))";
+		conn.execute(sql);		
+		conn.close();
+		
+		String val = "";
+		if (conn.varchar_encoding.equals("ascii"))
+			val = "bla";
+		else if (conn.varchar_encoding.equals("cp874"))
+			val = "chinky_bla";
+		else
+			throw new Exception ("unknown varchar encoding passed: " + conn.varchar_encoding);
+		
+		// Insert data
+		sql = "insert into varcs values (?)";
+		conn.execute(sql);		
+		conn.set_varchar(1, val);
+		conn.close();
+		
+		// Retrieve and compare
+		sql = "select * from mcVarc";
+		conn.execute(sql);		
+		conn.next();  
+		String res = conn.get_varchar(1);
+		conn.close();
+		if ((conn.varchar_encoding.equals("ascii") && res.equals("bla")) || 
+			(conn.varchar_encoding.equals("cp874") && res.equals("chinky_bla")))
+			a_ok = true;
+		else
+			throw new Exception ("bad result retrieved in Thai varchar test");
+
+		// System.out.println(a_ok);
+		return a_ok;
+	}
+	
+	
 	public boolean test_varchar() throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException  {
 	    /* Test that get_varchar returns corect results for all types */
 		
@@ -428,15 +471,15 @@ public class Positive {
 		 String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(4)", "date", "datetime"};
 		
 		if (!pos_tests.test_varchar())
-			throw new java.lang.RuntimeException("get_varchar test failed");
+			throw new RuntimeException("get_varchar test failed");
 		 //*
 		for (String col_type : typelist)
 			if(!pos_tests.insert(col_type))  
-				throw new java.lang.RuntimeException("Not all type checks returned identical");
+				throw new RuntimeException("Not all type checks returned identical");
 		//*
 		try {
 			pos_tests.autoflush(1000000, 50000);
-		}catch (java.lang.ArrayIndexOutOfBoundsException e) {
+		}catch (ArrayIndexOutOfBoundsException e) {
 			System.out.println("Correct error on overflowing buffer with addBatch()");
 		}   //*/ 
     	

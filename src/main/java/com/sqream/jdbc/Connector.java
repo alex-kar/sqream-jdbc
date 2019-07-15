@@ -165,6 +165,7 @@ public class Connector {
     String service = "sqream";
     boolean use_ssl;
     
+    boolean IS_PARAMETRIZED_QUERY = false;
     // Reconnecting parameters that don't appear before that stage
     int listener_id;
     int port_ssl;
@@ -1363,6 +1364,12 @@ public class Connector {
     
      
     public boolean set_short(int col_num, Short value) throws ConnException {   col_num--;  // set / get work with starting index 1
+    	/*
+    	if (col_types[col_num].equals("ftUByte")) {
+    		if (value < 0 || value > 255)
+    			throw new ConnException("SQream tinyint (ubyte) column supports values between 0 and 255. Got: " + value);
+    		data_columns[col_num].put(_validate_set(col_num, value, "ftUByte") ? 0 : (byte) (value & 0xFF));
+    	} //*/
     	_validate_index(col_num);
         // Set actual value
         data_columns[col_num].putShort(_validate_set(col_num, value, "ftShort") ? 0 : value);
@@ -1535,8 +1542,6 @@ public class Connector {
     }
         
     public String get_col_type(int col_num) throws ConnException {  
-        
-    	
     	
         return col_types[_validate_col_num(col_num)];
     }
