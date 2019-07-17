@@ -54,30 +54,44 @@ public class SampleTest {
         String sql_src, sql_dst;
         long start;
         
-        sql_src = "create or replace table reals (r real)";
+        
+        sql_src = "create or replace table bla.t1 (x int)";
         stmt = conn_dst.createStatement();
         stmt.execute(sql_src);
         stmt.close();
         
-        sql_src = "insert into reals values (?)";
-        ps = conn_dst.prepareStatement(sql_src);
-        for(int i=0; i < 1; i++) {
-            ps.setFloat(1, (float)4.8973569869995117);
-            ps.addBatch();
-        }
-        ps.executeBatch();  // Should be done automatically
-        ps.close();
+        sql_src = "create or replace table bla2.t1 (x int)";
+        stmt = conn_dst.createStatement();
+        stmt.execute(sql_src);
+        stmt.close();
         
-        sql_src = "select * from reals";
+        sql_src = "insert into bla.t1 values (1)";
+        stmt = conn_dst.createStatement();
+        stmt.execute(sql_src);
+        stmt.close();
+        
+        sql_src = "insert into bla2.t1 values (1)";
+        stmt = conn_dst.createStatement();
+        stmt.execute(sql_src);
+        stmt.close();
+        
+        sql_src = "select * from bla.t1";
         stmt = conn_dst.createStatement();
         rs = stmt.executeQuery(sql_src);
         while(rs.next()) {
-           print ("result float: " + rs.getFloat(1));
+           print ("result from bla.t1: " + rs.getInt(1));
         }
         rs.close();
         stmt.close();
         
-        
+        sql_src = "select * from bla2.t1";
+        stmt = conn_dst.createStatement();
+        rs = stmt.executeQuery(sql_src);
+        while(rs.next()) {
+           print ("result from bla2.t1: " + rs.getInt(1));
+        }
+        rs.close();
+        stmt.close();
         
         /*
         dbmeta = conn.getMetaData();

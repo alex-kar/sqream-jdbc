@@ -46,8 +46,8 @@ public class SQParameterMetaData implements ParameterMetaData{
 	    	 throw new SQLException("null connector object passed to SQParameterMetaData");
 	     
 	     conn = _conn;
-	     // If paramtered and insert - network insert, query type data is our params
-    	 param_count = (conn.IS_PARAMETRIZED_QUERY == true && conn.get_query_type().equals("INSERT")) ? conn.get_row_length() : 0;
+	     // A query is marked "INSERT" in Connector.java when we get a non-empty queryTypeIn - network insert
+    	 param_count = (conn.get_query_type().equals("INSERT")) ? conn.get_row_length() : 0;
     	 
 	  }
 	  
