@@ -491,8 +491,6 @@ public class SQConnection implements Connection {
 	@Override
 	public void setTransactionIsolation(int level) throws SQLException { 
 		log("inside setTransactionIsolation SQConnection");
-		if (printouts) System.out.println("setTransactionIsolation");
-		throw new SQLFeatureNotSupportedException("setTransactionIsolation in SQConnection");
 	}
 
 	@Override
