@@ -11,6 +11,7 @@ import java.util.stream.IntStream;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ParameterMetaData;
 import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
@@ -155,7 +156,99 @@ public class JDBC_Positive {
     	
     }
      
- 
+    public boolean parameter_metadata() throws SQLException {
+        /*  Check if charitable behavior works - not closing statement before starting the next one   */
+        
+   	 boolean a_ok = true;
+        
+        // Create some user defined functions
+        conn = DriverManager.getConnection(url,"sqream","sqream");
+        String sql = "create or replace table test_parameter(x varchar (10), y int, z bool)";
+        ps = conn.prepareStatement(sql);
+        ParameterMetaData params = ps.getParameterMetaData();
+        int count = params.getParameterCount() ;
+        if (count != 0) {
+        	print ("Should have 0 parameter count on a DML query, but got: " + count);
+        	a_ok = false;
+        }
+    	ps.close();
+               
+        sql = "insert into test_parameter values ('bla', 6, true)";
+        ps = conn.prepareStatement(sql);
+        params = ps.getParameterMetaData();
+        count = params.getParameterCount() ;
+        if (count != 0) {
+        	print ("Should have 0 parameter count on a regular insert query, but got: " + count);
+	        a_ok = false;
+	    }
+        ps.close();
+        
+        sql = "insert into test_parameter values (?, ?, ?)";
+        ps = conn.prepareStatement(sql);
+        params = ps.getParameterMetaData();
+        count = params.getParameterCount() ;
+        if (count != 3) {
+        	print ("Should have 3 parameter count on a network insert, but got: " + count);
+        	a_ok = false;
+        }
+        
+    	if (!params.getParameterClassName(1).equals("denied") || !params.getParameterClassName(2).equals("denied") || !params.getParameterClassName(3).equals("denied")) {
+    		print ("Network insert doesn't return column names, but got: " + params.getParameterClassName(1) + " and others");
+        	a_ok = false;
+    	}
+    	
+    	//params.getParameterType(1)
+    	if (params.getPrecision(1) != 10 || params.getPrecision(2) != 4 || params.getPrecision(3) != 1){
+    		print ("Bad precision returned from parameter test");
+        	a_ok = false;
+    	}
+    	
+    	if (!params.getParameterTypeName(1).equals("ftVarchar") || !params.getParameterTypeName(2).equals("ftInt") || !params.getParameterTypeName(3).equals("ftBool")) {
+    		print ("Bad taypenames returned: " + params.getParameterTypeName(3) + " and others");
+        	a_ok = false;
+    	}
+    	
+    	//params.getParameterType(1)
+    	if (params.isSigned(1) != false || params.isSigned(2) != true || params.isSigned(3) != false){
+    		print ("Bad values returned on isSigned() parameter metadata test");
+        	a_ok = false;
+    	}
+    	
+    	ps.close();
+        
+        
+        return a_ok;
+    }
+    
+    
+    public boolean not_closing() throws SQLException {
+        /*  Check if charitable behavior works - not closing statement before starting the next one   */
+        
+   	    boolean a_ok = false;
+        
+        // Create some user defined functions
+        conn = DriverManager.getConnection(url,"sqream","sqream");
+        String sql = "select 1";
+        stmt = conn.createStatement();
+        stmt.execute(sql);
+        // stmt.close();
+               
+        sql = "select 2";
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(sql);
+
+        rs.next();
+
+        if (rs.getInt(1) == 2)
+        	a_ok = true;
+        rs.close();
+        stmt.close();
+        
+        
+        return a_ok;
+    }
+    
+    
     public boolean bool_as_string() throws SQLException {
     	
     	boolean a_ok = false;
@@ -827,16 +920,15 @@ public class JDBC_Positive {
         //String[] typelist = {"varchar(100)", "nvarchar(100)"}; //"nvarchar(100)"
         
         //String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
-        
+        print ("parameter metadata test: " + (pos_tests.parameter_metadata() ? "OK" : "Fail"));
+        /*
         print ("logging is off test:" + (pos_tests.is_logging_off() ? "OK" : "Fail"));
         print ("boolean as string test - " + (pos_tests.bool_as_string() ? "OK" : "Fail"));
-        //*
         print ("Cast test - " + (pos_tests.casted_gets() ? "OK" : "Fail"));
         // print ("timeZones test - " + (pos_tests.timeZones() ? "OK" : "Fail"));
         print ("getUDF test - " + (pos_tests.getUDF() ? "OK" : "Fail"));
         print ("isSigned test - " + (pos_tests.isSigned() ? "OK" : "Fail"));
         print ("Execute batch test - " + (pos_tests.execBatchRes() ? "OK" : "Fail"));
-        //*/
         //*
         for (String col_type : typelist)
             if(!pos_tests.insert(col_type))  

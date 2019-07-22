@@ -36,8 +36,9 @@ public class SQParameterMetaData implements ParameterMetaData{
 		    { "ftDate", Types.DATE }, 
 		    { "ftDateTime", Types.TIMESTAMP }, 
 		    { "ftVarchar", Types.VARCHAR }, 
-		    { "ftVarchar", Types.NVARCHAR }, 
+		    { "ftBlob", Types.NVARCHAR }, 
 		}).collect(Collectors.toMap(data -> (String) data[0], data -> (Integer) data[1]));
+	  
 	  
 	  
 	  public SQParameterMetaData(Connector _conn) throws SQLException {
@@ -60,19 +61,21 @@ public class SQParameterMetaData implements ParameterMetaData{
 		  return true;
 	  }
 	  
+	  
 	  @Override
 	  public int getParameterCount() {
 		  
 	     return param_count;
 	  }
 
+	  
 	  @Override
 	  public String getParameterClassName(int param_index) throws SQLException {
 	    
 		_validate_index(param_index);
 	    
 	    try {
-	    	param_name =  conn.get_col_name(param_index - 1);
+	    	param_name =  conn.get_col_name(param_index);
 		} catch (ConnException e) {
 			e.printStackTrace();
 			throw new SQLException ("Connector exception when trying to get parameter name in SQParameterMetaData:\n" + e);
@@ -81,19 +84,21 @@ public class SQParameterMetaData implements ParameterMetaData{
 	    return param_name;
 	  }
 	  
+	  
 	  @Override
 	  public int getParameterType(int param_index) throws SQLException {
 	   
 		_validate_index(param_index);
 		
 		try {
-			param_type = conn.get_col_type(param_index -1);
+			param_type = conn.get_col_type(param_index);
 		} catch (ConnException e) {
 			e.printStackTrace();
 		}
 	    
 	    return sqream_to_sql.get(param_type);
 	  }
+	  
 	  
 	  // ParameterModes explained here - 
 	  // https://docs.oracle.com/javase/tutorial/jdbc/basics/storedprocedures.html
@@ -106,18 +111,20 @@ public class SQParameterMetaData implements ParameterMetaData{
 		  return ParameterMetaData.parameterModeIn;
 	  }
 	  
+	  
 	  @Override
 	  public int getPrecision(int param_index) throws SQLException {
 	    
 		  _validate_index(param_index);
 		  
 		  try {
-				return conn.get_col_size(param_index -1);
+				return conn.get_col_size(param_index);
 			} catch (ConnException e) {
 				e.printStackTrace();
 				throw new SQLException ("Connector exception when trying to check parameter precision in SQParameterMetaData:\n" + e);
 			}
 	  }
+	  
 	  
 	  @Override
 	  public int getScale(int param_index) throws SQLException {
@@ -125,7 +132,7 @@ public class SQParameterMetaData implements ParameterMetaData{
 		_validate_index(param_index);
 		  
 	    try {
-			param_type = conn.get_col_type(param_index -1);
+			param_type = conn.get_col_type(param_index);
 		} catch (ConnException e) {
 			e.printStackTrace();
 		}
@@ -140,13 +147,14 @@ public class SQParameterMetaData implements ParameterMetaData{
 	    return param_scale;
 	  }
 	  
+	  
 	  @Override
 	  public int isNullable(int param_index) throws SQLException {
 	    
 		  _validate_index(param_index);
 	    
 	    try {
-	    	is_param_nullable =  conn.is_col_nullable(param_index - 1);
+	    	is_param_nullable =  conn.is_col_nullable(param_index);
 		} catch (ConnException e) {
 			e.printStackTrace();
 			throw new SQLException ("Connector exception when trying to get parameter nullability in SQParameterMetaData:\n" + e);
@@ -162,7 +170,7 @@ public class SQParameterMetaData implements ParameterMetaData{
 		  _validate_index(param_index);
 		  
 		  try {
-			  param_type =  conn.get_col_type(param_index - 1);
+			  param_type =  conn.get_col_type(param_index);
 			} catch (ConnException e) {
 				e.printStackTrace();
 				throw new SQLException ("Connector exception when trying to get parameter type name in SQParameterMetaData:\n" + e);
@@ -171,13 +179,14 @@ public class SQParameterMetaData implements ParameterMetaData{
 		    return param_type;
 	  }
 	  
+	  
 	  @Override
 	  public boolean isSigned(int param_index) throws SQLException {
 	    
 		  _validate_index(param_index);  
 	    
         try {
-			return Arrays.asList("ftShort", "ftInt", "ftLong", "ftFloat", "ftDouble").contains(conn.get_col_type(param_index -1));
+			return Arrays.asList("ftShort", "ftInt", "ftLong", "ftFloat", "ftDouble").contains(conn.get_col_type(param_index));
 		} catch (ConnException e) {
 			e.printStackTrace();
 			throw new SQLException ("Connector exception when trying to check if parameter is signed in SQParameterMetaData:\n" + e);
@@ -185,12 +194,14 @@ public class SQParameterMetaData implements ParameterMetaData{
 	  
 	  }
 
+	  
 	  // Methods inherited from interface java.sql.Wrapper
 	  @Override
 	  public boolean isWrapperFor(Class<?> iface) throws SQLException {
 	    
 		  return iface.isAssignableFrom(getClass());
 	  }
+	  
 	  
 	  // Methods inherited from interface java.sql.Wrapper
 	  @Override
