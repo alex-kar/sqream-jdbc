@@ -17,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.DatabaseMetaData;    // for getTables test
 import java.sql.ResultSetMetaData;
+import java.sql.Types;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -161,9 +162,9 @@ public class JDBC_Positive {
         
    	 boolean a_ok = true;
         
-        // Create some user defined functions
+        // Count test - DML
         conn = DriverManager.getConnection(url,"sqream","sqream");
-        String sql = "create or replace table test_parameter(x varchar (10), y int, z bool)";
+        String sql = "create or replace table test_parameter(x varchar (10), y int not null , z bool)";
         ps = conn.prepareStatement(sql);
         ParameterMetaData params = ps.getParameterMetaData();
         int count = params.getParameterCount() ;
@@ -172,7 +173,8 @@ public class JDBC_Positive {
         	a_ok = false;
         }
     	ps.close();
-               
+       
+    	// Count test - regular insert
         sql = "insert into test_parameter values ('bla', 6, true)";
         ps = conn.prepareStatement(sql);
         params = ps.getParameterMetaData();
@@ -183,9 +185,11 @@ public class JDBC_Positive {
 	    }
         ps.close();
         
+        // Network insert - an actual paramtered query
         sql = "insert into test_parameter values (?, ?, ?)";
         ps = conn.prepareStatement(sql);
         params = ps.getParameterMetaData();
+        
         count = params.getParameterCount() ;
         if (count != 3) {
         	print ("Should have 3 parameter count on a network insert, but got: " + count);
@@ -194,6 +198,24 @@ public class JDBC_Positive {
         
     	if (!params.getParameterClassName(1).equals("denied") || !params.getParameterClassName(2).equals("denied") || !params.getParameterClassName(3).equals("denied")) {
     		print ("Network insert doesn't return column names, but got: " + params.getParameterClassName(1) + " and others");
+        	a_ok = false;
+    	}
+    	
+    	if (params.getScale(1) != 0 || params.getScale(2) != 0 || params.getScale(3) != 0){
+    		// 4 on float, 8 on double, 0 elsewhere
+    		print ("Bad scale returned: " + params.getScale(2));
+        	a_ok = false;
+    	}
+    	
+    	if (params.isNullable(1) != ParameterMetaData.parameterNullable || params.isNullable(2) != ParameterMetaData.parameterNullableUnknown || params.isNullable(3) != ParameterMetaData.parameterNullable){
+    		// int column is not nullable
+    		print ("Bad isNullable returned: " + params.isNullable(1));
+        	a_ok = false;
+    	}
+    	
+    	if (params.getParameterType(1) != Types.VARCHAR || params.getParameterType(2) != Types.INTEGER || params.getParameterType(3) != Types.BOOLEAN){
+    		// int column is not nullable
+    		print ("Bad parameter type returned: " + params.isNullable(1));
         	a_ok = false;
     	}
     	
