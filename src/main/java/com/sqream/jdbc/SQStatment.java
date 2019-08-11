@@ -1,7 +1,14 @@
 package com.sqream.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
+
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
@@ -10,11 +17,16 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.script.ScriptException;
+import javax.swing.JOptionPane;
 
 import com.sqream.jdbc.Connector;
 import com.sqream.jdbc.Connector.ConnException;
+
 
 
 public class SQStatment implements Statement {
@@ -31,17 +43,43 @@ public class SQStatment implements Statement {
     enum statementType {DML, INSERT, SELECT};
     String db_name;
     boolean is_closed = true;
+    boolean logging = true;
+    Path SQStatement_log = Paths.get("/tmp/SQStatement.txt");
+    static int log_g_id = 0;
+    int id_for_log;
+    
     	
+    boolean log(String line) throws SQLException {
+		if (!logging)
+			return true;
+
+		try {
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");  
+		    LocalDateTime now = LocalDateTime.now();  
+			Files.write(SQStatement_log, Arrays.asList(new String[] {dtf.format(now) + " " +  line}), UTF_8, CREATE, APPEND);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new SQLException ("Error writing to SQStatement_log log");
+		}
+
+		return true;
+	}
+    
 	public SQStatment(Connector client,SQConnection conn, String catalog) throws NumberFormatException,
 			UnknownHostException, IOException, 
 			SQLException, KeyManagementException, NoSuchAlgorithmException, ScriptException, ConnException {
 		
 		Connection=conn;
+		id_for_log = log_g_id++;
+		log("Statement constructor, log id: " + id_for_log +  ", id:" + statement_id);
 		db_name = catalog;
 		Client = new Connector(conn.sqlb.ip, conn.sqlb.port, conn.sqlb.Cluster, conn.sqlb.Use_ssl);
 		Client.connect(conn.sqlb.DB_name, conn.sqlb.User, conn.sqlb.Password, conn.sqlb.service);
 		is_closed = false;
 	}
+	
+	
+	
 	
 	static void print(Object printable) {
 	        System.out.println(printable);
@@ -55,6 +93,7 @@ public class SQStatment implements Statement {
 	@Override
 	public void cancel() throws SQLException  {
 		
+		log("Statement cancel, log id: " + id_for_log +  ", id:" + statement_id);
 		if (Client.IsCancelStatement.getAndSet(true))
 			return;
 		
@@ -69,7 +108,8 @@ public class SQStatment implements Statement {
 		try {
 			cancel = new Connector(Connection.sqlb.ip, Connection.sqlb.port, Connection.sqlb.Cluster, Connection.sqlb.Use_ssl);
 			cancel.connect(Connection.sqlb.DB_name, Connection.sqlb.User, Connection.sqlb.Password, Connection.sqlb.service);
-			cancel.execute(sql);	
+			log("Cancel");
+			cancel._execute(sql);	
 			Client.open_statement = false;
 		}catch (IOException | ConnException | ScriptException | NoSuchAlgorithmException | KeyManagementException e) {
 			e.printStackTrace();
@@ -100,6 +140,7 @@ public class SQStatment implements Statement {
 	@Override
 	public void close() throws SQLException {
 		try {
+			log("Statement close, log id: " + id_for_log +  ", id:" + statement_id + ", is_closed: " + is_closed);
 			if(Client !=null && Client.is_open()) {
 				if (Client.is_open_statement())
 					Client.close();
@@ -146,7 +187,10 @@ public class SQStatment implements Statement {
 		else
 
 			try {
-				statement_id = Client.execute(sql);
+	            System.out.println("java is fun"); 
+				log("Statement execute, log id: " + id_for_log +  ", id:" + statement_id + " sql: " + sql);
+				
+				statement_id = Client._execute(sql);
 				
 				// Omer and Razi - support cancel
 				if (IsCancelStatement.get()) {
@@ -160,22 +204,50 @@ public class SQStatment implements Statement {
 
 				SQRS = new SQResultSet(Client, db_name);
 				SQRS.MaxRows = SIZE_RESULT;
+//			} catch (SQLException e1) {
+//				log("catch SQLException");
+//				throw new SQLException("Other text");
+//			} catch (ConnException e2) {
+//				log("catch ConnException");
+				
+			} catch (ConnException e1) {
+				log("catch ConnException");
+				String message = e1.getMessage();
+	        	throw new SQLException("can not execute - " + message.substring(0, Math.min(message.length(), 10000) ));
+				//throw new SQLException("can not execute - " + e1.getMessage());
+		
+			} catch (ScriptException e2) {
+				log("catch Script");
+				throw new SQLException("Script_yigalk");
+
 			} catch (Exception e) {
-				e.printStackTrace();
-				if (e.getMessage().contains("stopped by user")
-						|| e.getMessage().contains("cancelled by user")) {
-					throw new SQLException("Statement cancelled by user");
-				} else {
-					throw new SQLException("can not execute - "
-							+ e.getMessage());
-				}
+				log("catch");
+//				e.printStackTrace();
+//				if (e.getMessage().contains("stopped by user")
+//						|| e.getMessage().contains("cancelled by user")) {
+//					throw new SQLException("Statement cancelled by user");
+//				} else {
+//					log("Catch else");
+
+					String outpt_msg =  "can not execute - ";
+					
+					//throw new SQLException("can not execute - ");
+							//	+ e.getMessage());
+					throw new SQLException(outpt_msg);
+			
+//				catch (Exception e1) {
+//					log("inner catch");
+//					throw new SQLException("inner catch " + e1.getMessage());
+//				}
+//				}
 
 			}
+			
 		return result;
 	}
 
 	/*
-	private void execute_set(String sql) throws ConnException, SQLException, KeyManagementException, NoSuchAlgorithmException, ScriptException {
+	private void _executeset(String sql) throws ConnException, SQLException, KeyManagementException, NoSuchAlgorithmException, ScriptException {
 		try {
 			Client.execute(sql);
 			// SqrmRespPrepareSql ps=
@@ -202,8 +274,8 @@ public class SQStatment implements Statement {
 	public ResultSet executeQuery(String sql) throws SQLException {
 		try {
 
-            			
-			statement_id = Client.execute(sql);
+			log("Statement executeQuery, log id: " + id_for_log +  ", id:" + statement_id);
+			statement_id = Client._execute(sql);
 			
 			// BG-1742 hack for workbench data tag , close statement after size
 			// of rows
@@ -228,6 +300,7 @@ public class SQStatment implements Statement {
 
 		} catch (IOException | ConnException | ScriptException e) {
 			// TODO Auto-generated catch block
+			
 			throw new SQLException(e);
 		}
 
@@ -238,7 +311,8 @@ public class SQStatment implements Statement {
 	public int executeUpdate(String sql) throws SQLException {
 
 		try {
-			statement_id =Client.execute(sql);
+			log("executeUpdate");
+			statement_id =Client._execute(sql);
 		} catch (IOException | ConnException | ScriptException e) {			
 			throw new SQLException(e);
 		} 

@@ -1,12 +1,19 @@
 package com.sqream.jdbc;
 
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Array;
@@ -36,8 +43,9 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
-
+import java.time.format.DateTimeFormatter;
 
 import com.sqream.jdbc.Connector;
 import com.sqream.jdbc.Connector.ConnException;
@@ -61,6 +69,27 @@ public class SQPreparedStatment implements PreparedStatement {
         System.out.println(printable);
     }
     
+    boolean logging = true;
+    Path SQStatement_log = Paths.get("/tmp/SQPreparedStatment.txt");
+
+    	
+    boolean log(String line) throws SQLException {
+		if (!logging)
+			return true;
+
+		try {
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");  
+		    LocalDateTime now = LocalDateTime.now();  
+			Files.write(SQStatement_log, Arrays.asList(new String[] {dtf.format(now) + " " +  line}), UTF_8, CREATE, APPEND);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new SQLException ("Error writing to SQPreparedStatment log");
+		}
+
+		return true;
+	}
+    
+    
     
     
     public SQPreparedStatment(Connector client, String Sql, SQConnection conn, String catalog) throws SQLException, IOException, KeyManagementException, NoSuchAlgorithmException, ScriptException, ConnException {
@@ -71,7 +100,18 @@ public class SQPreparedStatment implements PreparedStatement {
         Client = new Connector(Connection.sqlb.ip, Connection.sqlb.port, conn.sqlb.Cluster, Connection.sqlb.Use_ssl);
         Client.connect(Connection.sqlb.DB_name, Connection.sqlb.User, Connection.sqlb.Password, "sqream");  // default service
         sql = Sql;
-        statement_id = Client.execute(sql);
+        log("SQPreparedStatment" + sql);
+        try {
+        	statement_id = Client._execute(sql);
+        }
+        catch (ConnException e) {
+        	log("catched exception" + e.getMessage());
+        	String message = e.getMessage();
+        	throw new SQLException("very weird" + message.substring(0, Math.min(message.length(), 8000) ));
+        }
+        catch (ScriptException e1) {
+        	throw new SQLException("Weirddd");
+        }
         metaData = new SQResultSetMetaData(Client, Connection.sqlb.DB_name);
     }
 

@@ -21,6 +21,8 @@ import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
 import javax.script.ScriptException;
@@ -40,7 +42,10 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	Path SQDatabaseMetaData_log = Paths.get("/tmp/SQDatabaseMetaData.txt");
 	boolean log(String line) throws SQLException {
 		try {
-			Files.write(SQDatabaseMetaData_log, Arrays.asList(new String[] {line}), UTF_8, CREATE, APPEND);
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");  
+		    LocalDateTime now = LocalDateTime.now();  
+		    
+			Files.write(SQDatabaseMetaData_log, Arrays.asList(new String[] {dtf.format(now) + " " + line}), UTF_8, CREATE, APPEND);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new SQLException ("Error writing to SQDatabaseMetaData log");
@@ -77,8 +82,17 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 		
 		Connector client = new Connector(Conn.sqlb.ip, Conn.sqlb.port, Conn.sqlb.Cluster, Conn.sqlb.Use_ssl);
 		client.connect(Conn.sqlb.DB_name, Conn.sqlb.User, Conn.sqlb.Password, Conn.sqlb.service);
-		client.execute(sql);
+		log("metadataStatement " + sql);
 		
+		try {
+        	client._execute(sql);
+        }
+        catch (ConnException e) {
+        	throw new SQLException(e);
+        }
+		catch (ScriptException e1) {
+        	throw new SQLException("Weirddd222");
+        }
 		return new SQResultSet(client, db_name, true);
 	}
 

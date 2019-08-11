@@ -52,13 +52,13 @@ public class Negative {
     	// Prepare Table
 //    	System.out.println(" - Create Table t_" + table_type);
     	String sql = MessageFormat.format("create or replace table t_{0} (x {1})", table_name, table_type);
-		conn.execute(sql);
+		conn._execute(sql);
 		conn.close();
 		
 		// Insert using wrong statement
 //		System.out.println(" - Insert test value " + table_type);
 		sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-		conn.execute(sql);
+		conn._execute(sql);
 		if (table_type == "bool")
 			try {
 				conn.set_ubyte(1, test_ubyte);
@@ -177,14 +177,14 @@ public class Negative {
     	// Prepare Table
     	System.out.println(" - Create Table t_" + table_type);
     	String sql = MessageFormat.format("create or replace table t_{0} (x {1})", table_name, table_type);
-		conn.execute(sql);
+		conn._execute(sql);
 		conn.close();
 		//Random r = new Random();
 		
 		// Insert value
 		System.out.println(" - Insert test value " + table_type);
 		sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-		conn.execute(sql);
+		conn._execute(sql);
 		if (table_type == "bool") 
 			conn.set_boolean(1, test_bool);
 		else if (table_type == "tinyint") 
@@ -214,7 +214,7 @@ public class Negative {
 		// Retreive using wrong statement
 		System.out.println(" - Getting " + table_type + " value back");
 		sql = MessageFormat.format("select * from t_{0}", table_name);
-		conn.execute(sql);
+		conn._execute(sql);
 		// int res = conn.get_int(1);
 		//*
 		while(conn.next())
@@ -349,7 +349,7 @@ public class Negative {
     	// Prepare Table
     	//System.out.println(" - Create Table t_" + table_type);
     	String sql = MessageFormat.format("create or replace table t_{0} (x {1})", tableName, table_type);
-		conn.execute(sql);
+		conn._execute(sql);
 		conn.close();
 		
 		// Insert a String that is too long - attempts kept for future reference
@@ -365,7 +365,7 @@ public class Negative {
 			for (byte bad: bad_ubytes) {
 				System.out.println(" - Insert negative tinyint");
 				sql = MessageFormat.format("insert into t_{0} values (?)", tableName);
-				conn.execute(sql);
+				conn._execute(sql);
 				
 				try {
 					System.out.println("Attempted bad insert value: " + bad);
@@ -387,7 +387,7 @@ public class Negative {
 			for (String bad: badVarchars) {
 				System.out.println(" - Insert oversized test value of type " + tableName + " of size " + varcharLen);
 				sql = MessageFormat.format("insert into t_{0} values (?)", tableName);
-				conn.execute(sql);
+				conn._execute(sql);
 				
 				try {
 					System.out.println("Attempted bad insert value: " + bad);
@@ -406,7 +406,7 @@ public class Negative {
 			for (Date bad: badDates) {
 				System.out.println(" - Insert negative/huge long for date");
 				sql = MessageFormat.format("insert into t_{0} values (?)", tableName);
-				conn.execute(sql);
+				conn._execute(sql);
 				
 				try {
 					System.out.println("Attempted bad insert value: " + bad);

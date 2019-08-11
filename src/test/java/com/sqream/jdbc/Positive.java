@@ -87,17 +87,17 @@ public class Positive {
 		
 		// Prepare Table
 		String sql = "create or replace table mcVarc (t_bool bool, t_ubyte tinyint, t_short smallint, t_int int, t_long bigint, t_float real, t_double double, t_date date, t_datetime datetime, t_varchar varchar(10), t_nvarchar nvarchar(10))";
-		conn.execute(sql);		
+		conn._execute(sql);		
 		conn.close();
 		
 		// Insert data
 		sql = "insert into mcVarc values (false, 14, 140, 1400, 14000000, 14.1, 14.12345, '2013-11-23', '2013-11-23 14:56:47.1', 'wuzz', 'up')";
-		conn.execute(sql);		
+		conn._execute(sql);		
 		conn.close();
 		
 		// Retrieve and compare
 		sql = "select * from mcVarc";
-		conn.execute(sql);		
+		conn._execute(sql);		
 		
 		while(conn.next()) { 
 			String res = conn.get_nvarchar(11);
@@ -143,7 +143,7 @@ public class Positive {
     	// Prepare Table
 //    	System.out.println(" - Create Table t_" + table_type);
     	String sql = MessageFormat.format("create or replace table t_{0} (x {1})", table_name, table_type);
-		conn.execute(sql);		
+		conn._execute(sql);		
 		
 		conn.close();
 		
@@ -153,7 +153,7 @@ public class Positive {
 			for (boolean test : test_bools) {
 				test_bool = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				 
 				conn.set_boolean(1, test_bool); 
 				send_and_retreive_result (conn, table_name, table_type);
@@ -162,7 +162,7 @@ public class Positive {
 			for (byte test : test_ubytes) {
 				test_ubyte = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				 
 				conn.set_ubyte(1, test_ubyte);
 				send_and_retreive_result (conn, table_name, table_type); 
@@ -171,7 +171,7 @@ public class Positive {
 			for (short test : test_shorts) {
 				test_short = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				
 				conn.set_short(1, test_short);
 				send_and_retreive_result (conn, table_name, table_type);
@@ -180,7 +180,7 @@ public class Positive {
 			for (int test : test_ints) {
 				test_int = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				conn.set_int(1, test_int);
 				send_and_retreive_result (conn, table_name, table_type); 
 				a_ok = is_identical(table_type);}
@@ -188,7 +188,7 @@ public class Positive {
 			for (long test : test_longs) {
 				test_long = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				 
 				conn.set_long(1, test_long);
 				send_and_retreive_result (conn, table_name, table_type); 
@@ -197,7 +197,7 @@ public class Positive {
 			for (float test : test_reals) {
 				test_real = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				
 				conn.set_float(1, test_real);
 				send_and_retreive_result (conn, table_name, table_type);
@@ -206,7 +206,7 @@ public class Positive {
 			for (double test : test_doubles) {
 				test_double = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				
 				conn.set_double(1, test_double);
 				send_and_retreive_result (conn, table_name, table_type); 
@@ -215,7 +215,7 @@ public class Positive {
 			for (String test : test_varchars) {
 				test_varchar = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				
 				conn.set_varchar(1, test_varchar);
 				send_and_retreive_result (conn, table_name, table_type); 
@@ -224,7 +224,7 @@ public class Positive {
 			for (String test : test_varchars) {
 				test_varchar = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				 
 				conn.set_nvarchar(1, test_nvarchar);
 				send_and_retreive_result (conn, table_name, table_type); 
@@ -233,7 +233,7 @@ public class Positive {
 			for (Date test : test_dates) {
 				test_date = test;
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				 
 				conn.set_date(1, test_date);
 				send_and_retreive_result (conn, table_name, table_type); 
@@ -243,7 +243,7 @@ public class Positive {
 				test_datetime = test;
 				//System.out.println("datetime: " + test_datetime);
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
-				conn.execute(sql);
+				conn._execute(sql);
 				
 				conn.set_datetime(1, test_datetime);
 				send_and_retreive_result (conn, table_name, table_type); 
@@ -260,7 +260,7 @@ public class Positive {
 		// Retreive
 		// System.out.println(" - Getting " + table_type + " value back for value");
 		String sql = MessageFormat.format("select * from t_{0}", table_name);
-		conn.execute(sql);		
+		conn._execute(sql);		
 		
 		//System.out.println("type_out: " + type_out);
 		
@@ -349,12 +349,12 @@ public class Positive {
     	//System.out.println(" - Create Table t_" + table_type);
     	String sql = MessageFormat.format("create or replace table t_{0} (x {0})", table_type);
     	sql = "create or replace table test (x int, y nvarchar(50))";
-		conn.execute(sql);		
+		conn._execute(sql);		
 		conn.close();
     	
 		//System.out.println(" - Insert " + table_type + " " + total_inserts + " times");
 		sql = MessageFormat.format("insert into test values (?, ?)", table_type);
-		conn.execute(sql);
+		conn._execute(sql);
 		 
 		int multi_row_value = 8;
 		String multi_row_string = "koko";
