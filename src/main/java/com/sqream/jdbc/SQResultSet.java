@@ -1,11 +1,18 @@
 package com.sqream.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -22,6 +29,8 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -29,10 +38,12 @@ import javax.script.ScriptException;
 
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 //import java.time.ZoneId;
 //import java.time.OffsetDateTime;   // For OffsetDateTime.now().getOffset() to get the machine's offset
 //import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 import com.sqream.jdbc.Connector;
 import com.sqream.jdbc.Connector.ConnException;
@@ -51,6 +62,25 @@ class SQResultSet implements ResultSet {
 	boolean RemoveSpaces = false;
 	boolean isNull = true;
     boolean is_closed = true;
+    boolean logging = true;
+    Path SQResults_log = Paths.get("/tmp/SQResultSet.txt");
+       
+    	
+    boolean log(String line) throws SQLException {
+		if (!logging)
+			return true;
+
+		try {
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");  
+		    LocalDateTime now = LocalDateTime.now();  
+			Files.write(SQResults_log, Arrays.asList(new String[] {dtf.format(now) + " " +  line}), UTF_8, CREATE, APPEND);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new SQLException ("Error writing to SQResults_log log");
+		}
+
+		return true;
+	}
 
 
 	static void print(Object printable) {
@@ -427,6 +457,16 @@ class SQResultSet implements ResultSet {
         /*throw  new SQLFeatureNotSupportedException("getDate with calendar parameter");*/
 
 		try {
+			String strdate = null;
+			//SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+			if (cal != null) {
+				strdate = cal.getTimeZone().toZoneId().toString();
+				log("Calendar: " + strdate);
+			}
+			else {
+				log("Calendar: null");
+			}
+			
 			Date res = Client.get_date(columnLabel.toLowerCase());
 			if (res != null) {
 				ZonedDateTime zonedDate = Instant.ofEpochMilli(res.getTime()).atZone(cal.getTimeZone().toZoneId());
@@ -447,6 +487,15 @@ class SQResultSet implements ResultSet {
         /*throw  new SQLFeatureNotSupportedException("getDate with calendar parameter");*/
 
 		try {
+			String strdate = null;
+			//SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+			if (cal != null) {
+				strdate = cal.getTimeZone().toZoneId().toString();
+				log("Calendar: " + strdate);
+			}
+			else {
+				log("Calendar: null");
+			}
 			Date res = Client.get_date(columnIndex);
 			if (res != null) {
 				ZonedDateTime zonedDate = Instant.ofEpochMilli(res.getTime()).atZone(cal.getTimeZone().toZoneId());
@@ -492,6 +541,15 @@ class SQResultSet implements ResultSet {
         /*throw  new SQLFeatureNotSupportedException("getTimestamp with calendar parameter");*/
 
 		try {
+			String strdate = null;
+			//SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+			if (cal != null) {
+				strdate = cal.getTimeZone().toZoneId().toString();
+				log("Calendar: " + strdate);
+			}
+			else {
+				log("Calendar: null");
+			}
 			Timestamp utcDateTime = Client.get_datetime(columnIndex);
 			if (utcDateTime!= null) {
 				Instant instant = utcDateTime.toLocalDateTime().atZone(cal.getTimeZone().toZoneId()).toInstant();
@@ -512,6 +570,15 @@ class SQResultSet implements ResultSet {
 
 
 		try {
+			String strdate = null;
+			//SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
+			if (cal != null) {
+				strdate = cal.getTimeZone().toZoneId().toString();
+				log("Calendar: " + strdate);
+			}
+			else {
+				log("Calendar: null");
+			}
 			Timestamp utcDateTime = Client.get_datetime(columnLabel.toLowerCase());
 			if (utcDateTime!= null) {
 				Instant instant = utcDateTime.toLocalDateTime().atZone(cal.getTimeZone().toZoneId()).toInstant();
