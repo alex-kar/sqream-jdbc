@@ -77,7 +77,17 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 		
 		Connector client = new Connector(Conn.sqlb.ip, Conn.sqlb.port, Conn.sqlb.Cluster, Conn.sqlb.Use_ssl);
 		client.connect(Conn.sqlb.DB_name, Conn.sqlb.User, Conn.sqlb.Password, Conn.sqlb.service);
-		client.execute(sql);
+		try {
+			client.execute(sql);
+		}
+		 catch (ConnException e) {
+        	String message = e.getMessage();
+        	throw new SQLException(message.substring(0, Math.min(message.length(), 6000) ));
+        }
+        catch (ScriptException e1) {
+        	String message = e1.getMessage();
+        	throw new SQLException(message.substring(0, Math.min(message.length(), 6000) ));
+        }
 		
 		return new SQResultSet(client, db_name, true);
 	}

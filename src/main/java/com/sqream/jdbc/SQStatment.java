@@ -166,10 +166,11 @@ public class SQStatment implements Statement {
 						|| e.getMessage().contains("cancelled by user")) {
 					throw new SQLException("Statement cancelled by user");
 				} else {
-					throw new SQLException("can not execute - "
-							+ e.getMessage());
+					String message = e.getMessage();
+		        	throw new SQLException("can not execute - " + message.substring(0, Math.min(message.length(), 6000) ));
+//					throw new SQLException("can not execute - "
+//							+ e.getMessage());
 				}
-
 			}
 		return result;
 	}

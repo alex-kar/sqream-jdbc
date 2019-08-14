@@ -71,7 +71,17 @@ public class SQPreparedStatment implements PreparedStatement {
         Client = new Connector(Connection.sqlb.ip, Connection.sqlb.port, conn.sqlb.Cluster, Connection.sqlb.Use_ssl);
         Client.connect(Connection.sqlb.DB_name, Connection.sqlb.User, Connection.sqlb.Password, "sqream");  // default service
         sql = Sql;
+        try {
         statement_id = Client.execute(sql);
+        }
+        catch (ConnException e) {
+        	String message = e.getMessage();
+        	throw new SQLException(message.substring(0, Math.min(message.length(), 6000) ));
+        }
+        catch (ScriptException e1) {
+        	String message = e1.getMessage();
+        	throw new SQLException(message.substring(0, Math.min(message.length(), 6000) ));
+        }
         metaData = new SQResultSetMetaData(Client, Connection.sqlb.DB_name);
     }
 

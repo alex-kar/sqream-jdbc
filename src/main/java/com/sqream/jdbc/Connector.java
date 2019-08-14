@@ -636,7 +636,7 @@ public class Connector {
             error = (String)response_json.get("error");
             
             if (!error.contains("stop_statement could not find a statement"))
-        		throw new ConnException("Error from SQream:" + error);
+            	throw new ConnException("Error from SQream:" + error.substring(0, Math.min(error.length(), 6000) ));
         }
     	
     	return response_json;
