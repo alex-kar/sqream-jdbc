@@ -88,7 +88,9 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
         	client._execute(sql);
         }
         catch (ConnException e) {
-        	throw new SQLException(e);
+        	log("catched exception" + e.getMessage());
+        	String message = e.getMessage();
+        	throw new SQLException("metadataStatement connException " + message.substring(0, Math.min(message.length(), 6000) ));
         }
 		catch (ScriptException e1) {
         	throw new SQLException("Weirddd222");

@@ -213,7 +213,7 @@ public class SQStatment implements Statement {
 			} catch (ConnException e1) {
 				log("catch ConnException");
 				String message = e1.getMessage();
-	        	throw new SQLException("can not execute - " + message.substring(0, Math.min(message.length(), 10000) ));
+	        	throw new SQLException("can not execute - " + message.substring(0, Math.min(message.length(), 6000) ));
 				//throw new SQLException("can not execute - " + e1.getMessage());
 		
 			} catch (ScriptException e2) {

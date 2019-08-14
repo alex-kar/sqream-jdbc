@@ -443,7 +443,7 @@ public class Connector {
     	return logging;
     }
 
-	boolean log(String line, String log_path) throws SQLException {
+	boolean log(String line, String log_path)  {
 		if (!logging)
 			return true;
 
@@ -453,7 +453,7 @@ public class Connector {
 			Files.write(Paths.get(log_path), Arrays.asList(new String[] {dtf.format(now) + " " + line}), UTF_8, CREATE, APPEND);
 		} catch (IOException e) {
 			e.printStackTrace();
-			throw new SQLException ("Error writing to SQDriver log");
+			//throw new SQLException ("Error writing to SQDriver log");
 		}
 
 		return true;
@@ -628,7 +628,7 @@ public class Connector {
 
     // (1)
     //@SuppressWarnings("rawtypes")  // Remove "Map is a raw type" warning
-    Map<String,Object> _parse_sqream_json(String json) throws ScriptException, ConnException, SQLException {
+    Map<String,Object> _parse_sqream_json(String json) throws ScriptException, ConnException {
 
     	String error;
 
@@ -801,7 +801,7 @@ public class Connector {
     }
 
 
-    int _fetch() throws IOException, ScriptException, ConnException, SQLException {
+    int _fetch() throws IOException, ScriptException, ConnException {
         /* Request and get data from SQream following a SELECT query */
 
         // Send fetch request and get metadata on data to be received
@@ -897,7 +897,7 @@ public class Connector {
      *
      */
 
-    public int connect(String _database, String _user, String _password, String _service) throws SQLException, IOException, ScriptException, ConnException {
+    public int connect(String _database, String _user, String _password, String _service) throws  IOException, ScriptException, ConnException {
         //"'{'\"username\":\"{0}\", \"password\":\"{1}\", \"connectDatabase\":\"{2}\", \"service\":\"{3}\"'}'";
 
         database = _database;
@@ -916,7 +916,7 @@ public class Connector {
     }
 
 
-    public int _execute(String statement) throws IOException, ScriptException, ConnException, SQLException {
+    public int _execute(String statement) throws IOException, ScriptException, ConnException {
         /* getStatementId, prepareStatement, reconnect, execute, queryType  */
         charitable = true;
     	if (open_statement)
@@ -948,7 +948,7 @@ public class Connector {
         //String prepareStr = (String) engine.eval("JSON.stringify({prepareStatement: statement, chunkSize: 0})");
 
         String prepareStr = prepare_jsonify.toString(WriterConfig.MINIMAL);
-        log("prepare str" + statement, "/tmp/connector.txt");
+        log("prepare str " + statement, "/tmp/connector.txt");
         response_json =  _parse_sqream_json(_send_message(prepareStr, true));
         log("response paresd", "/tmp/connector.txt");
         // Parse response parameters
@@ -1002,7 +1002,7 @@ public class Connector {
     }
 
 
-    public boolean next() throws ConnException, IOException, ScriptException, SQLException {
+    public boolean next() throws ConnException, IOException, ScriptException {
         /* See that all needed buffers were set, flush if needed, nullify relevant
            counters */
 

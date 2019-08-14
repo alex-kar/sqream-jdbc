@@ -107,7 +107,7 @@ public class SQPreparedStatment implements PreparedStatement {
         catch (ConnException e) {
         	log("catched exception" + e.getMessage());
         	String message = e.getMessage();
-        	throw new SQLException("very weird" + message.substring(0, Math.min(message.length(), 8000) ));
+        	throw new SQLException("very weird" + message.substring(0, Math.min(message.length(), 6000) ));
         }
         catch (ScriptException e1) {
         	throw new SQLException("Weirddd");
