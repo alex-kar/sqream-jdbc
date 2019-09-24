@@ -912,8 +912,14 @@ public class Connector {
         return connection_id;
     }
     
-
+    
     public int execute(String statement) throws IOException, ScriptException, ConnException {
+    	/* Retains behavior of original execute()  */
+    	
+    	return execute(statement, 0);	
+    }
+    
+    public int execute(String statement, int chunk_size) throws IOException, ScriptException, ConnException {
         /* getStatementId, prepareStatement, reconnect, execute, queryType  */
         charitable = true;
     	if (open_statement)
@@ -932,7 +938,7 @@ public class Connector {
         {
 	        prepare_jsonify = Json.object()
 		    		.add("prepareStatement", statement)
-		    		.add("chunkSize", 0);  // Random chunkSize to remember it's not really used
+		    		.add("chunkSize", chunk_size);  // Random chunkSize to remember it's not really used
         }
     	catch(ParseException e)
         {
@@ -991,6 +997,16 @@ public class Connector {
         if (!statement_type.equals("DML"))  
             _parse_query_type(query_type);
         
+        // First fetch on the house, auto close statement if no data returned
+        if (statement_type.equals("SELECT")) {
+        	 total_rows_fetched = _fetch();
+        	 /* After _parse_query_type we have: 
+      	        row_counter = -1
+      	        total_rows_fetched = 0
+      	     */
+             if (row_counter == (total_rows_fetched -1)) 
+            	 close();    // No data in courtesy fetch, close statement
+    	}
         
         return statement_id;
     }
@@ -1210,7 +1226,7 @@ public class Connector {
     	_validate_index(col_num);
         // Get bytes the size of the varchar column into string_bytes
         if (col_calls[col_num]++ > 0) {
-	        // Resetting buffer position in csae someone runs the same get()
+	        // Resetting buffer position in case someone runs the same get()
 	        data_columns[col_num].position(data_columns[col_num].position() -col_sizes[col_num]);
         }
         data_columns[col_num].get(string_bytes, 0, col_sizes[col_num]);
