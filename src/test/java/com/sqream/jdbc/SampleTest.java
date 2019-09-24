@@ -24,6 +24,7 @@ public class SampleTest {
 
     Connection conn_src  = null;
     Connection conn_dst  = null;
+    Connection conn  = null;
     Statement stmt = null;
     ResultSet rs = null;
     DatabaseMetaData dbmeta = null;
@@ -49,9 +50,9 @@ public class SampleTest {
         
     	String url_dst = "jdbc:Sqream://192.168.1.4:5000/master;user=sqream;password=sqream;cluster=false;ssl=false";
         String url_src = "jdbc:mysql://127.0.0.1:3306/perf";
-    	conn_src = DriverManager.getConnection(url_src, "root","ssup");  
-        conn_dst = DriverManager.getConnection(url_dst,"sqream","sqream");
-
+    	//conn_src = DriverManager.getConnection(url_src, "root","ssup");  
+        //conn_dst = DriverManager.getConnection(url_dst,"sqream","sqream");
+        conn = DriverManager.getConnection(url_dst,"sqream","sqream");
         /*
         dbmeta = conn.getMetaData();
         rs = dbmeta.getTables("master", "public", "test" ,new String[] {"TABLE"} );
@@ -71,7 +72,7 @@ public class SampleTest {
 
         //rs = dbmeta.getColumns("master", "public", "test" , null );
         //*
-        String sql_src, sql_dst;
+        String sql_src, sql_dst, sql;
         long start;
         /*
         // Create a table on src and generate data
@@ -222,6 +223,27 @@ public class SampleTest {
         rs.close();
         stmt.close();
         //*/
+        
+        // Create a table on src and generate data
+        sql = "create or replace table test_autoclose (ints int)";
+        stmt = conn.createStatement();
+        stmt.execute(sql);
+        stmt.close();
+        
+        sql = "insert into test_autoclose values (1), (2), (3), (4), (5)";
+        stmt = conn.createStatement();
+        stmt.execute(sql);
+        stmt.close();
+        
+        /*
+        sql = "select * from test_autoclose where 1 = 0";
+        stmt = conn.prepareStatement(sql);
+        //*/
+        
+        //*
+        sql = "select * from test_autoclose";
+        stmt = conn.prepareStatement(sql);
+        //*/
     }     
     
     public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException{
@@ -229,11 +251,12 @@ public class SampleTest {
         // Load JDBC driver - not needed with newer version
         Class.forName("com.sqream.jdbc.SQDriver");
         //Class.forName("com.mysql.jdbc.Driver");  
-        print (new Timestamp(2354345345l));
-        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-        print (new Timestamp(2354345345l));
-        //SampleTest test = new SampleTest();   
-        //test.testJDBC();
+        //print (new Timestamp(2354345345l));
+        //TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        //print (new Timestamp(2354345345l));
+        
+        SampleTest test = new SampleTest();   
+        test.testJDBC();
     }
 }
 

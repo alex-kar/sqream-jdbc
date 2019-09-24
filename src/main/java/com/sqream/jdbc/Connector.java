@@ -916,11 +916,16 @@ public class Connector {
     public int execute(String statement) throws IOException, ScriptException, ConnException {
     	/* Retains behavior of original execute()  */
     	
-    	return execute(statement, 0);	
+    	int default_chunksize = 6;
+    	return execute(statement, default_chunksize);	
     }
     
     public int execute(String statement, int chunk_size) throws IOException, ScriptException, ConnException {
-        /* getStatementId, prepareStatement, reconnect, execute, queryType  */
+        
+    	if (chunk_size < 0)
+    		throw new ConnException("chunk_size should be positive, got " + chunk_size);
+    	
+    	/* getStatementId, prepareStatement, reconnect, execute, queryType  */
         charitable = true;
     	if (open_statement)
     		if (charitable)  // Automatically close previous unclosed statement
@@ -938,7 +943,7 @@ public class Connector {
         {
 	        prepare_jsonify = Json.object()
 		    		.add("prepareStatement", statement)
-		    		.add("chunkSize", chunk_size);  // Random chunkSize to remember it's not really used
+		    		.add("chunkSize", chunk_size);  
         }
     	catch(ParseException e)
         {
@@ -998,16 +1003,12 @@ public class Connector {
             _parse_query_type(query_type);
         
         // First fetch on the house, auto close statement if no data returned
+        //*
         if (statement_type.equals("SELECT")) {
-        	 total_rows_fetched = _fetch();
-        	 /* After _parse_query_type we have: 
-      	        row_counter = -1
-      	        total_rows_fetched = 0
-      	     */
-             if (row_counter == (total_rows_fetched -1)) 
+             if (_fetch() < (chunk_size == 0 ? 1 : chunk_size)) 
             	 close();    // No data in courtesy fetch, close statement
-    	}
-        
+        }
+        //*/
         return statement_id;
     }
     
