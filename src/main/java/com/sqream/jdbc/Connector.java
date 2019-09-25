@@ -935,7 +935,7 @@ public class Connector {
     public int execute(String statement) throws IOException, ScriptException, ConnException {
     	/* Retains behavior of original execute()  */
     	
-    	int default_chunksize = 6;
+    	int default_chunksize = (int) Math.pow(10,6);
     	return execute(statement, default_chunksize);	
     }
     

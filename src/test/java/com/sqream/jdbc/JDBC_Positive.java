@@ -4,7 +4,7 @@ import java.text.MessageFormat;
 import java.time.LocalTime;
 import java.util.Random;
 import java.util.UUID;
-
+import java.util.concurrent.TimeUnit;
 //import org.junit.Assert;
 //import org.junit.Test;
 import java.util.stream.IntStream;
@@ -112,6 +112,7 @@ public class JDBC_Positive {
 		return Date.valueOf(LocalDate.of(year, month, day));
 	}
 	
+	
 	static Timestamp datetime_from_tuple(int year, int month, int day, int hour, int minutes, int seconds, int ms) {
 			
 		return Timestamp.valueOf(LocalDateTime.of(LocalDate.of(year, month, day), LocalTime.of(hour, minutes, seconds, ms*(int)Math.pow(10, 6))));
@@ -142,9 +143,11 @@ public class JDBC_Positive {
 	    rs = stmt.executeQuery(sql);
 	    while(rs.next()) 
 	        rs.getInt(1);
-	    rs.close();
-	    stmt.close();
-	
+	    // rs.close();
+	    // stmt.close();
+	    
+	    //TimeUnit.SECONDS.sleep(1);
+	    
 	    return a_ok;
 	}
 	    
@@ -1034,7 +1037,7 @@ public class JDBC_Positive {
      }  
      */
     
-    public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException{
+    public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException, InterruptedException{
         
     	// Loading JDBC driver with a timezone test
     	ZoneId before_jdbc = ZoneId.systemDefault();
@@ -1048,8 +1051,9 @@ public class JDBC_Positive {
         //String[] typelist = {"varchar(100)", "nvarchar(100)"}; //"nvarchar(100)"
         
         //String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
+        
         print ("Pre fetch test - " + (pos_tests.pre_fetch() ? "OK" : "Fail"));
-        /*
+        
         print ("Display size test - " + (pos_tests.display_size() ? "OK" : "Fail"));
         print ("parameter metadata test: " + (pos_tests.parameter_metadata() ? "OK" : "Fail"));
         print ("logging is off test:" + (pos_tests.is_logging_off() ? "OK" : "Fail"));
