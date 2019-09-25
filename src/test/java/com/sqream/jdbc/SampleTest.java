@@ -52,7 +52,8 @@ public class SampleTest {
         String url_src = "jdbc:mysql://127.0.0.1:3306/perf";
     	//conn_src = DriverManager.getConnection(url_src, "root","ssup");  
         //conn_dst = DriverManager.getConnection(url_dst,"sqream","sqream");
-        conn = DriverManager.getConnection(url_dst,"sqream","sqream");
+    	String url_reg = "jdbc:Sqream://192.168.1.4:5000/developer_regression_query;user=sqream;password=sqream;cluster=false;ssl=false";
+        conn = DriverManager.getConnection(url_reg,"sqream","sqream");
         /*
         dbmeta = conn.getMetaData();
         rs = dbmeta.getTables("master", "public", "test" ,new String[] {"TABLE"} );
@@ -222,7 +223,22 @@ public class SampleTest {
         stmt.close();
         //*/
         
+        sql = "select case when xint2%2=0 then xtinyint end from t_a";
+        stmt = conn.createStatement();
+        rs = stmt.executeQuery(sql);
+        //*
+        while(rs.next()) 
+            print("row count: " + rs.getShort(1));
+        	//rs.getShort(1);  //*/
+        rs.close();
+        stmt.close();
+        //print ("bobo");
+        
+        
     }     
+    
+    
+    
     
     public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException{
         

@@ -1024,13 +1024,14 @@ public class Connector {
         
         // First fetch on the house, auto close statement if no data returned
         if (statement_type.equals("SELECT")) {
-        	total_rows_fetched = _fetch_until(chunk_size);
+        	total_rows_fetched = _fetch();
              if (total_rows_fetched < (chunk_size == 0 ? 1 : chunk_size)) {
             	 close();    // No data in courtesy fetch, close statement
              	 closed_by_prefetch = true;  // using is_open() instead
              }
         }
         
+        print ("total rows fetched: " + total_rows_fetched);
         return statement_id;
     }
     
@@ -1074,11 +1075,11 @@ public class Connector {
             // If all data has been read, try to fetch more
         	Arrays.fill(col_calls, 0); // calls in the same fetch - for varchar / nvarchar
         	if (row_counter == (total_rows_fetched -1)) {
-                if (!is_open()) // Otherwise statement was already closed
-                	total_rows_fetched = _fetch();
+        		row_counter = -1;
+            	total_rows_fetched = open_statement ? _fetch() : 0;
                 if (row_counter == (total_rows_fetched -1)) 
                     return false; // No more data and we've read all we have
-                row_counter = -1;    
+                //row_counter = -1;    
             }
             row_counter++;
         
