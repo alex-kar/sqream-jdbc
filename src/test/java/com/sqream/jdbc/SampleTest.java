@@ -223,7 +223,7 @@ public class SampleTest {
         stmt.close();
         //*/
         
-        sql = "select case when xint2%2=0 then xtinyint end from t_a";
+        sql = "select case when xint2%2=0 then xtinyint end from t_a limit 10";
         stmt = conn.createStatement();
         rs = stmt.executeQuery(sql);
         //*

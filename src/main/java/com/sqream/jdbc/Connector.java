@@ -787,7 +787,7 @@ public class Connector {
             
             // Instantiate select counters, Initial storage same as insert
             row_counter = -1;
-            total_rows_fetched = 0;
+            total_rows_fetched = -1;
             data_columns = new ByteBuffer[row_length];
             //null_columns = new byte[row_length][];
             null_columns = new ByteBuffer[row_length];
@@ -1025,9 +1025,10 @@ public class Connector {
         // First fetch on the house, auto close statement if no data returned
         if (statement_type.equals("SELECT")) {
         	total_rows_fetched = _fetch();
-             if (total_rows_fetched < (chunk_size == 0 ? 1 : chunk_size)) {
+             //if (total_rows_fetched < (chunk_size == 0 ? 1 : chunk_size)) {
+        	 if (total_rows_fetched == 0) {
             	 close();    // No data in courtesy fetch, close statement
-             	 closed_by_prefetch = true;  // using is_open() instead
+             	 //closed_by_prefetch = true;  // using is_open() instead
              }
         }
         
@@ -1072,13 +1073,14 @@ public class Connector {
         else if (statement_type.equals("SELECT")) {
             //print ("select row counter: " + row_counter + " total: " + total_rows_fetched);
             // If all data has been read, try to fetch more
+        	if (total_rows_fetched == 0)
+        		return false;  // single prefetch returned no results
         	Arrays.fill(col_calls, 0); // calls in the same fetch - for varchar / nvarchar
         	if (row_counter == (total_rows_fetched -1)) {
         		row_counter = -1;
-            	total_rows_fetched = open_statement ? _fetch() : 0;
+            	total_rows_fetched =  _fetch();
                 if (row_counter == (total_rows_fetched -1)) 
                     return false; // No more data and we've read all we have
-                //row_counter = -1;    
             }
             row_counter++;
         
