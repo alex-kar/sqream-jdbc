@@ -1031,7 +1031,6 @@ public class Connector {
              }
         }
         
-        print ("total rows fetched: " + total_rows_fetched);
         return statement_id;
     }
     
