@@ -198,8 +198,6 @@ public class SampleTest {
         stmt.close();
         //*/
         
-        
-       
         /*
         // Copy CSV from src to disk and load to dst
         start = time();
@@ -224,26 +222,6 @@ public class SampleTest {
         stmt.close();
         //*/
         
-        // Create a table on src and generate data
-        sql = "create or replace table test_autoclose (ints int)";
-        stmt = conn.createStatement();
-        stmt.execute(sql);
-        stmt.close();
-        
-        sql = "insert into test_autoclose values (1), (2), (3), (4), (5)";
-        stmt = conn.createStatement();
-        stmt.execute(sql);
-        stmt.close();
-        
-        /*
-        sql = "select * from test_autoclose where 1 = 0";
-        stmt = conn.prepareStatement(sql);
-        //*/
-        
-        //*
-        sql = "select * from test_autoclose";
-        stmt = conn.prepareStatement(sql);
-        //*/
     }     
     
     public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException{
@@ -257,6 +235,7 @@ public class SampleTest {
         
         SampleTest test = new SampleTest();   
         test.testJDBC();
+        
     }
 }
 

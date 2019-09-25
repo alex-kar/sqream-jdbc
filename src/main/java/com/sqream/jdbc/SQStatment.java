@@ -253,14 +253,16 @@ public class SQStatment implements Statement {
 	
 	
 	@Override
-	public void setMaxRows(int arg0) throws SQLException {
+	public void setMaxRows(int max) throws SQLException {
+		// max - the new max rows limit; zero means there is no limit
 		
-		if (arg0 != 0) // if zero, use default
-		{
-			SIZE_RESULT = arg0;
-			if (SQRS != null)
-				SQRS.MaxRows = SIZE_RESULT;
-		}
+		if (max <= 0)
+			throw new SQLException("Argument for setMaxRows() should be non-negative, got" + max);
+			
+		SIZE_RESULT = max;
+		if (SQRS != null)
+			SQRS.MaxRows = SIZE_RESULT;
+	
 	}
 	
 	/*

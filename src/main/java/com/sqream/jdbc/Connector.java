@@ -211,7 +211,9 @@ public class Connector {
     BitSet col_nullable;
     BitSet col_tvc;
     boolean open_statement = false;
-
+    int chunk_size;
+    boolean closed_by_prefetch;
+    
     // Column Storage
     ByteBuffer[] data_columns;
     //byte[][] null_columns;
@@ -656,7 +658,6 @@ public class Connector {
     	return true;
     }
     
-    
     String _validate_response(String response, String expected) throws ConnException {
         
         if (!response.equals(expected))  // !response.contains("stop_statement could not find a statement")
@@ -798,7 +799,6 @@ public class Connector {
         }
     }
     
-    
     int _fetch() throws IOException, ScriptException, ConnException {
         /* Request and get data from SQream following a SELECT query */
         
@@ -849,6 +849,25 @@ public class Connector {
     }
     
     
+    int _fetch_until(int amount) throws ConnException, IOException, ScriptException {
+    	/* Does at least one _fetch(), and continues until amount reached or no more data */
+    	
+    	if (amount <0)
+    		throw new ConnException("Parameter to internal function _fetch_until() should be non-negative, got" + amount);
+
+    	int fetched = _fetch(), total_fetched = fetched;
+    	
+    	while (total_fetched < amount && fetched != 0) {
+    		fetched = _fetch();
+    		total_fetched += fetched;
+    	}
+    	
+    	//if (fetched == 0) close();  // Calls close() if the last _fetch() returned no data
+    	
+    	return total_fetched;
+    }
+  
+  
     int _flush(int row_counter) throws IOException, ConnException {
         /* Send columnar data buffers to SQream. Called by next() and close() */
         
@@ -920,8 +939,9 @@ public class Connector {
     	return execute(statement, default_chunksize);	
     }
     
-    public int execute(String statement, int chunk_size) throws IOException, ScriptException, ConnException {
+    public int execute(String statement, int _chunk_size) throws IOException, ScriptException, ConnException {
         
+    	chunk_size = _chunk_size;
     	if (chunk_size < 0)
     		throw new ConnException("chunk_size should be positive, got " + chunk_size);
     	
@@ -1003,12 +1023,14 @@ public class Connector {
             _parse_query_type(query_type);
         
         // First fetch on the house, auto close statement if no data returned
-        //*
         if (statement_type.equals("SELECT")) {
-             if (_fetch() < (chunk_size == 0 ? 1 : chunk_size)) 
+        	total_rows_fetched = _fetch_until(chunk_size);
+             if (total_rows_fetched < (chunk_size == 0 ? 1 : chunk_size)) {
             	 close();    // No data in courtesy fetch, close statement
+             	 closed_by_prefetch = true;  // using is_open() instead
+             }
         }
-        //*/
+        
         return statement_id;
     }
     
@@ -1052,12 +1074,11 @@ public class Connector {
             // If all data has been read, try to fetch more
         	Arrays.fill(col_calls, 0); // calls in the same fetch - for varchar / nvarchar
         	if (row_counter == (total_rows_fetched -1)) {
-                row_counter = -1;
-                total_rows_fetched = _fetch();
-                if (row_counter == (total_rows_fetched -1)) {
+                if (!is_open()) // Otherwise statement was already closed
+                	total_rows_fetched = _fetch();
+                if (row_counter == (total_rows_fetched -1)) 
                     return false; // No more data and we've read all we have
-                }
-                
+                row_counter = -1;    
             }
             row_counter++;
         
