@@ -200,7 +200,8 @@ public class Connector {
     //byte [] buffer = new byte[FLUSH_SIZE];
     int row_size, rows_per_flush;
     int max_string_len = 0;   // For preallocating a bytearray for getVarchar/Nvarchar
-    
+    int fetch_size = 0;      // How much to retrieve on a select statement
+    boolean first_fetch = false;
     // Column metadata
     String statement_type;
     int row_length;
@@ -799,12 +800,16 @@ public class Connector {
         }
     }
     
-    int _fetch() throws IOException, ScriptException, ConnException {
+    int _fetch(int row_amount) throws IOException, ScriptException, ConnException {
         /* Request and get data from SQream following a SELECT query */
         
+    	if (row_amount <0)
+    		throw new ConnException("Parameter to internal function _fetch_until() should be non-negative, got" + row_amount);
+    	
         // Send fetch request and get metadata on data to be received
         response_json = _parse_sqream_json(_send_message(form_json("fetch"), true));
         new_rows_fetched = (int) response_json.get("rows");
+        int to_fetch = Math.min(new_rows_fetched, row_amount);
         fetch_sizes =  (JSONListAdapter) response_json.get("colSzs");  // Chronological sizes of all rows recieved, only needed for nvarchars
         if (new_rows_fetched == 0) {
         	close();  // Auto closing statement if done fetching
@@ -812,10 +817,17 @@ public class Connector {
         }
         // Initiate storage columns using the "colSzs" returned by SQream
         // All buffers in a single array to use SocketChannel's read(ByteBuffer[] dsts)
-        fetch_buffers = new ByteBuffer[fetch_sizes.size()]; 
-        for (int idx=0; idx < fetch_sizes.size(); idx++) 
-            fetch_buffers[idx] = ByteBuffer.allocateDirect((int)fetch_sizes.get(idx)).order(ByteOrder.LITTLE_ENDIAN);
-            
+        int col_buf_size;
+        fetch_buffers = new ByteBuffer[fetch_sizes.size()];
+        if (row_amount == 0) {
+        	for (int idx=0; idx < fetch_sizes.size(); idx++) 
+        		fetch_buffers[idx] = ByteBuffer.allocateDirect((int)fetch_sizes.get(idx)).order(ByteOrder.LITTLE_ENDIAN);        
+    	} 
+        else { // row_amount > 0 - may need more than one fetch, excess data will be discarded
+        	for (int idx=0; idx < fetch_sizes.size(); idx++) 
+        		fetch_buffers[idx] = ByteBuffer.allocateDirect(Math.min((int)fetch_sizes.get(idx), row_amount)).order(ByteOrder.LITTLE_ENDIAN);
+        }
+        
         // Sort buffers to appropriate arrays (row_length determied during _query_type())
         for (int idx=0, buf_idx = 0; idx < row_length; idx++, buf_idx++) {  
             if(col_nullable.get(idx)) {
@@ -837,36 +849,27 @@ public class Connector {
         }
         
         // Initial naive implememntation - Get all socket data in advance
-        if (new_rows_fetched > 0) {  
-            bytes_read = _get_parse_header();   // Get header out of the way
-            for (ByteBuffer fetched : fetch_buffers) 
-                _read_data(fetched, fetched.capacity());
-            
-            //Arrays.stream(fetch_buffers).forEach(fetched -> fetched.flip());
+        bytes_read = _get_parse_header();   // Get header out of the way
+        if (row_amount == 0) {
+	        for (ByteBuffer fetched : fetch_buffers) 
+	            _read_data(fetched, fetched.capacity());
+	            
+            	//Arrays.stream(fetch_buffers).forEach(fetched -> fetched.flip());
         }
-    
+        else { // row_amount > 0
+        	
+        	
+        	
+        }
+        
+        
+        if (first_fetch) 
+        	first_fetch = false;
+        
         return new_rows_fetched;  // counter nullified by next()
     }
     
-    
-    int _fetch_until(int amount) throws ConnException, IOException, ScriptException {
-    	/* Does at least one _fetch(), and continues until amount reached or no more data */
-    	
-    	if (amount <0)
-    		throw new ConnException("Parameter to internal function _fetch_until() should be non-negative, got" + amount);
 
-    	int fetched = _fetch(), total_fetched = fetched;
-    	
-    	while (total_fetched < amount && fetched != 0) {
-    		fetched = _fetch();
-    		total_fetched += fetched;
-    	}
-    	
-    	//if (fetched == 0) close();  // Calls close() if the last _fetch() returned no data
-    	
-    	return total_fetched;
-    }
-  
   
     int _flush(int row_counter) throws IOException, ConnException {
         /* Send columnar data buffers to SQream. Called by next() and close() */
@@ -953,7 +956,7 @@ public class Connector {
     		else
     			throw new ConnException("Trying to run a statement when another was not closed. Open statement id: " + statement_id + " on connection: " + connection_id);
     	open_statement = true;
-
+    	first_fetch = true;     // The first fetch will preallocate buffers for
         // Get statement ID, send prepareStatement and get response parameters
         statement_id = (int) _parse_sqream_json(_send_message(form_json("getStatementId"), true)).get("statementId");
         
@@ -1024,7 +1027,7 @@ public class Connector {
         
         // First fetch on the house, auto close statement if no data returned
         if (statement_type.equals("SELECT")) {
-        	total_rows_fetched = _fetch();
+        	total_rows_fetched = _fetch(fetch_size); 
              //if (total_rows_fetched < (chunk_size == 0 ? 1 : chunk_size)) {
         	 if (total_rows_fetched == 0) {
             	 close();    // No data in courtesy fetch, close statement
@@ -1078,7 +1081,7 @@ public class Connector {
         	Arrays.fill(col_calls, 0); // calls in the same fetch - for varchar / nvarchar
         	if (row_counter == (total_rows_fetched -1)) {
         		row_counter = -1;
-            	total_rows_fetched =  _fetch();
+            	total_rows_fetched =  _fetch(fetch_size);
                 if (row_counter == (total_rows_fetched -1)) 
                     return false; // No more data and we've read all we have
             }
