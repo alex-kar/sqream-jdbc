@@ -216,12 +216,18 @@ public class Connector {
     boolean closed_by_prefetch;
     
     // Column Storage
+    List<ByteBuffer[]> data_buffers = new ArrayList<>();
+    List<ByteBuffer[]> null_buffers = new ArrayList<>();
+    List<ByteBuffer []> nvarc_len_buffers = new ArrayList<>();
+    List<Integer> rows_per_batch = new ArrayList<>();
     ByteBuffer[] data_columns;
+    int rows_in_current_batch;
     //byte[][] null_columns;
     ByteBuffer[] null_columns;
     ByteBuffer null_resetter;
     ByteBuffer[] nvarc_len_columns;
     ByteBuffer [] null_balls;
+    int fetch_limit = 0;
     
     // Get / Set related
     int row_counter;
@@ -231,7 +237,6 @@ public class Connector {
     byte[] message_bytes;
     byte[] string_bytes; // Storing converted string to be set
     ByteBuffer[] fetch_buffers;
-    ByteBuffer[] null_buffers;
     int new_rows_fetched, total_rows_fetched;
     byte [] spaces; 
     int nvarc_len;
@@ -800,16 +805,12 @@ public class Connector {
         }
     }
     
-    int _fetch(int row_amount) throws IOException, ScriptException, ConnException {
+    int _fetch() throws IOException, ScriptException, ConnException {
         /* Request and get data from SQream following a SELECT query */
         
-    	if (row_amount <0)
-    		throw new ConnException("Parameter to internal function _fetch_until() should be non-negative, got" + row_amount);
-    	
         // Send fetch request and get metadata on data to be received
         response_json = _parse_sqream_json(_send_message(form_json("fetch"), true));
         new_rows_fetched = (int) response_json.get("rows");
-        int to_fetch = Math.min(new_rows_fetched, row_amount);
         fetch_sizes =  (JSONListAdapter) response_json.get("colSzs");  // Chronological sizes of all rows recieved, only needed for nvarchars
         if (new_rows_fetched == 0) {
         	close();  // Auto closing statement if done fetching
@@ -819,14 +820,8 @@ public class Connector {
         // All buffers in a single array to use SocketChannel's read(ByteBuffer[] dsts)
         int col_buf_size;
         fetch_buffers = new ByteBuffer[fetch_sizes.size()];
-        if (row_amount == 0) {
-        	for (int idx=0; idx < fetch_sizes.size(); idx++) 
-        		fetch_buffers[idx] = ByteBuffer.allocateDirect((int)fetch_sizes.get(idx)).order(ByteOrder.LITTLE_ENDIAN);        
-    	} 
-        else { // row_amount > 0 - may need more than one fetch, excess data will be discarded
-        	for (int idx=0; idx < fetch_sizes.size(); idx++) 
-        		fetch_buffers[idx] = ByteBuffer.allocateDirect(Math.min((int)fetch_sizes.get(idx), row_amount)).order(ByteOrder.LITTLE_ENDIAN);
-        }
+    	for (int idx=0; idx < fetch_sizes.size(); idx++) 
+    		fetch_buffers[idx] = ByteBuffer.allocateDirect((int)fetch_sizes.get(idx)).order(ByteOrder.LITTLE_ENDIAN);        
         
         // Sort buffers to appropriate arrays (row_length determied during _query_type())
         for (int idx=0, buf_idx = 0; idx < row_length; idx++, buf_idx++) {  
@@ -848,29 +843,56 @@ public class Connector {
             data_columns[idx] = fetch_buffers[buf_idx];
         }
         
+        // Add buffers to buffer list
+        data_buffers.add(data_columns);
+        null_buffers.add(null_columns);
+        nvarc_len_buffers.add(nvarc_len_columns);
+        rows_per_batch.add(new_rows_fetched);
+        
         // Initial naive implememntation - Get all socket data in advance
         bytes_read = _get_parse_header();   // Get header out of the way
-        if (row_amount == 0) {
-	        for (ByteBuffer fetched : fetch_buffers) 
-	            _read_data(fetched, fetched.capacity());
-	            
-            	//Arrays.stream(fetch_buffers).forEach(fetched -> fetched.flip());
+        for (ByteBuffer fetched : fetch_buffers) {
+            _read_data(fetched, fetched.capacity());
+        	//Arrays.stream(fetch_buffers).forEach(fetched -> fetched.flip());
         }
-        else { // row_amount > 0
-        	
-        	
-        	
-        }
-        
-        
-        if (first_fetch) 
-        	first_fetch = false;
-        
+ 
         return new_rows_fetched;  // counter nullified by next()
     }
     
-
-  
+    
+    int _fetch(int row_amount) throws IOException, ScriptException, ConnException {
+    	int total_fetched = 0;
+    	int new_rows_fetched;
+    	
+    	if (row_amount < -1) {
+    		throw new ConnException("row_amount should be positive, got " + row_amount);
+    	}
+    	if (row_amount == -1) {
+    	
+    	}
+    	else {  // positive row amount
+    		while (row_amount == 0 || total_fetched < row_amount) {
+    			new_rows_fetched = _fetch();
+    			if (new_rows_fetched ==0) 
+    				break;
+    			total_fetched += new_rows_fetched;
+    		}
+    	}
+    	close(); 
+    	rows_in_current_batch = 0;
+    	
+    	
+    	return total_fetched;
+    }
+    
+    
+    int _get_batch() {
+    	
+    	
+    	
+    	return 0;
+    }
+    
     int _flush(int row_counter) throws IOException, ConnException {
         /* Send columnar data buffers to SQream. Called by next() and close() */
         
@@ -1027,12 +1049,8 @@ public class Connector {
         
         // First fetch on the house, auto close statement if no data returned
         if (statement_type.equals("SELECT")) {
-        	total_rows_fetched = _fetch(fetch_size); 
+        	total_rows_fetched = _fetch(fetch_limit); // 0 - prefetch all data 
              //if (total_rows_fetched < (chunk_size == 0 ? 1 : chunk_size)) {
-        	 if (total_rows_fetched == 0) {
-            	 close();    // No data in courtesy fetch, close statement
-             	 //closed_by_prefetch = true;  // using is_open() instead
-             }
         }
         
         return statement_id;
@@ -1075,15 +1093,26 @@ public class Connector {
         }
         else if (statement_type.equals("SELECT")) {
             //print ("select row counter: " + row_counter + " total: " + total_rows_fetched);
-            // If all data has been read, try to fetch more
-        	if (total_rows_fetched == 0)
-        		return false;  // single prefetch returned no results
         	Arrays.fill(col_calls, 0); // calls in the same fetch - for varchar / nvarchar
-        	if (row_counter == (total_rows_fetched -1)) {
+            
+        	// If all data has been read, try to fetch more
+        	if (row_counter == (rows_in_current_batch -1)) {
         		row_counter = -1;
-            	total_rows_fetched =  _fetch(fetch_size);
-                if (row_counter == (total_rows_fetched -1)) 
+        		if (rows_per_batch.size() == 0) 
                     return false; // No more data and we've read all we have
+        		
+        		// Set new active buffer to be reading data from
+        		rows_in_current_batch = rows_per_batch.get(0);
+        		data_columns = data_buffers.get(0);
+        		null_columns = null_buffers.get(0);
+        		nvarc_len_columns = nvarc_len_buffers.get(0);
+        		
+        		// Remove active buffer from list
+        		data_buffers.remove(0);
+                null_buffers.remove(0);
+                nvarc_len_buffers.remove(0);
+                rows_per_batch.remove(0);
+        		
             }
             row_counter++;
         
@@ -1626,6 +1655,21 @@ public class Connector {
     public boolean is_open() {
         
         return (use_ssl) ? ss.isOpen() : s.isOpen();
+    }
+    
+    boolean set_fetch_limit(int _fetch_limit) throws ConnException{
+    	
+    	if (_fetch_limit < 0)
+			throw new ConnException("Max rows to fetch should be nonnegative, got" + _fetch_limit);
+
+    	fetch_limit = _fetch_limit;
+    	
+    	return true;
+    }
+    
+    int get_fetch_limit() {
+    	
+    	return fetch_limit;
     }
     
     // Main

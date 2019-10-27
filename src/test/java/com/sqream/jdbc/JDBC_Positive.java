@@ -1053,7 +1053,7 @@ public class JDBC_Positive {
         //String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
         
         print ("Pre fetch test - " + (pos_tests.pre_fetch() ? "OK" : "Fail"));
-        /*
+        //*
         print ("Display size test - " + (pos_tests.display_size() ? "OK" : "Fail"));
         print ("parameter metadata test: " + (pos_tests.parameter_metadata() ? "OK" : "Fail"));
         print ("logging is off test:" + (pos_tests.is_logging_off() ? "OK" : "Fail"));

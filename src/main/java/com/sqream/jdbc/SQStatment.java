@@ -253,17 +253,20 @@ public class SQStatment implements Statement {
 	
 	
 	@Override
-	public void setMaxRows(int max) throws SQLException {
-		// max - the new max rows limit; zero means there is no limit
+	public void setMaxRows(int max_rows) throws SQLException {
 		
-		if (max <= 0)
-			throw new SQLException("Argument for setMaxRows() should be non-negative, got" + max);
-			
-		SIZE_RESULT = max;
-		if (SQRS != null)
-			SQRS.MaxRows = SIZE_RESULT;
-	
+		try {
+			Client.set_fetch_limit(max_rows);
+		} catch (ConnException e) {
+			throw new SQLException("Error in setMaxRows:" + e);
+		}
 	}
+	
+	@Override
+	public int getMaxRows() throws SQLException {
+		return Client.get_fetch_limit();
+	}
+	
 	
 	/*
 	 Moves to this Statement object's next result, returns true if it is a ResultSet 
@@ -410,11 +413,6 @@ public class SQStatment implements Statement {
 	@Override
 	public int getMaxFieldSize() throws SQLException {
 		throw new SQLFeatureNotSupportedException("getMaxFieldSize in SQStatement");
-	}
-
-	@Override
-	public int getMaxRows() throws SQLException {
-		throw new SQLFeatureNotSupportedException("getMaxRows in SQStatement");
 	}
 	
 	@Override
