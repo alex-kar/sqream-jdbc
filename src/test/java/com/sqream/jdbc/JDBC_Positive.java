@@ -118,6 +118,44 @@ public class JDBC_Positive {
 		return Timestamp.valueOf(LocalDateTime.of(LocalDate.of(year, month, day), LocalTime.of(hour, minutes, seconds, ms*(int)Math.pow(10, 6))));
 	}
 	
+	
+	public boolean limited_fetch() throws SQLException {
+		boolean a_ok = false;  // The test is visual, pass if ends
+		int count = 0;
+		
+		conn = DriverManager.getConnection(url,"sqream","sqream");
+		
+		String sql = "create or replace table test_fetch (ints int)";
+	    stmt = conn.createStatement();
+	    stmt.execute(sql);
+	    stmt.close();
+	    
+	    sql = "insert into test_fetch values (1), (2), (3), (4), (5)";
+	    stmt = conn.createStatement();
+	    stmt.execute(sql);
+	    stmt.close();
+	    
+	    sql = "select * from test_fetch";
+	    //stmt = conn.prepareStatement(sql);
+	    stmt = conn.createStatement();
+	    stmt.setMaxRows(3);
+	    rs = stmt.executeQuery(sql);
+	    while(rs.next()) { 
+	        rs.getInt(1);
+	        count++;
+	    }
+	    
+	    if (count == 3)
+            a_ok = true;    
+        else
+        	print("limited fetch of 3 items, amount returned: " + count);
+        
+	    
+	    return a_ok;
+	}
+	
+	
+	
 	public boolean pre_fetch() throws SQLException {
 		boolean a_ok = true;  // The test is visual, pass if ends
 		
@@ -1051,9 +1089,9 @@ public class JDBC_Positive {
         //String[] typelist = {"varchar(100)", "nvarchar(100)"}; //"nvarchar(100)"
         
         //String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
-        
+        print ("Limited fetch test - " + (pos_tests.limited_fetch() ? "OK" : "Fail"));
         print ("Pre fetch test - " + (pos_tests.pre_fetch() ? "OK" : "Fail"));
-        //*
+        /*
         print ("Display size test - " + (pos_tests.display_size() ? "OK" : "Fail"));
         print ("parameter metadata test: " + (pos_tests.parameter_metadata() ? "OK" : "Fail"));
         print ("logging is off test:" + (pos_tests.is_logging_off() ? "OK" : "Fail"));

@@ -227,10 +227,10 @@ public class Connector {
     ByteBuffer null_resetter;
     ByteBuffer[] nvarc_len_columns;
     ByteBuffer [] null_balls;
-    int fetch_limit = 0;
+    int fetch_limit;
     
     // Get / Set related
-    int row_counter;
+    int row_counter, total_row_counter;
     BitSet columns_set;
     int total_bytes;
     boolean is_null;
@@ -793,6 +793,7 @@ public class Connector {
             
             // Instantiate select counters, Initial storage same as insert
             row_counter = -1;
+            total_row_counter = 0;
             total_rows_fetched = -1;
             data_columns = new ByteBuffer[row_length];
             //null_columns = new byte[row_length][];
@@ -1049,6 +1050,7 @@ public class Connector {
         
         // First fetch on the house, auto close statement if no data returned
         if (statement_type.equals("SELECT")) {
+        	print ("fetch limit in execute:" + fetch_limit);
         	total_rows_fetched = _fetch(fetch_limit); // 0 - prefetch all data 
              //if (total_rows_fetched < (chunk_size == 0 ? 1 : chunk_size)) {
         }
@@ -1094,7 +1096,8 @@ public class Connector {
         else if (statement_type.equals("SELECT")) {
             //print ("select row counter: " + row_counter + " total: " + total_rows_fetched);
         	Arrays.fill(col_calls, 0); // calls in the same fetch - for varchar / nvarchar
-            
+        	if (fetch_limit !=0 && total_row_counter == fetch_limit)
+        		return false;  // MaxRow limit reached, stop even if more data was fetched
         	// If all data has been read, try to fetch more
         	if (row_counter == (rows_in_current_batch -1)) {
         		row_counter = -1;
@@ -1115,6 +1118,7 @@ public class Connector {
         		
             }
             row_counter++;
+            total_row_counter++;
         
         }
         else if (statement_type.equals("DML"))
