@@ -120,6 +120,39 @@ public class JDBC_Positive {
 	}
 	
 	
+	public boolean SQ1786() throws SQLException {
+	
+	    boolean a_ok = false; 
+	
+	    conn = DriverManager.getConnection(url,"sqream","sqream");
+	    
+	    String sql = "create or replace table CLASS (ints int)";
+	    stmt = conn.createStatement();
+	    stmt.execute(sql);
+	    stmt.close();
+	
+	    Connection c1 = DriverManager.getConnection(url, "sqream", "sqream");
+	    Statement s1 = c1.createStatement();
+	    s1.execute("SELECT * FROM public.CLASS WHERE 0=1");
+	    s1.close();
+	    
+	    Connection c2 = DriverManager.getConnection(url, "sqream", "sqream");
+	    Statement s2 = c2.createStatement();
+	    s2.execute("SELECT * FROM public.CLASS WHERE 0=1");
+	    s2.close();
+	    
+	    //*
+	    Statement s3 = c2.createStatement();
+	    s3.execute("CREATE or replace TABLE public.class22 (Name VARCHAR(8),Sex VARCHAR(1),Age DOUBLE,Height DOUBLE, Weight DOUBLE)");
+		//*/
+	
+	    a_ok = true; 
+	
+	    
+	    return a_ok;
+	}
+	
+	
 	public boolean hundred_mil_fetch() throws SQLException {
 		
 		boolean a_ok = false;  // The test is visual, pass if ends
@@ -1137,6 +1170,7 @@ public class JDBC_Positive {
         //String[] typelist = {"varchar(100)", "nvarchar(100)"}; //"nvarchar(100)"
         
         //String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
+        print ("SQ1786 test -  - " + (pos_tests.SQ1786() ? "OK" : "Fail"));
         print ("Hundred Million fetch test -  - " + (pos_tests.hundred_mil_fetch() ? "OK" : "Fail"));
         print ("Unused fetch test - " + (pos_tests.unused_fetch() ? "OK" : "Fail"));
         //*
