@@ -4,10 +4,10 @@ before_script:
   - "mvn clean"
   - "mvn package -DskipTests"
   - "echo `/usr/bin/whoami`"
-  - "cd /home/sqream/sqream-with-submodules/sqream"
+  - "cd /home/gitlab-runner/sqream-with-submodules/sqream"
   - "git checkout develop"
   - "make clean"
-  - "make -j7 all |& tee /home/gitlabrunner/build_logs/${CI_COMMIT_REF_NAME}.log |& MakeFilters ; ( exit ${PIPESTATUS[0]} )"
+  - "make -j7 all |& tee /home/gitlab-runner/build_logs/${CI_COMMIT_REF_NAME}.log |& MakeFilters ; ( exit ${PIPESTATUS[0]} )"
 tests_and_benchmark:
   script:
     - "rm -rf /home/sqream/sqream_testing_temp" # So we can test different storage versions
@@ -17,3 +17,4 @@ tests_and_benchmark:
       - merge_requests
       - master
       - web
+
