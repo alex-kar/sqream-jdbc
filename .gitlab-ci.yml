@@ -3,6 +3,7 @@ cache:
 before_script:
   - "mvn clean"
   - "mvn package -DskipTests"
+  - "echo `pwd`"
   - "cp -r target /home/sqream/sqream-with-submodules/jdbc-driver/"
   - "cd /home/sqream/sqream-with-submodules/sqream"
   - "git checkout develop"
