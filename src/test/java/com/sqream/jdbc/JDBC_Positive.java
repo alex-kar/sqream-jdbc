@@ -4,7 +4,7 @@ import java.text.MessageFormat;
 import java.time.LocalTime;
 import java.util.Random;
 import java.util.UUID;
-
+import java.util.concurrent.TimeUnit;
 //import org.junit.Assert;
 //import org.junit.Test;
 import java.util.stream.IntStream;
@@ -87,6 +87,7 @@ public class JDBC_Positive {
     Statement stmt = null;
     ResultSet rs = null;
     Connection conn  = null;
+    Connection conn2 = null;
     PreparedStatement ps = null;
     
     // For testTables() test
@@ -112,10 +113,130 @@ public class JDBC_Positive {
 		return Date.valueOf(LocalDate.of(year, month, day));
 	}
 	
+	
 	static Timestamp datetime_from_tuple(int year, int month, int day, int hour, int minutes, int seconds, int ms) {
 			
 		return Timestamp.valueOf(LocalDateTime.of(LocalDate.of(year, month, day), LocalTime.of(hour, minutes, seconds, ms*(int)Math.pow(10, 6))));
 	}
+	
+	
+	public boolean hundred_mil_fetch() throws SQLException {
+		
+		boolean a_ok = false;  // The test is visual, pass if ends
+		
+		conn = DriverManager.getConnection(url,"sqream","sqream");
+		
+		String sql = "create or replace table test_fetch (ints int)";
+	    stmt = conn.createStatement();
+	    stmt.execute(sql);
+	    stmt.close();
+	    
+	    sql = "insert into test_fetch values (?)";
+        ps = conn.prepareStatement(sql);
+        int random_int = 8;
+        int times = 100000000;  // Assuming chunk size is around 1 million, giving X10 more
+        for (int i = 0; i < times; i++) {
+            ps.setInt(1, random_int);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        ps.close();  
+	    
+	    sql = "select * from test_fetch";
+	    //stmt = conn.prepareStatement(sql);
+	    stmt = conn.createStatement();
+	    rs = stmt.executeQuery(sql);
+	    
+	    while(rs.next()) { 
+	        rs.getInt(1);
+	    }
+	    
+        a_ok = true;    
+        
+	    
+	    return a_ok;
+	}
+	
+	
+	public boolean unused_fetch() throws SQLException {
+		boolean a_ok = false;  // The test is visual, pass if ends
+		int max_rows = 3;
+		
+		conn = DriverManager.getConnection(url,"sqream","sqream");
+		
+		String sql = "create or replace table test_fetch (ints int)";
+	    stmt = conn.createStatement();
+	    stmt.execute(sql);
+	    stmt.close();
+	    
+	    sql = "insert into test_fetch values (?)";
+        ps = conn.prepareStatement(sql);
+        int random_int = 8;
+        int times = 10000000;  // Assuming chunk size is around 1 million, giving X10 more
+        for (int i = 0; i < times; i++) {
+            ps.setInt(1, random_int);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        ps.close();  
+	    
+	    sql = "select * from test_fetch";
+	    //stmt = conn.prepareStatement(sql);
+	    stmt = conn.createStatement();
+	    stmt.setMaxRows(max_rows);
+	    rs = stmt.executeQuery(sql);
+	    
+	    sql = "select 1";
+	    //stmt = conn.prepareStatement(sql);
+	    stmt = conn.createStatement();
+	    rs = stmt.executeQuery(sql);
+	    rs.next();
+	        
+	    if (rs.getInt(1) == 1)
+            a_ok = true;    
+        else
+        	print("unused fetch test failed");
+        
+	    
+	    return a_ok;
+	}
+	
+	
+	public boolean limited_fetch() throws SQLException {
+		boolean a_ok = false;  // The test is visual, pass if ends
+		int count = 0, max_rows = 3;
+		
+		conn = DriverManager.getConnection(url,"sqream","sqream");
+		
+		String sql = "create or replace table test_fetch (ints int)";
+	    stmt = conn.createStatement();
+	    stmt.execute(sql);
+	    stmt.close();
+	    
+	    sql = "insert into test_fetch values (1), (2), (3), (4), (5)";
+	    stmt = conn.createStatement();
+	    stmt.execute(sql);
+	    stmt.close();
+	    
+	    sql = "select * from test_fetch";
+	    //stmt = conn.prepareStatement(sql);
+	    stmt = conn.createStatement();
+	    stmt.setMaxRows(max_rows);
+	    rs = stmt.executeQuery(sql);
+	    while(rs.next()) { 
+	        rs.getInt(1);
+	        count++;
+	    }
+	    
+	    if (count == max_rows)
+            a_ok = true;    
+        else
+        	print("limited fetch of 3 items, amount returned: " + count);
+        
+	    
+	    return a_ok;
+	}
+	
 	
 	public boolean display_size() throws SQLException {
         boolean a_ok = false;
@@ -1002,7 +1123,7 @@ public class JDBC_Positive {
      }  
      */
     
-    public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException{
+    public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException, InterruptedException{
         
     	// Loading JDBC driver with a timezone test
     	ZoneId before_jdbc = ZoneId.systemDefault();
@@ -1016,7 +1137,10 @@ public class JDBC_Positive {
         //String[] typelist = {"varchar(100)", "nvarchar(100)"}; //"nvarchar(100)"
         
         //String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
+        print ("Hundred Million fetch test -  - " + (pos_tests.hundred_mil_fetch() ? "OK" : "Fail"));
+        print ("Unused fetch test - " + (pos_tests.unused_fetch() ? "OK" : "Fail"));
         //*
+        print ("Limited fetch test - " + (pos_tests.limited_fetch() ? "OK" : "Fail"));
         print ("Display size test - " + (pos_tests.display_size() ? "OK" : "Fail"));
         print ("parameter metadata test: " + (pos_tests.parameter_metadata() ? "OK" : "Fail"));
         print ("logging is off test:" + (pos_tests.is_logging_off() ? "OK" : "Fail"));
