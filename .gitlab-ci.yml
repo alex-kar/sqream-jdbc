@@ -3,11 +3,6 @@ cache:
 before_script:
   - "mvn clean"
   - "mvn package -DskipTests"
-  - "echo `pwd`"
-  - "echo `ls -l /home/sqream/jdbc-driver/target`"
-  - "echo `ls -l /home/sqream/sqream-with-submodules/jdbc-driver`"
-  - "echo `whoami`"
-  - "cp -r /home/sqream/jdbc-driver/target /home/sqream/sqream-with-submodules/jdbc-driver/"
   - "cd /home/sqream/sqream-with-submodules/sqream"
   - "git checkout develop"
   - "make clean"
