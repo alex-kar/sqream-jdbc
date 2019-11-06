@@ -3,7 +3,7 @@ cache:
 before_script:
   - "mvn clean"
   - "mvn package -DskipTests"
-  - "echo `whoami`"
+  - "echo `pwd`"
   - "cd /home/gitlab-runner/sqream-with-submodules/sqream"
   - "git checkout develop"
   - "#make clean"
