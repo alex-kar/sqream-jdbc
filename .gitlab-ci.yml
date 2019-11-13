@@ -13,7 +13,7 @@ before_script:
   - "cd /home/gitlab-runner/sqream-with-submodules/sqream"
   - "git checkout develop"
   - "#make clean"
-  - "# make -j7 all |& tee /home/gitlab-runner/build_logs/${CI_COMMIT_REF_NAME}.log"
+  - "#make -j7 all |& tee /home/gitlab-runner/build_logs/${CI_COMMIT_REF_NAME}.log"
 tests_and_benchmark:
   script:
     - "#rm -rf /home/gitlab-runner/sqream_testing_temp" # So we can test different storage versions
