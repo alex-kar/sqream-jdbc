@@ -11,7 +11,8 @@ before_script:
 tests_and_benchmark:
   script:
     - "#rm -rf /home/gitlab-runner/sqream_testing_temp" # So we can test different storage versions
-    - "python tests/developer_regression.py --sqream.save-style=jdbc --suite.timeout=2400"
+    - "#python tests/developer_regression.py --sqream.save-style=jdbc --suite.timeout=2400"
+    - "python tests/cvidya.py --sqream.save-style=jdbc --suite.timeout=2400"
   only:
     refs:
       - merge_requests
