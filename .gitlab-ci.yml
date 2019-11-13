@@ -8,6 +8,7 @@ before_script:
   - "cp target/sqream-jdbc-3.1-jar-with-dependencies.jar target/sqream-jdbc-with-dependencies.jar"
   - "mkdir  /home/gitlab-runner/sqream-with-submodules/jdbc-driver/target"  
   - "ln -s target/sqream-jdbc-with-dependencies.jar /home/gitlab-runner/sqream-with-submodules/jdbc-driver/target/sqream-jdbc-with-dependencies.jar"
+  - "mkdir  /home/gitlab-runner/sqream-with-submodules/java/target"  
   - "touch /home/gitlab-runner/sqream-with-submodules/java/target/SQream-JAVA-connector.jar"  
   - "ln -s target /home/gitlab-runner/sqream-with-submodules/jdbc-driver/target"
   - "ls -lthr target"    
