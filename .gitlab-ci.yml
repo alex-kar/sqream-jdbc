@@ -4,6 +4,7 @@ before_script:
   - "mvn clean"
   - "mvn package -DskipTests"
   - "rm -rf /home/gitlab-runner/sqream-with-submodules/jdbc-driver/target"
+  - "ls -lthr target"
   - "ln -s target /home/gitlab-runner/sqream-with-submodules/jdbc-driver/target"
   - "cd /home/gitlab-runner/sqream-with-submodules/sqream"
   - "git checkout develop"
