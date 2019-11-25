@@ -91,6 +91,9 @@ import javax.net.ssl.SSLException;
 import tlschannel.TlsChannel;
 import tlschannel.ClientTlsChannel;
 
+// Concurrency
+import java.util.concurrent.ExecutorService;
+
 /* SQream Native Java Connector
    Version 3.0.0
   
@@ -134,7 +137,7 @@ import tlschannel.ClientTlsChannel;
   // Closing the connector
   conn.close_connection();
  
- */
+ //*/
 
 
 public class Connector {
@@ -256,7 +259,8 @@ public class Connector {
     // Managing stop_statement
     AtomicBoolean IsCancelStatement = new AtomicBoolean(false);
     
-    
+    // Concurrency
+    ExecutorService threadPoolExecutor = null;
     // Communication Strings
     // ---------------------
 
@@ -343,7 +347,7 @@ public class Connector {
         year = year - month / 10;
 
         date_as_int = (365 * year + year / 4 - year / 100 + year / 400 + (month * 306 + 5) / 10 + (day - 1));
-    
+   
         time_as_int =  datetime.getHour() * 3600000;
         time_as_int += datetime.getMinute() * 60000;
         time_as_int += datetime.getSecond() * 1000;
@@ -636,6 +640,7 @@ public class Connector {
     
     // (1) 
     //@SuppressWarnings("rawtypes")  // Remove "Map is a raw type" warning
+    
     /*
     Map<String,Object> _parse_sqream_json(String json) throws ScriptException, ConnException { 
     	
