@@ -1,6 +1,14 @@
 package com.sqream.jdbc;
 
+import com.sqream.jdbc.Connector.ConnException;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+import javax.script.ScriptException;
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -11,18 +19,10 @@ import java.time.LocalTime;
 import java.util.Random;
 import java.util.UUID;
 
-import javax.script.ScriptException;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-
-
-import org.junit.Test;
-
-import com.sqream.jdbc.Connector;
-import com.sqream.jdbc.Connector.ConnException;
-
-
+@RunWith(JUnit4.class)
 public class Positive {
 	
 	//public ConnectionHandle Client =null;
@@ -77,12 +77,12 @@ public class Positive {
 	static long time() {
 		return System.currentTimeMillis();
 	}
-	
-	public boolean test_varchar() throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException  {
+
+	private boolean test_varchar() throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException  {
 	    /* Test that get_varchar returns corect results for all types */
 		
 		boolean a_ok = false;
-		Connector conn = new Connector("127.0.0.1", 5000, false, false);
+		Connector conn = new Connector("192.168.1.6", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
 		
 		// Prepare Table
@@ -133,11 +133,11 @@ public class Positive {
 		return a_ok;
 	}
 	
-	public boolean insert(String table_type)throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException  {
+	private boolean insert(String table_type)throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException  {
     	
     	boolean a_ok = false;
     	String table_name = table_type.contains("varchar(") ?  table_type.substring(0,7) : table_type;
-    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
+    	Connector conn = new Connector("192.168.1.6", 5000, false, false);
     	conn.connect("master", "sqream", "sqream", "sqream");
 		
     	// Prepare Table
@@ -336,10 +336,9 @@ public class Positive {
 	}
 	
 	
-    public boolean autoflush(int total_inserts, int insert_every) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException   {
-    
-    	boolean a_ok = false;
-    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
+    private boolean autoflush(int total_inserts, int insert_every) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException   {
+
+    	Connector conn = new Connector("192.168.1.6", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
     	
     	// Prepare Table
@@ -368,7 +367,7 @@ public class Positive {
 		conn.close();
 		print("Autoflush ok");
 		
-    	return a_ok;
+    	return true;
     }
     
     @Test
@@ -420,56 +419,25 @@ public class Positive {
      public void autoFlush() throws  IOException, SQLException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException{
     	 new Positive().autoflush(10000, 100);
      }
-     
-    public static void main(String[] args)  throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException {
-    	
-    	//*
-    	Positive pos_tests = new Positive();
+
+     @Test
+	 public void varcharTest() throws KeyManagementException, ScriptException, NoSuchAlgorithmException, ConnException, IOException {
+		 assertTrue(test_varchar());
+	 }
+
+	 @Test
+	 public void someTest() throws KeyManagementException, ScriptException, NoSuchAlgorithmException, ConnException, IOException {
 		 String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(4)", "date", "datetime"};
-		
-		if (!pos_tests.test_varchar())
-			throw new java.lang.RuntimeException("get_varchar test failed");
-		 //*
-		for (String col_type : typelist)
-			if(!pos_tests.insert(col_type))  
-				throw new java.lang.RuntimeException("Not all type checks returned identical");
-		//*
-		try {
-			pos_tests.autoflush(1000000, 50000);
-		}catch (java.lang.ArrayIndexOutOfBoundsException e) {
-			System.out.println("Correct error on overflowing buffer with addBatch()");
-		}   //*/ 
-    	
-		/*
-		Connector conn = new Connector("127.0.0.1", 3108, true, false);
-		conn.connect("master", "sqream", "sqream", "sqream");
-		
-		String stmt = "select count (*) from shoko";
-		conn.execute(stmt);
-		while(conn.next()) 
-			print("row count: " + conn.get_long(1));
-		conn.close();
-		
-		long start = time();
-		stmt = "select top 3 * from shoko";
-		conn.execute(stmt);
-		while(conn.next()) {
-			print("boolean received: " + conn.get_boolean(1));
-			print("byte received: " + conn.get_ubyte(2));
-			print("short received: " + conn.get_short(3));
-			print("int received: " + conn.get_int(4));
-			print("long received: " + conn.get_long(5));
-			print("float received: " + conn.get_float(6));
-			print("double received: " + conn.get_double(7));
-			print("nvarchar received: " + conn.get_nvarchar(8));
-			print("date received: " + conn.get_date(9));
-			print("datetime received: " + conn.get_datetime(10));
-			//print("varchar received: " + perf.get_int(1));
-		}
-		conn.close();
-		print("Select total: " + (time() - start));
-		*/
-    }  
+
+		 for (String col_type : typelist) {
+			 assertTrue(insert(col_type));
+		 }
+	 }
+
+	 @Test
+	 public void autoFlushTest() throws KeyManagementException, ScriptException, NoSuchAlgorithmException, ConnException, IOException {
+		 assertTrue(autoflush(1000000, 50000));
+	 }
 }
 
 
