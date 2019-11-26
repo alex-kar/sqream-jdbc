@@ -2,8 +2,7 @@ package com.sqream.jdbc;
 
 import java.text.MessageFormat;
 import java.time.LocalTime;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 //import org.junit.Assert;
 //import org.junit.Test;
@@ -28,8 +27,6 @@ import java.sql.SQLException;
 //Datetime related
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.util.Calendar;
-import java.util.TimeZone;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -659,9 +656,26 @@ public class JDBC_Positive {
 
         assertTrue(a_ok);
     }
-    
-    
-    public boolean insert(String table_type) throws IOException, SQLException, KeyManagementException, NoSuchAlgorithmException{
+
+    @Test
+    public void timezoneTest() throws ClassNotFoundException {
+        // Loading JDBC driver with a timezone test
+        ZoneId before_jdbc = ZoneId.systemDefault();
+        Class.forName("com.sqream.jdbc.SQDriver");
+        ZoneId after_jdbc = ZoneId.systemDefault();
+        print ("Changing timezone test: " + ((after_jdbc.equals(before_jdbc)) ? "OK" : "Fail"));
+    }
+
+    @Test
+    public void typesTest() throws NoSuchAlgorithmException, SQLException, KeyManagementException, IOException {
+        String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
+
+        for (String col_type : typelist) {
+            assertTrue(insert(col_type));
+        }
+    }
+
+    private boolean insert(String table_type) throws IOException, SQLException, KeyManagementException, NoSuchAlgorithmException{
         
         boolean a_ok = false;
         String table_name = table_type.contains("varchar(100)") ?  table_type.substring(0,7) : table_type;
@@ -1123,51 +1137,4 @@ public class JDBC_Positive {
          new JDBC_Positive().autoflush(10000, 100);
      }  
      */
-    
-    public static void refactoredMethod(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException, InterruptedException{
-        
-    	// Loading JDBC driver with a timezone test
-    	ZoneId before_jdbc = ZoneId.systemDefault();
-        Class.forName("com.sqream.jdbc.SQDriver");
-        ZoneId after_jdbc = ZoneId.systemDefault();
-        print ("Changing timezone test: " + ((after_jdbc.equals(before_jdbc)) ? "OK" : "Fail"));
-        // boolean all_pass = false;
-        
-        JDBC_Positive pos_tests = new JDBC_Positive();
-        String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
-        //String[] typelist = {"varchar(100)", "nvarchar(100)"}; //"nvarchar(100)"
-        
-        //String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
-//        print ("Hundred Million fetch test -  - " + (pos_tests.hundred_mil_fetch() ? "OK" : "Fail"));
-//        print ("Unused fetch test - " + (pos_tests.unused_fetch() ? "OK" : "Fail"));
-//        //*
-//        print ("Limited fetch test - " + (pos_tests.limited_fetch() ? "OK" : "Fail"));
-//        print ("Display size test - " + (pos_tests.display_size() ? "OK" : "Fail"));
-//        print ("parameter metadata test: " + (pos_tests.parameter_metadata() ? "OK" : "Fail"));
-//        print ("logging is off test:" + (pos_tests.is_logging_off() ? "OK" : "Fail"));
-//        print ("boolean as string test - " + (pos_tests.bool_as_string() ? "OK" : "Fail"));
-//        print ("Cast test - " + (pos_tests.casted_gets() ? "OK" : "Fail"));
-//        print ("timeZones test - " + (pos_tests.timeZones() ? "OK" : "Fail"));
-//        print ("getUDF test - " + (pos_tests.getUDF() ? "OK" : "Fail"));
-//        print ("isSigned test - " + (pos_tests.isSigned() ? "OK" : "Fail"));
-//        print ("Execute batch test - " + (pos_tests.execBatchRes() ? "OK" : "Fail"));
-        //*
-        for (String col_type : typelist)
-            if(!pos_tests.insert(col_type))  
-                throw new java.lang.RuntimeException("Not all type checks returned identical");
-                
-                // */
-        
-        //pos_tests.get_tables_test();
-        /*
-        try {
-            pos_tests.autoflush(10000, 100);
-        }catch (java.lang.ArrayIndexOutOfBoundsException e) {
-            print("Correct error on overflowing buffer with addBatch()");
-        }    */
-
-    }  
 }
-
-
-
