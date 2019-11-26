@@ -18,13 +18,15 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Random;
 import java.util.UUID;
+import java.util.logging.Logger;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(JUnit4.class)
 public class Positive {
-	
+
+	private static final Logger log = Logger.getLogger(Positive.class.toString());
+
 	//public ConnectionHandle Client =null;
     
     // Test data
@@ -69,10 +71,6 @@ public class Positive {
 	//String test_varchar = "koko"; 
 	Date test_date = Date.valueOf(LocalDate.of(2002, 9, 13));
 	Timestamp test_datetime = Timestamp.valueOf(LocalDateTime.of(LocalDate.of(2002, 9, 13), LocalTime.of(14, 56, 34, 567)));
-    
-	static void print(Object printable) {
-		System.out.println(printable);
-	}
 	
 	static long time() {
 		return System.currentTimeMillis();
@@ -102,34 +100,34 @@ public class Positive {
 		while(conn.next()) { 
 			String res = conn.get_nvarchar(11);
 			if (conn.get_boolean(1) != false)  
-				System.out.println("Wrong return value on getBoolen");
+				log.info("Wrong return value on getBoolen");
 			else if (conn.get_ubyte(2) != 14) 
-				System.out.println("Wrong return value on get_ubyte");
+				log.info("Wrong return value on get_ubyte");
 			else if (conn.get_short(3) != 140)
-				System.out.println("Wrong return value on get_short");
+				log.info("Wrong return value on get_short");
 			else if (conn.get_int(4) != 1400) 
-				System.out.println("Wrong return value on get_int");
+				log.info("Wrong return value on get_int");
 			else if (conn.get_long(5) != 14000000l) 
-				System.out.println("Wrong return value on get_long");
+				log.info("Wrong return value on get_long");
 			else if (conn.get_float(6) != 14.1f) 
-				System.out.println("Wrong return value on get_float");
+				log.info("Wrong return value on get_float");
 			else if (conn.get_double(7) != 14.12345) 
-				System.out.println("Wrong return value on get_double");
+				log.info("Wrong return value on get_double");
 			else if (!conn.get_date(8).toString().equals("2013-11-23")) 
-				System.out.println("Wrong return value on get_date");
+				log.info("Wrong return value on get_date");
 			else if (!conn.get_datetime(9).toString().equals("2013-11-23 14:56:47.1"))
-				System.out.println("Wrong return value on get_datetime");
+				log.info("Wrong return value on get_datetime");
 			else if (!conn.get_varchar(10).trim().equals("wuzz")) 
-				System.out.println("Wrong return value on get_varchar");
+				log.info("Wrong return value on get_varchar");
 			
 			else if (!res.equals("up"))
-				System.out.println("Wrong return value on get_nvarchar");
+				log.info("Wrong return value on get_nvarchar");
 			else
-				System.out.println("get_varchar test ok");
+				log.info("get_varchar test ok");
 				a_ok = true;
 		}
 		conn.close();
-		// System.out.println(a_ok);
+		// log.info(a_ok);
 		return a_ok;
 	}
 	
@@ -141,14 +139,14 @@ public class Positive {
     	conn.connect("master", "sqream", "sqream", "sqream");
 		
     	// Prepare Table
-//    	System.out.println(" - Create Table t_" + table_type);
+//    	log.info(" - Create Table t_" + table_type);
     	String sql = MessageFormat.format("create or replace table t_{0} (x {1})", table_name, table_type);
 		conn.execute(sql);		
 		
 		conn.close();
 		
 		// Insert value
-//		System.out.println(" - Insert test value " + table_type);
+//		log.info(" - Insert test value " + table_type);
 		if (table_type == "bool") 
 			for (boolean test : test_bools) {
 				test_bool = test;
@@ -241,7 +239,7 @@ public class Positive {
 		else if (table_type == "datetime")
 			for (Timestamp test : test_datetimes) {
 				test_datetime = test;
-				//System.out.println("datetime: " + test_datetime);
+				//log.info("datetime: " + test_datetime);
 				sql = MessageFormat.format("insert into t_{0} values (?)", table_name);
 				conn.execute(sql);
 				
@@ -258,11 +256,11 @@ public class Positive {
 		conn.close();
 		//*
 		// Retreive
-		// System.out.println(" - Getting " + table_type + " value back for value");
+		// log.info(" - Getting " + table_type + " value back for value");
 		String sql = MessageFormat.format("select * from t_{0}", table_name);
 		conn.execute(sql);		
 		
-		//System.out.println("type_out: " + type_out);
+		//log.info("type_out: " + type_out);
 		
 		// int res = conn.get_int(1);
 		//*
@@ -300,35 +298,35 @@ public class Positive {
 		//assertEquals(test_int, res_int);
 		
 		if (table_type == "bool" && test_bool != res_bool)
-			System.out.println("Results not identical on table type " + table_type + " " + test_bool + " " + res_bool);
+			log.info("Results not identical on table type " + table_type + " " + test_bool + " " + res_bool);
 		else if (table_type == "tinyint" && test_ubyte != res_ubyte) 
-			System.out.println("Results not identical on table type " + table_type + " " + test_ubyte + " " + res_ubyte);		
+			log.info("Results not identical on table type " + table_type + " " + test_ubyte + " " + res_ubyte);
 		else if (table_type == "smallint" && test_short != res_short) 
-			System.out.println("Results not identical on table type " + table_type + " " + test_short + " " + res_short);		
+			log.info("Results not identical on table type " + table_type + " " + test_short + " " + res_short);
 		else if (table_type == "int" && test_int != res_int) 
-			System.out.println("Results not identical on table type " + table_type + " " + test_int + " " + res_int);		
+			log.info("Results not identical on table type " + table_type + " " + test_int + " " + res_int);
 		else if (table_type == "bigint" && test_long != res_long) 
-			System.out.println("Results not identical on table type " + table_type + " " + test_long + " " + res_long);		
+			log.info("Results not identical on table type " + table_type + " " + test_long + " " + res_long);
 		else if (table_type == "real" && test_real != res_real) 
-			System.out.println("Results not identical on table type " + table_type + " " + test_real + " " + res_real);		
+			log.info("Results not identical on table type " + table_type + " " + test_real + " " + res_real);
 		else if (table_type == "double" && test_double != res_double) 
-			System.out.println("Results not identical on table type " + table_type + " " + test_double + " " + res_double);		
+			log.info("Results not identical on table type " + table_type + " " + test_double + " " + res_double);
 		else if (table_type == "varchar(100)" && !test_varchar.equals(res_varchar.trim()))  {
-			System.out.println("Results not identical on table type " + table_type + " " + test_varchar + " " + res_varchar);		
-			System.out.println(test_varchar.compareTo(res_varchar) + "a"+ test_varchar.length() + "b" + res_varchar.length());}
+			log.info("Results not identical on table type " + table_type + " " + test_varchar + " " + res_varchar);
+			log.info(test_varchar.compareTo(res_varchar) + "a"+ test_varchar.length() + "b" + res_varchar.length());}
 		else if (table_type == "nvarchar(4)" && !test_nvarchar.equals(res_nvarchar.trim()))  {
-			System.out.println("Results not identical on table type " + table_type + " " + test_varchar + " " + res_varchar);		
-			System.out.println(test_varchar.compareTo(res_nvarchar) + "a"+ test_nvarchar.length() + "b" + res_varchar.length());}
+			log.info("Results not identical on table type " + table_type + " " + test_varchar + " " + res_varchar);
+			log.info(test_varchar.compareTo(res_nvarchar) + "a"+ test_nvarchar.length() + "b" + res_varchar.length());}
 		else if (table_type == "date" && Math.abs(test_date.compareTo(res_date)) > 1) {
 		//else if (table_type == "date" && !test_date.equals(res_date))  {  
-			System.out.println("Results not identical on table type " + table_type + " " + test_date + " " + test_date.getTime() + " " + res_date + " " + res_date.getTime());		
-			System.out.println(test_date.compareTo(res_date));}
+			log.info("Results not identical on table type " + table_type + " " + test_date + " " + test_date.getTime() + " " + res_date + " " + res_date.getTime());
+			log.info(String.valueOf(test_date.compareTo(res_date)));}
 		else if (table_type == "datetime" && !test_datetime.equals(res_datetime))
 		//else if (table_type == "datetime" && Math.abs(test_datetime.compareTo(res_datetime)) > 1) 
-			System.out.println("Results not identical on table type " + table_type + " " + test_datetime + " " + test_datetime.getTime() + " " + res_datetime + " " + res_datetime.getTime());		
+			log.info("Results not identical on table type " + table_type + " " + test_datetime + " " + test_datetime.getTime() + " " + res_datetime + " " + res_datetime.getTime());
 		
 		else {
-			System.out.println(" Results identical");
+			log.info(" Results identical");
 			res = true;}
 	
 	return res;  	
@@ -345,13 +343,13 @@ public class Positive {
     	String table_type = "int";
     	
     	//int row_num = 100000000;
-    	//System.out.println(" - Create Table t_" + table_type);
+    	//log.info(" - Create Table t_" + table_type);
     	String sql = MessageFormat.format("create or replace table t_{0} (x {0})", table_type);
     	sql = "create or replace table test (x int, y nvarchar(50))";
 		conn.execute(sql);		
 		conn.close();
     	
-		//System.out.println(" - Insert " + table_type + " " + total_inserts + " times");
+		//log.info(" - Insert " + table_type + " " + total_inserts + " times");
 		sql = MessageFormat.format("insert into test values (?, ?)", table_type);
 		conn.execute(sql);
 		 
@@ -365,7 +363,7 @@ public class Positive {
     
 		}          
 		conn.close();
-		print("Autoflush ok");
+		log.info("Autoflush ok");
 		
     	return true;
     }
