@@ -514,15 +514,14 @@ public class JDBC_Positive {
         // Run getProcedures
         dbmeta = conn.getMetaData();
         rs = dbmeta.getProcedures(null, null, null);
-        String udfName = "";
-        while(rs.next()) 
-            udfName = rs.getString("procedure_name"); 
-        // Check functionality
-        if (udfName.equals("fud"))
-            a_ok = true;    
-       
+        while(rs.next()) {
+            if ("fud".equals(rs.getString("procedure_name"))) {
+                a_ok = true;
+            }
+        }
         rs.close();
 
+        // Check functionality
         assertTrue(a_ok);
     }
 
