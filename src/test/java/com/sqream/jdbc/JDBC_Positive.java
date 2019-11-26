@@ -35,8 +35,13 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 import com.sqream.jdbc.Connector;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+import static org.junit.Assert.*;
 
+@RunWith(JUnit4.class)
 public class JDBC_Positive {
     
     //public ConnectionHandle Client =null;
@@ -82,7 +87,7 @@ public class JDBC_Positive {
     Timestamp test_datetime = datetime_from_tuple(2002, 9, 13, 14, 56, 34, 567); //*/
     
     // JDBC Data
-    static final String url = "jdbc:Sqream://127.0.0.1:5000/master;user=sqream;password=sqream;cluster=false;ssl=false;service=sqream";
+    static final String url = "jdbc:Sqream://192.168.1.6:5000/master;user=sqream;password=sqream;cluster=false;ssl=false;service=sqream";
     
     Statement stmt = null;
     ResultSet rs = null;
@@ -119,8 +124,8 @@ public class JDBC_Positive {
 		return Timestamp.valueOf(LocalDateTime.of(LocalDate.of(year, month, day), LocalTime.of(hour, minutes, seconds, ms*(int)Math.pow(10, 6))));
 	}
 	
-	
-	public boolean hundred_mil_fetch() throws SQLException {
+	@Test
+	public void hundred_mil_fetch() throws SQLException {
 		
 		boolean a_ok = false;  // The test is visual, pass if ends
 		
@@ -152,13 +157,12 @@ public class JDBC_Positive {
 	    }
 	    
         a_ok = true;    
-        
-	    
-	    return a_ok;
+
+	    assertTrue(a_ok);
 	}
 	
-	
-	public boolean unused_fetch() throws SQLException {
+	@Test
+	public void unused_fetch() throws SQLException {
 		boolean a_ok = false;  // The test is visual, pass if ends
 		int max_rows = 3;
 		
@@ -196,13 +200,13 @@ public class JDBC_Positive {
             a_ok = true;    
         else
         	print("unused fetch test failed");
-        
-	    
-	    return a_ok;
+
+
+        assertTrue(a_ok);
 	}
 	
-	
-	public boolean limited_fetch() throws SQLException {
+	@Test
+	public void limited_fetch() throws SQLException {
 		boolean a_ok = false;  // The test is visual, pass if ends
 		int count = 0, max_rows = 3;
 		
@@ -232,13 +236,12 @@ public class JDBC_Positive {
             a_ok = true;    
         else
         	print("limited fetch of 3 items, amount returned: " + count);
-        
-	    
-	    return a_ok;
+
+        assertTrue(a_ok);
 	}
 	
-	
-	public boolean display_size() throws SQLException {
+	@Test
+	public void display_size() throws SQLException {
         boolean a_ok = false;
         int[] res;
         
@@ -262,12 +265,12 @@ public class JDBC_Positive {
             a_ok = true;    
         else
         	print("nvarchar(11) display size should be 11 but got " +  rsmeta.getColumnDisplaySize(1));
-        
-        return a_ok;
+
+        assertTrue(a_ok);
     }
 	
-	
-    public boolean execBatchRes() throws SQLException {
+	@Test
+    public void execBatchRes() throws SQLException {
         boolean a_ok = false;
         int[] res;
         
@@ -292,21 +295,23 @@ public class JDBC_Positive {
         
         // Check result
         if (res.length == 10 && IntStream.of(res).sum() == 10)
-            a_ok = true;    
-        
-        return a_ok;
+            a_ok = true;
+
+        assertTrue(a_ok);
     }
-    
-    public boolean is_logging_off () {
-    	return !Connector.is_logging();
+
+    @Test
+    public void is_logging_off () {
+        assertFalse(Connector.is_logging());
     }
     
     public void get_connection () throws SQLException {
     	conn = DriverManager.getConnection(url,"sqream","sqream");
     	
     }
-     
-    public boolean parameter_metadata() throws SQLException {
+
+    @Test
+    public void parameter_metadata() throws SQLException {
         /*  Check if charitable behavior works - not closing statement before starting the next one   */
         
    	 boolean a_ok = true;
@@ -432,9 +437,8 @@ public class JDBC_Positive {
     	}
     	
     	ps.close();
-        
-        
-        return a_ok;
+
+        assertTrue(a_ok);
     }
     
     
@@ -465,8 +469,8 @@ public class JDBC_Positive {
         return a_ok;
     }
     
-    
-    public boolean bool_as_string() throws SQLException {
+    @Test
+    public void bool_as_string() throws SQLException {
     	
     	boolean a_ok = false;
     	
@@ -490,14 +494,13 @@ public class JDBC_Positive {
         
         rs.close();
         stmt.close();
-        
-        
-    	return a_ok;
+
+
+        assertTrue(a_ok);
     }
     
-    
-    
-     public boolean getUDF() throws SQLException {
+    @Test
+     public void getUDF() throws SQLException {
         /*  Check isSigned command()   */
         boolean a_ok = false;
         
@@ -519,11 +522,12 @@ public class JDBC_Positive {
             a_ok = true;    
        
         rs.close();
-        
-        return a_ok;
+
+        assertTrue(a_ok);
     }
 
-    public boolean isSigned() throws SQLException {
+    @Test
+    public void isSigned() throws SQLException {
         /*  Check isSigned command()   */
         boolean a_ok = false;
         
@@ -544,13 +548,12 @@ public class JDBC_Positive {
             a_ok = true;    
         rs.close();
         stmt.close();
-        
-        
-        return a_ok;
+
+        assertTrue(a_ok);
     }
     
-    
-    public boolean timeZones() throws SQLException {
+    @Test
+    public void timeZones() throws SQLException {
         /*  Check isSigned command()   */
         boolean a_ok = false;
         
@@ -607,12 +610,12 @@ public class JDBC_Positive {
         print("Does equal datetime when retreived with no cal: " + (datetime.compareTo(resDateTime)));
         //*/
         // print("a_ok: " + a_ok);
-        
-        return a_ok;
+
+        assertTrue(a_ok);
     }
     
-    
-    public boolean casted_gets() throws SQLException {
+    @Test
+    public void casted_gets() throws SQLException {
         /*  Check isSigned command()   */
         boolean a_ok = false;
         
@@ -654,9 +657,8 @@ public class JDBC_Positive {
         
         rs.close();
         stmt.close();
-       
-        
-        return a_ok;
+
+        assertTrue(a_ok);
     }
     
     
@@ -1123,7 +1125,7 @@ public class JDBC_Positive {
      }  
      */
     
-    public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException, InterruptedException{
+    public static void refactoredMethod(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException, InterruptedException{
         
     	// Loading JDBC driver with a timezone test
     	ZoneId before_jdbc = ZoneId.systemDefault();
@@ -1137,18 +1139,19 @@ public class JDBC_Positive {
         //String[] typelist = {"varchar(100)", "nvarchar(100)"}; //"nvarchar(100)"
         
         //String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
-        //print ("Hundred Million fetch test -  - " + (pos_tests.hundred_mil_fetch() ? "OK" : "Fail"));
-        print ("Unused fetch test - " + (pos_tests.unused_fetch() ? "OK" : "Fail"));
-        print ("Limited fetch test - " + (pos_tests.limited_fetch() ? "OK" : "Fail"));
-        print ("Display size test - " + (pos_tests.display_size() ? "OK" : "Fail"));
-        print ("parameter metadata test: " + (pos_tests.parameter_metadata() ? "OK" : "Fail"));
-        print ("logging is off test:" + (pos_tests.is_logging_off() ? "OK" : "Fail"));
-        print ("boolean as string test - " + (pos_tests.bool_as_string() ? "OK" : "Fail"));
-        print ("Cast test - " + (pos_tests.casted_gets() ? "OK" : "Fail"));
-        print ("timeZones test - " + (pos_tests.timeZones() ? "OK" : "Fail"));
-        print ("getUDF test - " + (pos_tests.getUDF() ? "OK" : "Fail"));
-        print ("isSigned test - " + (pos_tests.isSigned() ? "OK" : "Fail"));
-        print ("Execute batch test - " + (pos_tests.execBatchRes() ? "OK" : "Fail"));
+//        print ("Hundred Million fetch test -  - " + (pos_tests.hundred_mil_fetch() ? "OK" : "Fail"));
+//        print ("Unused fetch test - " + (pos_tests.unused_fetch() ? "OK" : "Fail"));
+//        //*
+//        print ("Limited fetch test - " + (pos_tests.limited_fetch() ? "OK" : "Fail"));
+//        print ("Display size test - " + (pos_tests.display_size() ? "OK" : "Fail"));
+//        print ("parameter metadata test: " + (pos_tests.parameter_metadata() ? "OK" : "Fail"));
+//        print ("logging is off test:" + (pos_tests.is_logging_off() ? "OK" : "Fail"));
+//        print ("boolean as string test - " + (pos_tests.bool_as_string() ? "OK" : "Fail"));
+//        print ("Cast test - " + (pos_tests.casted_gets() ? "OK" : "Fail"));
+//        print ("timeZones test - " + (pos_tests.timeZones() ? "OK" : "Fail"));
+//        print ("getUDF test - " + (pos_tests.getUDF() ? "OK" : "Fail"));
+//        print ("isSigned test - " + (pos_tests.isSigned() ? "OK" : "Fail"));
+//        print ("Execute batch test - " + (pos_tests.execBatchRes() ? "OK" : "Fail"));
         //*
         for (String col_type : typelist)
             if(!pos_tests.insert(col_type))  
