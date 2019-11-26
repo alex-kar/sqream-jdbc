@@ -14,8 +14,12 @@ import javax.script.ScriptException;
 import org.junit.Test;
 
 import com.sqream.jdbc.Connector.ConnException;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+import static org.junit.Assert.*;
 
+@RunWith(JUnit4.class)
 public class Negative {
 	
 	//public Connector Client =null;
@@ -40,12 +44,12 @@ public class Negative {
 		System.out.println(printable);
 	}
 	
-    public boolean wrong_type_set(String table_type) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException{
+    private boolean wrong_type_set(String table_type) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException{
     	/* Set a column value using the wrong set command. See if error message is correct */
     	
     	boolean a_ok = false; 
     	String table_name = table_type.contains("varchar(100)") ?  table_type.substring(0,7) : table_type;
-    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
+    	Connector conn = new Connector("192.168.1.6", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
 			
 		
@@ -337,13 +341,13 @@ public class Negative {
 	Timestamp[] badDatetimes = {new Timestamp(-300l), new Timestamp(-9999999999999999l)};
 	
 	
-    public boolean bad_value_set(String table_type) throws IOException, KeyManagementException, NoSuchAlgorithmException, ScriptException, ConnException{
+    private boolean bad_value_set(String table_type) throws IOException, KeyManagementException, NoSuchAlgorithmException, ScriptException, ConnException {
     	/* Try to set a varchar/nvarchar of the wrong size. See if error message is correct */
     	
     	boolean a_ok = false;
     	String tableName = table_type.contains("varchar(10)") ?  table_type.substring(0,7) : table_type;
     	
-    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
+    	Connector conn = new Connector("192.168.1.6", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
 		
     	// Prepare Table
@@ -481,36 +485,22 @@ public class Negative {
     public void wrongTypeSetDatetime() throws KeyManagementException, NoSuchAlgorithmException, IOException, SQLException, ScriptException, ConnException{
     	new Negative().wrong_type_set("datetime");
     }
-   	
 
-
-    public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ScriptException, ConnException{
-		Negative neg_tests = new Negative();
+    @Test
+    public void wrongTypeTest() throws KeyManagementException, ScriptException, NoSuchAlgorithmException, ConnException, IOException {
 		String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "date", "datetime"};
-		//*
-		for (String col_type : typelist)
-			try {
-				neg_tests.wrong_type_set(col_type);
-			}finally {}
-				//// System.out.println("Correct error message on wrong set function"); // */
-		
-		/*	
-		for (String col_type : typelist)
-			if (!neg_tests.wrong_type_set(col_type))
-				throw new java.lang.RuntimeException("Not all negative type sets passed"); //*/
-		
-		/*
-		for (String col_type : typelist)
-			if (!neg_tests.wrong_type_get(col_type))  
-				throw new java.lang.RuntimeException("Not all negative type gets passed");	//*/
-		
-		
-		String[] bad_typelist = {"tinyint", varchar_type};
+		for (String col_type : typelist) {
+			assertTrue(wrong_type_set(col_type));
+		}
+	}
 
-		for (String table_type: bad_typelist)
-			if (!neg_tests.bad_value_set(table_type))  
-				throw new java.lang.RuntimeException("bad values test failure");	//*/			
-	}  
+	@Test
+	public void badTypeTest() throws KeyManagementException, ScriptException, NoSuchAlgorithmException, ConnException, IOException {
+		String[] bad_typelist = {"tinyint", varchar_type};
+		for (String table_type: bad_typelist) {
+			assertTrue(bad_value_set(table_type));
+		}
+	}
 }
 
 
