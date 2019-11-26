@@ -2,4 +2,4 @@
 /bin/
 out/
 .idea/
-*.yml
+*.iml
