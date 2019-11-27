@@ -1,8 +1,6 @@
 package com.sqream.jdbc;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.DriverManager;
@@ -44,88 +42,7 @@ public class SQDriver implements java.sql.Driver {
 		
 		return true;
 	}
-	
-	
-	// Extended uri data
-	class uriEx {
-		public URI uri;
-		public String provider; // hopefully "sqream"
-		public String host;
-		public int port;
-		public String dbName;
-		public String user;
-		public String pswd;
-		public String debug;
-		public String logger;
-		public String showFullStackTrace;
-		public String cluster;
-		public String service;
-		public String ssl;
-		
-		
-		uriEx(String url) throws SQLException {
-			try {
-				// System.err.println("URL = "+url.substring(5));
-				cluster = "false";
-				ssl = "false";
-				uri = new URI(url.substring(5)); // cause first 5 chars are not
-													// relevant
-				if (uri == null) {
 
-					throw new SQLException("Connect string general error : " + url
-							+ "\nformat Example: 'jdbc:Sqream://<host>:<port>/<dbname>;user=sa;password=sa'");
-				}
-				if (uri.getPath() == null) {
-
-					throw new SQLException("Connect string general error : " + url
-							+ "\nnew format Example: 'jdbc:Sqream://<host>:<port>/<dbname>;user=sa;password=sa'");
-				}
-
-				String[] UrlElements = uri.getPath().split(";");
-				dbName = UrlElements[0].substring(1);
-
-				String entryType = "";
-				String entryValue = "";
-				for (String element : UrlElements) {
-					if (element.indexOf("=") > 0) {
-						// System.out.println("element = "+element);
-						String[] entry = element.split("=");
-						if (entry.length < 2) {
-
-							throw new SQLException("Connect string error , bad entry element : " + element);
-						}
-
-						entryType = entry[0];
-						entryValue = entry[1];
-						if (entryType.toLowerCase().equals("user"))
-							user = entryValue;
-						else if (entryType.toLowerCase().equals("password"))
-							pswd = entryValue;
-						else if (entryType.toLowerCase().equals("logger"))
-							logger = entryValue;
-						else if (entryType.toLowerCase().equals("debug"))
-							debug = entryValue;
-						else if (entryType.toLowerCase().equals("showfullstacktrace"))
-							showFullStackTrace = entryValue;
-						else if (entryType.toLowerCase().equals("cluster"))
-							cluster = entryValue;
-						else if (entryType.toLowerCase().equals("ssl"))
-							ssl = entryValue;
-						else if (entryType.toLowerCase().equals("service"))
-							service = entryValue;
-					}
-				}
-				port = uri.getPort();
-				host = uri.getHost();
-				provider = uri.getScheme();
-
-			} catch (URISyntaxException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-	}
-	
 	private DriverPropertyInfo[] DPIArray;
 	static {
 		try {
@@ -137,11 +54,9 @@ public class SQDriver implements java.sql.Driver {
 
 	@Override
 	public boolean acceptsURL(String url) throws SQLException {
-		
 		log("inside acceptsURL in SQDriver");
-		uriEx UEX = new uriEx(url); // parse the url to object.
-		if (!UEX.provider.toLowerCase().equals("sqream")) {
-
+		UriEx uex = new UriEx(url); // parse the url to object.
+		if (uex.getProvider() == null || !"sqream".equals(uex.getProvider().toLowerCase())) {
 			return false; // cause it is an other provider, not us..
 		}
 		return true;
@@ -170,45 +85,45 @@ public class SQDriver implements java.sql.Driver {
 		if (info == null)
 			throw new SQLException("Properties info is null");
 
-		uriEx UEX = new uriEx(url.trim()); // parse the url to object.
-		if (!UEX.provider.toLowerCase().equals("sqream")) {
+		UriEx UEX = new UriEx(url.trim()); // parse the url to object.
+		if (!UEX.getProvider().toLowerCase().equals("sqream")) {
 
-			throw new SQLException("Bad provider in connection string. Should be sqream but got: " + UEX.provider.toLowerCase()); 
+			throw new SQLException("Bad provider in connection string. Should be sqream but got: " + UEX.getProvider().toLowerCase());
 		}
 
-		if (UEX.user == null && info.getProperty("user") == null || UEX.pswd == null && info.getProperty("password") == null) {
+		if (UEX.getUser() == null && info.getProperty("user") == null || UEX.getPswd() == null && info.getProperty("password") == null) {
 
 			throw new SQLException("please apply user and password"); 
 		}
 
-		if (UEX.user != null) // override the properties object according to
+		if (UEX.getUser() != null) // override the properties object according to
 								// Razi.
 		{
-			info.put("user", UEX.user);
-			info.put("password", UEX.pswd);
+			info.put("user", UEX.getUser());
+			info.put("password", UEX.getPswd());
 		}
 		// now cast it to JDBC Properties object (cause thats what the
 		// DriverManager gives us as parameter):
-		if (UEX.dbName == null || UEX.dbName.equals(""))
+		if (UEX.getDbName() == null || UEX.getDbName().equals(""))
 			throw new SQLException("connection string : missing database name error");
-		if (UEX.host == null)
+		if (UEX.getHost() == null)
 			throw new SQLException("connection string : missing host ip error");
-		if (UEX.port == -1)
+		if (UEX.getPort() == -1)
 			throw new SQLException("connection string : missing port error");
 
-		info.put("dbname", UEX.dbName);
-		info.put("port", String.valueOf(UEX.port));
-		info.put("host", UEX.host);
-		info.put("cluster", UEX.cluster);
-		info.put("ssl", UEX.ssl);
+		info.put("dbname", UEX.getDbName());
+		info.put("port", String.valueOf(UEX.getPort()));
+		info.put("host", UEX.getHost());
+		info.put("cluster", UEX.getCluster());
+		info.put("ssl", UEX.getSsl());
 		
-		if(UEX.service != null)
-			info.put("service", UEX.service);
+		if(UEX.getService() != null)
+			info.put("service", UEX.getService());
 
-		Boolean logConfigEnabled = UEX.logger != null ? Boolean.valueOf(UEX.logger) : false;
+		Boolean logConfigEnabled = UEX.getLogger() != null ? Boolean.valueOf(UEX.getLogger()) : false;
 
-		if (UEX.showFullStackTrace != null)
-			info.put("showFullStackTrace", UEX.showFullStackTrace);
+		if (UEX.getShowFullStackTrace() != null)
+			info.put("showFullStackTrace", UEX.getShowFullStackTrace());
 		//System.out.println ("connection info: " + info);
 		SQConnection SQC = null;
 		try {
