@@ -41,58 +41,58 @@ public class SQDriverTest {
 
     @Test
     public void whenCorrectUriAcceptsURLReturnTrue() throws SQLException {
-        assertTrue(new SQDriver().acceptsURL(CORRECT_URI));
+        assertTrue(driver.acceptsURL(CORRECT_URI));
     }
 
-    @Test
-    public void whenUriIsNullAcceptsURLReturnFalse() throws SQLException {
-        assertTrue(new SQDriver().acceptsURL(null));
+    @Test(expected = SQLException.class)
+    public void whenUriIsNullAcceptsURLThowExceptionTest() throws SQLException {
+        driver.acceptsURL(null);
     }
 
-    @Test
-    public void whenUriIsEmptyAcceptsURLReturnFalse() throws SQLException {
-        assertTrue(new SQDriver().acceptsURL(""));
+    @Test(expected = SQLException.class)
+    public void whenUriIsEmptyAcceptsURLThowExceptionTest() throws SQLException {
+        driver.acceptsURL("");
     }
 
     @Test
     public void whenAnotherProviderInUriAcceptsURLReturnFalse() throws SQLException {
-        assertFalse(new SQDriver().acceptsURL(ANOTHER_PROVIDER_URI));
+        assertFalse(driver.acceptsURL(ANOTHER_PROVIDER_URI));
     }
 
     @Test
     public void getMinorVersionTest() {
-        assertEquals(MINOR_VERSION, new SQDriver().getMinorVersion());
+        assertEquals(MINOR_VERSION, driver.getMinorVersion());
     }
 
     @Test
     public void getMajorVersionTest() {
-        assertEquals(MAJOR_VERSION, new SQDriver().getMajorVersion());
+        assertEquals(MAJOR_VERSION, driver.getMajorVersion());
     }
 
     @Test
     public void jdbcCompliantTest() {
-        assertTrue(new SQDriver().jdbcCompliant());
+        assertTrue(driver.jdbcCompliant());
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void getParentLoggerTest() throws SQLFeatureNotSupportedException {
-        new SQDriver().getParentLogger();
+        driver.getParentLogger();
     }
 
     @Test
     public void getPropertyInfoTest() throws SQLException {
-        DriverPropertyInfo[] propertyInfo = new SQDriver().getPropertyInfo(null, null);
+        DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(null, null);
         assertEquals(0, propertyInfo.length);
     }
 
     @Test(expected = SQLException.class)
     public void whenProviderLowerCaseConnectThrowExceptionTest() throws SQLException {
-        new SQDriver().connect(LOWER_CASE_PROVIDER_URI, CORRECT_CONN_PROPERTIES);
+        driver.connect(LOWER_CASE_PROVIDER_URI, CORRECT_CONN_PROPERTIES);
     }
 
     @Test(expected = SQLException.class)
     public void whenPropertiesIsNullConnectThrowExceptionTest() throws SQLException {
-        new SQDriver().connect(CORRECT_URI, null);
+        driver.connect(CORRECT_URI, null);
     }
 
     @Test

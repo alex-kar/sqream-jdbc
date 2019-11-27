@@ -22,7 +22,7 @@ public class UriEx {
 
     UriEx(String url) throws SQLException {
         try {
-            this.uri = getUri(url);
+            this.uri = parseURI(url);
             this.port = uri.getPort();
             this.host = uri.getHost();
             this.provider = uri.getScheme();
@@ -117,12 +117,16 @@ public class UriEx {
         return ssl;
     }
 
-    private URI getUri(String url) throws SQLException, URISyntaxException {
-        uri = new URI(url.substring(5)); // cause first 5 chars are not relevant
-        if (uri.getPath() == null) {
+    private URI parseURI(String url) throws SQLException, URISyntaxException {
+        if (url == null || url.length() < 6) {
             throw new SQLException("Connect string general error : " + url
                     + "\nnew format Example: 'jdbc:Sqream://<host>:<port>/<dbname>;user=sa;password=sa'");
         }
-        return uri;
+        URI result = new URI(url.substring(5)); // cause first 5 chars are not relevant
+        if (result.getPath() == null) {
+            throw new SQLException("Connect string general error : " + url
+                    + "\nnew format Example: 'jdbc:Sqream://<host>:<port>/<dbname>;user=sa;password=sa'");
+        }
+        return result;
     }
 }
