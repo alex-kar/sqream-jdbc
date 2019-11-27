@@ -19,9 +19,11 @@ compile_repo()   # to generate
 jdbc_location = jdbc_repo + 'target/' + [jar for jar in os.listdir(jdbc_repo + 'target') if jar.endswith('dependencies.jar')][0]
 
 
-def launch_sqreamd(path = '/home/sqream/master'):
+def launch_sqreamd(sqream_path = '/home/sqream/master'):
     
-    return Popen('/build/sqreamd').communicate()
+    # Popen(('killall', '-9', 'sqreamd'))
+    
+    return Popen(sqream_path + '/build/sqreamd').communicate()
 
 
 
