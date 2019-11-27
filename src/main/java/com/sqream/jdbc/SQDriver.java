@@ -3,10 +3,7 @@ package com.sqream.jdbc;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
+import java.sql.*;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.lang.reflect.Field;
@@ -26,7 +23,9 @@ import static java.nio.file.StandardOpenOption.CREATE;
 
 
 public class SQDriver implements java.sql.Driver {
-	
+
+	private SQConnectionFactory connectionFactory = new SQConnectionFactory();
+
 	boolean logging = Connector.is_logging();
 	Path SQDriver_log = Paths.get("/tmp/SQDriver.txt");
 	boolean log(String line) throws SQLException {
@@ -63,7 +62,7 @@ public class SQDriver implements java.sql.Driver {
 	}
 	
 	@Override
-	public java.sql.Connection connect(String url, Properties info) throws SQLException {
+	public Connection connect(String url, Properties info) throws SQLException {
 		
 		log("inside connect in SQDriver");
 		try {
@@ -125,9 +124,9 @@ public class SQDriver implements java.sql.Driver {
 		if (UEX.getShowFullStackTrace() != null)
 			info.put("showFullStackTrace", UEX.getShowFullStackTrace());
 		//System.out.println ("connection info: " + info);
-		SQConnection SQC = null;
+		Connection SQC;
 		try {
-			SQC = new SQConnection(info);
+			SQC = connectionFactory.initConnection(info);
 			//String[] lables = { "url", "info" };
 			//String[] values = { url, info.toString() };
 

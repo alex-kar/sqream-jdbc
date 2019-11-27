@@ -80,7 +80,7 @@ public class Positive {
 	    /* Test that get_varchar returns corect results for all types */
 		
 		boolean a_ok = false;
-		Connector conn = new Connector("192.168.1.6", 5000, false, false);
+		Connector conn = new Connector("127.0.0.1", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
 		
 		// Prepare Table
@@ -135,7 +135,7 @@ public class Positive {
     	
     	boolean a_ok = false;
     	String table_name = table_type.contains("varchar(") ?  table_type.substring(0,7) : table_type;
-    	Connector conn = new Connector("192.168.1.6", 5000, false, false);
+    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
     	conn.connect("master", "sqream", "sqream", "sqream");
 		
     	// Prepare Table
@@ -336,7 +336,7 @@ public class Positive {
 	
     private boolean autoflush(int total_inserts, int insert_every) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException   {
 
-    	Connector conn = new Connector("192.168.1.6", 5000, false, false);
+    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
     	
     	// Prepare Table
