@@ -226,8 +226,8 @@ public class SQConnection implements Connection {
 				}
 				Statement_list.clear();
 			}
-			if(globalClient !=null && globalClient.is_open())
-				globalClient.close_connection();      // Closing Connector
+			if(globalClient !=null && globalClient.isOpen())
+				globalClient.closeConnection();      // Closing Connector
 			isClosed.set(true);
 
 		} catch (IOException | ScriptException | ConnException e) {
@@ -310,7 +310,7 @@ public class SQConnection implements Connection {
 	@Override
 	public boolean isValid(int timeout) throws SQLException {
 		log("inside isValid SQConnection");
-		return globalClient.is_open();
+		return globalClient.isOpen();
 	}
 	
 	@Override

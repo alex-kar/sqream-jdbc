@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
+import java.util.Collections;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.lang.reflect.Field;
@@ -12,7 +13,6 @@ import javax.script.ScriptException;
 import com.sqream.jdbc.Connector.ConnException;
 
 // Logging
-import java.util.Arrays;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.charset.Charset;
@@ -26,23 +26,10 @@ public class SQDriver implements java.sql.Driver {
 
 	private SQConnectionFactory connectionFactory = new SQConnectionFactory();
 
-	boolean logging = Connector.is_logging();
-	Path SQDriver_log = Paths.get("/tmp/SQDriver.txt");
-	boolean log(String line) throws SQLException {
-		if (!logging)
-			return true;
-		
-		try {
-			Files.write(SQDriver_log, Arrays.asList(new String[] {line}), UTF_8, CREATE, APPEND);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new SQLException ("Error writing to SQDriver log");
-		}
-		
-		return true;
-	}
-
+	private boolean logging = Connector.is_logging();
+	private Path SQDriver_log = Paths.get("/tmp/SQDriver.txt");
 	private DriverPropertyInfo[] DPIArray;
+
 	static {
 		try {
 			DriverManager.registerDriver(new SQDriver());
@@ -119,17 +106,12 @@ public class SQDriver implements java.sql.Driver {
 		if(UEX.getService() != null)
 			info.put("service", UEX.getService());
 
-		Boolean logConfigEnabled = UEX.getLogger() != null ? Boolean.valueOf(UEX.getLogger()) : false;
-
-		if (UEX.getShowFullStackTrace() != null)
+		if (UEX.getShowFullStackTrace() != null) {
 			info.put("showFullStackTrace", UEX.getShowFullStackTrace());
-		//System.out.println ("connection info: " + info);
+		}
 		Connection SQC;
 		try {
 			SQC = connectionFactory.init(info);
-			//String[] lables = { "url", "info" };
-			//String[] values = { url, info.toString() };
-
 		} catch (NumberFormatException | IOException | ScriptException| NoSuchAlgorithmException | KeyManagementException | ConnException  e) {
 			e.printStackTrace();
 			throw new SQLException(e);
@@ -192,4 +174,17 @@ public class SQDriver implements java.sql.Driver {
 		throw new SQLFeatureNotSupportedException("getParentLogger in SQDriver");
 	}
 
+	private boolean log(String line) throws SQLException {
+		if (!logging)
+			return true;
+
+		try {
+			Files.write(SQDriver_log, Collections.singletonList(line), UTF_8, CREATE, APPEND);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new SQLException ("Error writing to SQDriver log");
+		}
+
+		return true;
+	}
 }

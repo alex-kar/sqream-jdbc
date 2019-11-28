@@ -45,7 +45,7 @@ public class SQStatment implements Statement {
 		if (client.IsCancelStatement.getAndSet(true)) {
 			return;
 		}
-		if (!client.is_open_statement()) {
+		if (!client.isOpenStatement()) {
 			return;
 		}
 		
@@ -57,18 +57,18 @@ public class SQStatment implements Statement {
 			cancel = new Connector(connection.getParams().getIp(), connection.getParams().getPort(), connection.getParams().getCluster(), connection.getParams().getUseSsl());
 			cancel.connect(connection.getParams().getDbName(), connection.getParams().getUser(), connection.getParams().getPassword(), connection.getParams().getService());
 			cancel.execute(sql);	
-			client.open_statement = false;
+			client.openStatement = false;
 		}catch (IOException | ConnException | ScriptException | NoSuchAlgorithmException | KeyManagementException e) {
 			e.printStackTrace();
 			throw new SQLException(e.getMessage());
 		} 
 		finally  {
 			// TODO Auto-generated catch block
-			if(cancel !=null && cancel.is_open())
+			if(cancel !=null && cancel.isOpen())
 				try {
-					if (cancel.is_open_statement())
+					if (cancel.isOpenStatement())
 						cancel.close();
-					cancel.close_connection();
+					cancel.closeConnection();
 				} catch (IOException | ConnException | ScriptException e) {
 					// TODO Auto-generated catch block
 					String message = e.getMessage();
@@ -84,10 +84,10 @@ public class SQStatment implements Statement {
 	@Override
 	public void close() throws SQLException {
 		try {
-			if(client !=null && client.is_open()) {
-				if (client.is_open_statement())
+			if(client !=null && client.isOpen()) {
+				if (client.isOpenStatement())
 					client.close();
-				client.close_connection(); // since each statement creates a new client connection.
+				client.closeConnection(); // since each statement creates a new client connection.
 			}
             if(connection !=null)
 			   connection.removeItem(this);
@@ -125,7 +125,7 @@ public class SQStatment implements Statement {
 				// Omer and Razi - support cancel
 				if (IsCancelStatement.get()) {
 					//Close the connection of cancel statement
-					client.close_connection();
+					client.closeConnection();
 					throw new SQLException("Statement cancelled by user");
 				}
 
@@ -162,7 +162,7 @@ public class SQStatment implements Statement {
 			
 			if (IsCancelStatement.get()) {
 				//Close the connection of cancel statement
-				client.close_connection();
+				client.closeConnection();
 				throw new SQLException("Statement cancelled by user");
 			}
 

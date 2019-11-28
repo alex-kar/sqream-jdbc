@@ -76,11 +76,11 @@ public class SQPreparedStatment implements PreparedStatement {
     public void close() throws SQLException {
     	//print ("inside SQPreparedStatement close");
         try {
-        	if (Client!= null && Client.is_open()) {
-				if (Client.is_open_statement()) {
+        	if (Client!= null && Client.isOpen()) {
+				if (Client.isOpenStatement()) {
 					Client.close();
 				}
-				Client.close_connection();
+				Client.closeConnection();
         	}
         } catch (IOException | ConnException | ScriptException e) {
         	e.printStackTrace();

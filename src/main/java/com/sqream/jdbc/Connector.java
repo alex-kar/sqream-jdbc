@@ -7,20 +7,10 @@ import java.nio.ByteOrder;
 // Socket communication
 import java.nio.channels.SocketChannel;
 import java.net.InetSocketAddress;
-import java.io.InputStream;
-import java.io.OutputStream;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.SSLSocket;
-
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.Status;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 
 // More SSL shite
-import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.security.cert.X509Certificate;
@@ -39,7 +29,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
-import jdk.nashorn.internal.runtime.JSONListAdapter;
+
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashMap;
@@ -55,11 +45,9 @@ import java.util.BitSet;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 
 // Date / Time related
 import java.sql.Date;
@@ -70,7 +58,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 // Aux
 import java.util.Arrays;   //  To allow debug prints via Arrays.toString
@@ -85,7 +72,6 @@ import static java.nio.file.StandardOpenOption.CREATE;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import javax.net.ssl.SSLException;
 
 // SSL over SocketChannel abstraction
 import tlschannel.TlsChannel;
@@ -117,7 +103,7 @@ public class Connector {
     String user = "sqream";
     String password = "sqream";
     String service = "sqream";
-    boolean use_ssl;
+    boolean useSsl;
     
     // Reconnecting parameters that don't appear before that stage
     int listener_id;
@@ -166,7 +152,7 @@ public class Connector {
     int []    col_sizes;
     BitSet col_nullable;
     BitSet col_tvc;
-    boolean open_statement = false;
+    boolean openStatement = false;
     int chunk_size;
     boolean closed_by_prefetch;
     
@@ -368,7 +354,7 @@ public class Connector {
     	total_bytes_read = 0;
 		
     	while (total_bytes_read < msg_len || msg_len == 0) {
-			bytes_read = (use_ssl) ? ss.read(response) : s.read(response);
+			bytes_read = (useSsl) ? ss.read(response) : s.read(response);
 			if (bytes_read == -1) 
                 throw new IOException("Socket closed. Last buffer written: " + response);
 			total_bytes_read += bytes_read;
@@ -432,7 +418,7 @@ public class Connector {
         engine_bindings = engine.getContext().getBindings(ScriptContext.GLOBAL_SCOPE);
         port = _port;
         ip = _ip;
-        use_ssl = _ssl;
+        useSsl = _ssl;
         
         s.connect(new InetSocketAddress(ip, port));
         //s.socket().setKeepAlive(true);
@@ -463,7 +449,7 @@ public class Connector {
             s.connect(new InetSocketAddress(ip, port));
         }
         // At this point we have a regular sokcet connected to the right address
-        if (use_ssl) {
+        if (useSsl) {
             ssl_context = SSLContext.getInstance("TLSv1.2");
             ssl_context.init(null,
                new TrustManager[]{ new X509TrustManager() {
@@ -517,11 +503,11 @@ public class Connector {
     
     Boolean _validate_open(String statement_type) throws ConnException {
     	
-    	if (!is_open()) { 
+    	if (!isOpen()) {
     		throw new ConnException("Trying to run command " + statement_type + " but connection closed");
     	}
     	
-		if (!open_statement) { 
+		if (!openStatement) {
 			throw new ConnException("Trying to run command " + statement_type + " but statement closed");
 		}
     	
@@ -563,7 +549,7 @@ public class Connector {
         if (data != null ) {
             data.flip();
             while(data.hasRemaining()) 
-                written = (use_ssl) ? ss.write(data) : s.write(data);
+                written = (useSsl) ? ss.write(data) : s.write(data);
         }
         
         // Sending null for data will get us here directly, allowing to only get socket response if needed
@@ -831,12 +817,12 @@ public class Connector {
     	
     	/* getStatementId, prepareStatement, reconnect, execute, queryType  */
         charitable = true;
-    	if (open_statement)
+    	if (openStatement)
     		if (charitable)  // Automatically close previous unclosed statement
     			close();
     		else
     			throw new ConnException("Trying to run a statement when another was not closed. Open statement id: " + statement_id + " on connection: " + connection_id);
-    	open_statement = true;
+    	openStatement = true;
         // Get statement ID, send prepareStatement and get response parameters
         statement_id = _parse_sqream_json(_send_message(form_json("getStatementId"), true)).get("statementId").asInt();
         
@@ -868,18 +854,18 @@ public class Connector {
         reconnect =      response_json.get("reconnect").asBoolean();
         ip =             response_json.get("ip").asString();
         
-        port = use_ssl ? port_ssl : port; 
+        port = useSsl ? port_ssl : port;
         // Reconnect and reestablish statement if redirected by load balancer
         if (reconnect) {
             // Closing and reconnecting socket to new ip / port
-            if (use_ssl) 
+            if (useSsl)
                 ss.close();
             s.close();
             
             s = SocketChannel.open();
             s.connect(new InetSocketAddress(ip, port));
             //s.socket().setKeepAlive(true);
-            if (use_ssl)
+            if (useSsl)
                 ss = ClientTlsChannel.newBuilder(s, ssl_context).build();
             
             // Sending reconnect, reconstruct commands
@@ -996,19 +982,19 @@ public class Connector {
     
     
     public Boolean close() throws IOException, ScriptException, ConnException {
-        
+
     	String res = "";
-    	
-    	if (is_open()) {
-    		if (open_statement) {
-    			
+
+    	if (isOpen()) {
+    		if (openStatement) {
+
     			if (statement_type!= null && statement_type.equals("INSERT")) {
     	            _flush(row_counter);
     	        }
     	            // Statement is finished so no need to reset row_counter etc
-    			
+
     			res = _validate_response(_send_message(form_json("closeStatement"), true), form_json("statementClosed"));
-    	        open_statement = false;  // set to true in execute()
+    	        openStatement = false;  // set to true in execute()
     		}
     		else
     			return false;  //res =  "statement " + statement_id + " already closed";
@@ -1020,24 +1006,20 @@ public class Connector {
     }
     
     
-    public boolean close_connection() throws IOException, ScriptException, ConnException {
-        
-        if (is_open()) {
-
-        	if (open_statement) // Close open statement if exists
-        		close();  
-	        
+    boolean closeConnection() throws IOException, ScriptException, ConnException {
+        if (isOpen()) {
+        	if (openStatement) { // Close open statement if exists
+                close();
+        	}
         	_validate_response(_send_message(form_json("closeConnection"), true), form_json("connectionClosed"));
-	        
-	        if (use_ssl) {
-	        	if (ss.isOpen())
-	        		ss.close(); // finish ssl communcication and close SSLEngine
+	        if (useSsl) {
+	        	if (ss.isOpen()) {
+                    ss.close(); // finish ssl communcication and close SSLEngine
+                }
 	        }
-	        
 	        if (s.isOpen())
 	        	s.close();
         }
-        
         return true;
     }
     
@@ -1515,14 +1497,14 @@ public class Connector {
         return col_nullable.get(_validate_col_num(col_num));
     }
     
-    public boolean is_open_statement() {
+    public boolean isOpenStatement() {
         
-        return open_statement;
+        return openStatement;
     }
     
-    public boolean is_open() {
+    boolean isOpen() {
         
-        return (use_ssl) ? ss.isOpen() : s.isOpen();
+        return (useSsl) ? ss.isOpen() : s.isOpen();
     }
     
     boolean set_fetch_limit(int _fetch_limit) throws ConnException{

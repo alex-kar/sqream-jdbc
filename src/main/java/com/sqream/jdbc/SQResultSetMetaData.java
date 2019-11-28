@@ -1,13 +1,10 @@
 package com.sqream.jdbc;
 
-import java.io.IOException;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
-import com.sqream.jdbc.ColumnMetadata;
 
-import com.sqream.jdbc.Connector;
 import com.sqream.jdbc.Connector.ConnException;
 
 
@@ -17,23 +14,22 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	 * @param args
 	 */
 
-	Connector client = null;
+	Connector client;
 	ColumnMetadata[] meta;
-	String db_name;
-	int row_length;
+	String dbName;
+	int rowLength;
 	
 	static void print(Object printable) {
 		System.out.println(printable);
 	}
 	
-	public SQResultSetMetaData(Connector _client, String catalog) throws IOException, SQLException, ConnException {
-
-		client = _client;
+	SQResultSetMetaData(Connector client, String catalog) throws ConnException {
+		this.client = client;
 		// Fill up meta in a loop using api stuff
-		db_name = catalog;
-		row_length = client.get_row_length();
-		meta = new ColumnMetadata[row_length];
-		for (int idx = 0; idx < row_length; idx++) {
+		dbName = catalog;
+		rowLength = client.get_row_length();
+		meta = new ColumnMetadata[rowLength];
+		for (int idx = 0; idx < rowLength; idx++) {
 			meta[idx] = new ColumnMetadata(client.get_col_name(idx +1), client.get_col_type(idx +1), client.get_col_size(idx +1), client.is_col_nullable(idx +1));
 		}
 	}	
@@ -41,16 +37,14 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
 		// TODO Auto-generated method stub
-
 		return false;
 	}
 
 	@Override
 	public String getCatalogName(int column) throws SQLException {
 		// TODO Auto-generated method stub
-
 		// return MetaData[column].name;
-		return db_name; // hard-coded for dotan,in future, do it right.
+		return dbName; // hard-coded for dotan,in future, do it right.
 	}
 	
 	@Override
