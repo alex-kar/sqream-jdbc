@@ -99,7 +99,7 @@ public class SQDriverTest {
     public void whenPropertiesDoNotContainUserOrPasswordConnectReturnConnectionTest() throws SQLException, IOException,
             KeyManagementException, NoSuchAlgorithmException, Connector.ConnException, ScriptException {
         SQConnection connMock = mock(SQConnection.class);
-        when(connFactoryMock.initConnection(any(Properties.class))).thenReturn(connMock);
+        when(connFactoryMock.init(any(Properties.class))).thenReturn(connMock);
 
         Connection actualConnection = driver.connect(CORRECT_URI, new Properties());
 

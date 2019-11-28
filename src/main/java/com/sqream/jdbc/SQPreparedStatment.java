@@ -26,7 +26,6 @@ import java.sql.PreparedStatement;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.ParameterMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -35,11 +34,8 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.time.Instant;
-import java.time.ZonedDateTime;
 
 
-import com.sqream.jdbc.Connector;
 import com.sqream.jdbc.Connector.ConnException;
 
 
@@ -49,7 +45,7 @@ public class SQPreparedStatment implements PreparedStatement {
     SQResultSet SQRS = null;
     private SQResultSetMetaData metaData = null;
     String sql;
-    private SQConnection Connection =null;  
+    private SQConnection connection =null;
     int statement_id;
     String db_name;
     int setCounter = 0;
@@ -65,14 +61,14 @@ public class SQPreparedStatment implements PreparedStatement {
     
     public SQPreparedStatment(Connector client, String Sql, SQConnection conn, String catalog) throws SQLException, IOException, KeyManagementException, NoSuchAlgorithmException, ScriptException, ConnException {
         
-        Connection = conn;
+        connection = conn;
         db_name = catalog;
         is_closed = false;
-        Client = new Connector(Connection.sqlb.ip, Connection.sqlb.port, conn.sqlb.Cluster, Connection.sqlb.Use_ssl);
-        Client.connect(Connection.sqlb.DB_name, Connection.sqlb.User, Connection.sqlb.Password, "sqream");  // default service
+        Client = new Connector(connection.getParams().getIp(), connection.getParams().getPort(), conn.getParams().getCluster(), connection.getParams().getUseSsl());
+        Client.connect(connection.getParams().getDbName(), connection.getParams().getUser(), connection.getParams().getPassword(), "sqream");  // default service
         sql = Sql;
         statement_id = Client.execute(sql);
-        metaData = new SQResultSetMetaData(Client, Connection.sqlb.DB_name);
+        metaData = new SQResultSetMetaData(Client, connection.getParams().getDbName());
     }
 
     

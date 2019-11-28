@@ -126,7 +126,7 @@ public class SQDriver implements java.sql.Driver {
 		//System.out.println ("connection info: " + info);
 		Connection SQC;
 		try {
-			SQC = connectionFactory.initConnection(info);
+			SQC = connectionFactory.init(info);
 			//String[] lables = { "url", "info" };
 			//String[] values = { url, info.toString() };
 

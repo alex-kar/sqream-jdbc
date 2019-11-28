@@ -10,11 +10,11 @@ import java.util.Properties;
 
 public class SQConnectionFactory {
 
-    Connection initConnection(Connector client) throws IOException {
+    Connection init(Connector client) throws IOException {
         return new SQConnection(client);
     }
 
-    Connection initConnection(Properties connectionInfo) throws NoSuchAlgorithmException, IOException, ScriptException,
+    Connection init(Properties connectionInfo) throws NoSuchAlgorithmException, IOException, ScriptException,
             SQLException, KeyManagementException, Connector.ConnException {
         return new SQConnection(connectionInfo);
     }
