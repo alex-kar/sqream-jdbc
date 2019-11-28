@@ -1,4 +1,4 @@
-package com.sqream.jdbc;
+package com.sqream.jdbc.enums;
 
 public enum StatementType {
     DML,

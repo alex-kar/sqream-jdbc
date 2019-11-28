@@ -126,25 +126,15 @@ public class SQPreparedStatment implements PreparedStatement {
     }
 
     @Override
-    public boolean execute() throws SQLException {
-        try {
-            SQRS = new SQResultSet(Client, db_name);
-        } catch (IOException e1) {
-            e1.printStackTrace();
-        }
+    public boolean execute() {
+        SQRS = new SQResultSet(Client, db_name);
 
         return SQRS != null;
     }
     
     @Override
-    public ResultSet executeQuery() throws SQLException {
-
-        try {
-            SQRS = new SQResultSet(Client, db_name);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+    public ResultSet executeQuery() {
+        SQRS = new SQResultSet(Client, db_name);
         return SQRS;
     }
 
@@ -152,7 +142,7 @@ public class SQPreparedStatment implements PreparedStatement {
     // ----
     
     @Override
-    public void setBoolean(int arg0, boolean arg1) throws SQLException {
+    public void setBoolean(int arg0, boolean arg1) {
         
         try {
 			Client.set_boolean(arg0, arg1);

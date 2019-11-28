@@ -133,7 +133,7 @@ public class SQStatment implements Statement {
 					result = true;
 
 				resultSet = new SQResultSet(client, dbName);
-				resultSet.MaxRows = SIZE_RESULT;
+				resultSet.setMaxRows(SIZE_RESULT);
 			} catch (Exception e) {
 				e.printStackTrace();
 				if (e.getMessage().contains("stopped by user")
@@ -167,11 +167,11 @@ public class SQStatment implements Statement {
 			}
 
 			resultSet = new SQResultSet(client, dbName);
-			resultSet.MaxRows = SIZE_RESULT;
+			resultSet.setMaxRows(SIZE_RESULT);
 			// Related to bug BG-910 - Set as empty since there is no need to
 			// return result
 			if ((client.get_query_type() != "INSERT") && client.get_row_length() == 0)
-				resultSet.Empty = true;
+				resultSet.setEmpty(true);
 			
 			return resultSet;
 
