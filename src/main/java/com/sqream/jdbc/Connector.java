@@ -37,21 +37,16 @@ import java.util.List;
 import java.text.MessageFormat;
 
 // Datatypes for building columns and other
-//import java.lang.reflect.Array;
 import java.util.BitSet;
-//import java.util.List;
 
 // Unicode related
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
 // Date / Time related
 import java.sql.Date;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -66,16 +61,14 @@ import java.util.stream.IntStream;
 //Exceptions
 import javax.script.ScriptException;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.StandardOpenOption.APPEND;
-import static java.nio.file.StandardOpenOption.CREATE;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 // SSL over SocketChannel abstraction
 import tlschannel.TlsChannel;
 import tlschannel.ClientTlsChannel;
+
+import static com.sqream.jdbc.Utils.formJson;
 
 public class Connector {
 
@@ -206,141 +199,6 @@ public class Connector {
     String reconstructStatement = "'{'\"reconstructStatement\":{0, number, #}'}'";
     String put = "'{'\"put\":{0, number, #}'}'";
     
-    // Constant message template
-    String simpleMessage = "'{'\"{0}\":\"{0}\"'}'"; 
-    
-    
-    // General Helper Functions
-    // ------------------------
-    
-    String form_json(String command) {  
-        return MessageFormat.format(simpleMessage, command);
-    }
-    
-    static void print(Object printable) {
-        System.out.println(printable);
-    }
-    
-    static void printbuf(ByteBuffer to_print, String description) {
-        System.out.println(description + " : " + to_print);
-    }
-    
-    static String decode(ByteBuffer message) {
-        return UTF8.decode(message).toString();
-    }
-    
-    static long time() {
-        return System.currentTimeMillis();
-    }
-    
-    static Date date_from_tuple(int year, int month, int day) {
-        
-        return Date.valueOf(LocalDate.of(year, month, day));
-    }
-    
-    static Timestamp datetime_from_tuple(int year, int month, int day, int hour, int minutes, int seconds, int ms) {
-            
-        return Timestamp.valueOf(LocalDateTime.of(LocalDate.of(year, month, day), LocalTime.of(hour, minutes, seconds, ms*(int)Math.pow(10, 6))));
-    }
-
-    
-    static int date_to_int(Date d ,ZoneId zone) {
-        
-        // Consider a different implementation here
-        if (d == null) 
-            return 0;
-        
-        //ZonedDateTime zoned_date = d.toInstant().atZone(zone);
-        
-        LocalDate date = d.toLocalDate();
-        year  = date.getYear();
-        month = date.getMonthValue();
-        day   = date.getDayOfMonth();
-
-        month = (month + 9) % 12;
-        year = year - month / 10;
-
-        date_as_int = (365 * year + year / 4 - year / 100 + year / 400 + (month * 306 + 5) / 10 + (day - 1));
-
-    
-        return date_as_int;
-    }
-    
-    
-    static long dt_to_long(Timestamp ts, ZoneId zone) {  // ZonedDateTime
-        
-        if (ts == null) 
-            return 0;
-        
-        LocalDateTime datetime = ts.toInstant().atZone(zone).toLocalDateTime(); 
-        
-        //LocalDateTime datetime = ts.toLocalDateTime(); 
-        year  = datetime.getYear();
-        month = datetime.getMonthValue();
-        day   = datetime.getDayOfMonth();
-        
-        month = (month + 9) % 12;
-        year = year - month / 10;
-
-        date_as_int = (365 * year + year / 4 - year / 100 + year / 400 + (month * 306 + 5) / 10 + (day - 1));
-    
-        time_as_int =  datetime.getHour() * 3600000;
-        time_as_int += datetime.getMinute() * 60000;
-        time_as_int += datetime.getSecond() * 1000;
-        time_as_int += datetime.getNano() / 1000000;
-        
-        
-        return (((long) date_as_int) << 32) | (time_as_int & 0xffffffffL);
-    }
-    
-    
-    static LocalDate _int_to_local_date(int date_as_int) {
-        
-        long yy = ((long)10000*date_as_int + 14780)/3652425;
-        long ddd =  (date_as_int - (365*yy + yy/4 - yy/100 + yy/400));
-
-        if (ddd < 0) 
-        {
-            yy -=  1;
-            ddd = (date_as_int - (365*yy + yy/4 - yy/100 + yy/400));
-        }
- 
-        long mi = (long)(100*ddd + 52)/3060;
-        
-        year = (int) (yy + (mi + 2)/12);
-        month = (int)((mi + 2)%12) + 1;
-        day = (int) (ddd - (mi*306 + 5)/10 + 1);
-        
-        
-        return LocalDate.of(year, month, day);                  
-    }
-    
-    
-    static Date int_to_date(int date_as_int, ZoneId zone) {
-        LocalDateTime local_dt = _int_to_local_date(date_as_int).atStartOfDay();
-    	
-        // new Date(Date.from(_int_to_local_date(date_as_int).atStartOfDay(zone).toInstant()).getTime());
-    	return new Date(Timestamp.from(local_dt.atZone(zone).toInstant()).getTime());
-    }
-    
-
-    static Timestamp long_to_dt(long dt_as_long, ZoneId zone) {
-        
-        date_as_int = (int)(dt_as_long >> 32);
-        time_as_int = (int)dt_as_long;       
-       
-        // Get hour, minutes and seconds from the time part
-        hour = time_as_int / 1000 / 60 / 60;
-        minutes = (time_as_int / 1000 / 60) % 60 ;
-        seconds = ((time_as_int) / 1000) % 60;
-        ms = time_as_int % 1000;
-        LocalDateTime local_dt = LocalDateTime.of(_int_to_local_date(date_as_int), LocalTime.of(hour, minutes, seconds, ms*(int)Math.pow(10, 6)));
-        
-        // return Timestamp.valueOf(local_dt);
-        return Timestamp.from(local_dt.atZone(zone).toInstant());
-
-    }
-    
     // Socket Interaction
     // ------------------
     
@@ -391,20 +249,6 @@ public class Connector {
     	
     	return logging;
     }
-    
-	boolean log(String line, String log_path) throws SQLException { 
-		if (!logging)
-			return true;
-		
-		try {
-			Files.write(Paths.get(log_path), Arrays.asList(new String[] {line}), UTF_8, CREATE, APPEND);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new SQLException ("Error writing to SQDriver log");
-		}
-		
-		return true;
-	}
 
     // Constructor  
     // -----------
@@ -562,7 +406,7 @@ public class Connector {
     		_read_data(response_message, msg_len);
         }   
         
-        return (get_response) ? decode(response_message) : "" ;
+        return (get_response) ? Utils.decode(response_message) : "" ;
     }
     
     // (5)   /* Send a JSON string to SQream over socket  */
@@ -655,7 +499,7 @@ public class Connector {
         /* Request and get data from SQream following a SELECT query */
         
         // Send fetch request and get metadata on data to be received
-        response_json = _parse_sqream_json(_send_message(form_json("fetch"), true));
+        response_json = _parse_sqream_json(_send_message(formJson("fetch"), true));
         new_rows_fetched = response_json.get("rows").asInt();
         fetch_sizes =   response_json.get("colSzs").asArray();  // Chronological sizes of all rows recieved, only needed for nvarchars
         if (new_rows_fetched == 0) {
@@ -771,7 +615,7 @@ public class Connector {
             _send_data(data_columns[idx], false);
         }
         
-        _validate_response(_send_data(null, true), form_json("putted"));  // Get {"putted" : "putted"}
+        _validate_response(_send_data(null, true), formJson("putted"));  // Get {"putted" : "putted"}
         
         
         return row_counter;  // counter nullified by next()
@@ -824,7 +668,7 @@ public class Connector {
     			throw new ConnException("Trying to run a statement when another was not closed. Open statement id: " + statement_id + " on connection: " + connection_id);
     	openStatement = true;
         // Get statement ID, send prepareStatement and get response parameters
-        statement_id = _parse_sqream_json(_send_message(form_json("getStatementId"), true)).get("statementId").asInt();
+        statement_id = _parse_sqream_json(_send_message(formJson("getStatementId"), true)).get("statementId").asInt();
         
         // Generating a valid json string via external library
         JsonObject prepare_jsonify;
@@ -871,16 +715,16 @@ public class Connector {
             // Sending reconnect, reconstruct commands
             String reconnectStr = MessageFormat.format(reconnectDatabase, database, user, password, service, connection_id, listener_id);
             _send_message(reconnectStr, true);      
-            _validate_response(_send_message( MessageFormat.format(reconstructStatement, statement_id), true), form_json("statementReconstructed"));
+            _validate_response(_send_message( MessageFormat.format(reconstructStatement, statement_id), true), formJson("statementReconstructed"));
 
         }  
          
         // Getting query type manouver and setting the type of query
-        _validate_response(_send_message(form_json("execute"), true), form_json("executed"));  
-        query_type =  _parse_sqream_json(_send_message(form_json("queryTypeIn"), true)).get("queryType").asArray();
+        _validate_response(_send_message(formJson("execute"), true), formJson("executed"));
+        query_type =  _parse_sqream_json(_send_message(formJson("queryTypeIn"), true)).get("queryType").asArray();
         
         if (query_type.isEmpty()) {
-            query_type =  _parse_sqream_json(_send_message(form_json("queryTypeOut"), true)).get("queryTypeNamed").asArray();
+            query_type =  _parse_sqream_json(_send_message(formJson("queryTypeOut"), true)).get("queryTypeNamed").asArray();
             statement_type = query_type.isEmpty() ? "DML" : "SELECT";
         }
         else {
@@ -993,7 +837,7 @@ public class Connector {
     	        }
     	            // Statement is finished so no need to reset row_counter etc
 
-    			res = _validate_response(_send_message(form_json("closeStatement"), true), form_json("statementClosed"));
+    			res = _validate_response(_send_message(formJson("closeStatement"), true), formJson("statementClosed"));
     	        openStatement = false;  // set to true in execute()
     		}
     		else
@@ -1011,7 +855,7 @@ public class Connector {
         	if (openStatement) { // Close open statement if exists
                 close();
         	}
-        	_validate_response(_send_message(form_json("closeConnection"), true), form_json("connectionClosed"));
+        	_validate_response(_send_message(formJson("closeConnection"), true), formJson("connectionClosed"));
 	        if (useSsl) {
 	        	if (ss.isOpen()) {
                     ss.close(); // finish ssl communcication and close SSLEngine
@@ -1157,13 +1001,13 @@ public class Connector {
     public Date get_date(int col_num, ZoneId zone) throws ConnException {   col_num--;  // set / get work with starting index 1
 		_validate_index(col_num);
         
-		return (_validate_get(col_num, "ftDate")) ? int_to_date(data_columns[col_num].getInt(4*row_counter), zone) : null;
+		return (_validate_get(col_num, "ftDate")) ? Utils.intToDate(data_columns[col_num].getInt(4*row_counter), zone) : null;
     }
     
     
     public Timestamp get_datetime(int col_num, ZoneId zone) throws ConnException {   col_num--;  // set / get work with starting index 1
 		_validate_index(col_num);
-		return (_validate_get(col_num, "ftDateTime")) ? long_to_dt(data_columns[col_num].getLong(8* row_counter), zone) : null;
+		return (_validate_get(col_num, "ftDateTime")) ? Utils.longToDt(data_columns[col_num].getLong(8* row_counter), zone) : null;
 	}
 
     
@@ -1401,7 +1245,7 @@ public class Connector {
     	_validate_index(col_num);
         
     	// Set actual value
-        data_columns[col_num].putInt(_validate_set(col_num, date, "ftDate") ? 0 : date_to_int(date, zone));
+        data_columns[col_num].putInt(_validate_set(col_num, date, "ftDate") ? 0 : Utils.dateToInt(date, zone));
         
         // Mark column as set
         columns_set.set(col_num);
@@ -1417,7 +1261,7 @@ public class Connector {
     	// ZonedDateTime dt = ts.toInstant().atZone(zone); 
 
     	// Set actual value
-        data_columns[col_num].putLong(_validate_set(col_num, ts, "ftDateTime") ? 0 : dt_to_long(ts, zone));
+        data_columns[col_num].putLong(_validate_set(col_num, ts, "ftDateTime") ? 0 : Utils.dtToLong(ts, zone));
         
         // Mark column as set
         columns_set.set(col_num);
