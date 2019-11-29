@@ -12,9 +12,10 @@ import java.util.logging.Logger;
 
 import javax.script.ScriptException;
 
+import com.sqream.jdbc.connector.ConnectorImpl;
 import org.junit.Test;
 
-import com.sqream.jdbc.Connector.ConnException;
+import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -48,7 +49,7 @@ public class Negative {
     	
     	boolean a_ok = false; 
     	String table_name = table_type.contains("varchar(100)") ?  table_type.substring(0,7) : table_type;
-    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
+    	ConnectorImpl conn = new ConnectorImpl("127.0.0.1", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
 			
 		
@@ -173,7 +174,7 @@ public class Negative {
     	
     	boolean a_ok = false;
     	String table_name = table_type.contains("varchar(100)") ?  table_type.substring(0,7) : table_type;
-    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
+    	ConnectorImpl conn = new ConnectorImpl("127.0.0.1", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
 		
 		
@@ -346,7 +347,7 @@ public class Negative {
     	boolean a_ok = false;
     	String tableName = table_type.contains("varchar(10)") ?  table_type.substring(0,7) : table_type;
     	
-    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
+    	ConnectorImpl conn = new ConnectorImpl("127.0.0.1", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
 		
     	// Prepare Table

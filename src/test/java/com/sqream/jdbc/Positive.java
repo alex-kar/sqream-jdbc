@@ -1,6 +1,7 @@
 package com.sqream.jdbc;
 
-import com.sqream.jdbc.Connector.ConnException;
+import com.sqream.jdbc.connector.ConnectorImpl;
+import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -80,7 +81,7 @@ public class Positive {
 	    /* Test that get_varchar returns corect results for all types */
 		
 		boolean a_ok = false;
-		Connector conn = new Connector("127.0.0.1", 5000, false, false);
+		ConnectorImpl conn = new ConnectorImpl("127.0.0.1", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
 		
 		// Prepare Table
@@ -99,7 +100,7 @@ public class Positive {
 		
 		while(conn.next()) { 
 			String res = conn.get_nvarchar(11);
-			if (conn.get_boolean(1) != false)  
+			if (conn.getBoolean(1) != false)
 				log.info("Wrong return value on getBoolen");
 			else if (conn.get_ubyte(2) != 14) 
 				log.info("Wrong return value on get_ubyte");
@@ -135,7 +136,7 @@ public class Positive {
     	
     	boolean a_ok = false;
     	String table_name = table_type.contains("varchar(") ?  table_type.substring(0,7) : table_type;
-    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
+    	ConnectorImpl conn = new ConnectorImpl("127.0.0.1", 5000, false, false);
     	conn.connect("master", "sqream", "sqream", "sqream");
 		
     	// Prepare Table
@@ -250,7 +251,7 @@ public class Positive {
 		return a_ok;
     }
     
-    public void send_and_retreive_result (Connector conn, String table_name, String table_type) throws ConnException, IOException, ScriptException, NoSuchAlgorithmException {
+    public void send_and_retreive_result (ConnectorImpl conn, String table_name, String table_type) throws ConnException, IOException, ScriptException, NoSuchAlgorithmException {
 		
     	conn.next();
 		conn.close();
@@ -267,7 +268,7 @@ public class Positive {
 		while(conn.next())
 		{
 			if (table_type == "bool") 
-				res_bool = conn.get_boolean(1);
+				res_bool = conn.getBoolean(1);
 			else if (table_type == "tinyint") 
 				res_ubyte = conn.get_ubyte(1);
 			else if (table_type == "smallint") 
@@ -336,7 +337,7 @@ public class Positive {
 	
     private boolean autoflush(int total_inserts, int insert_every) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException   {
 
-    	Connector conn = new Connector("127.0.0.1", 5000, false, false);
+    	ConnectorImpl conn = new ConnectorImpl("127.0.0.1", 5000, false, false);
 		conn.connect("master", "sqream", "sqream", "sqream");
     	
     	// Prepare Table

@@ -5,7 +5,9 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
 
-import com.sqream.jdbc.Connector.ConnException;
+import com.sqream.jdbc.connector.Connector;
+import com.sqream.jdbc.connector.ConnectorImpl;
+import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
 
 public class SQResultSetMetaData implements ResultSetMetaData {
@@ -27,10 +29,10 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 		this.client = client;
 		// Fill up meta in a loop using api stuff
 		dbName = catalog;
-		rowLength = client.get_row_length();
+		rowLength = client.getRowLength();
 		meta = new ColumnMetadata[rowLength];
 		for (int idx = 0; idx < rowLength; idx++) {
-			meta[idx] = new ColumnMetadata(client.get_col_name(idx +1), client.get_col_type(idx +1), client.get_col_size(idx +1), client.is_col_nullable(idx +1));
+			meta[idx] = new ColumnMetadata(client.getColName(idx +1), client.get_col_type(idx +1), client.get_col_size(idx +1), client.is_col_nullable(idx +1));
 		}
 	}	
 	

@@ -36,35 +36,31 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 
 
-import com.sqream.jdbc.Connector.ConnException;
+import com.sqream.jdbc.connector.Connector;
+import com.sqream.jdbc.connector.ConnectorImpl;
+import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
 
 public class SQPreparedStatment implements PreparedStatement {
 
-    private Connector Client = null;
-    SQResultSet SQRS = null;
+    private ConnectorImpl Client = null;
+    private SQResultSet SQRS = null;
     private SQResultSetMetaData metaData = null;
-    String sql;
+    private String sql;
     private SQConnection connection =null;
-    int statement_id;
-    String db_name;
-    int setCounter = 0;
-    int rowsInBatch = 0;
-    List<Integer> setsPerBatch = new ArrayList<>(); 
-    boolean is_closed = true;
-    
-    static void print(Object printable) {
-        System.out.println(printable);
-    }
-    
-    
-    
+    private int statement_id;
+    private String db_name;
+    private int setCounter = 0;
+    private int rowsInBatch = 0;
+    private List<Integer> setsPerBatch = new ArrayList<>();
+    private boolean is_closed = true;
+
     public SQPreparedStatment(Connector client, String Sql, SQConnection conn, String catalog) throws SQLException, IOException, KeyManagementException, NoSuchAlgorithmException, ScriptException, ConnException {
         
         connection = conn;
         db_name = catalog;
         is_closed = false;
-        Client = new Connector(connection.getParams().getIp(), connection.getParams().getPort(), conn.getParams().getCluster(), connection.getParams().getUseSsl());
+        Client = new ConnectorImpl(connection.getParams().getIp(), connection.getParams().getPort(), conn.getParams().getCluster(), connection.getParams().getUseSsl());
         Client.connect(connection.getParams().getDbName(), connection.getParams().getUser(), connection.getParams().getPassword(), "sqream");  // default service
         sql = Sql;
         statement_id = Client.execute(sql);

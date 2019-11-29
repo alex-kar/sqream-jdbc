@@ -1,5 +1,6 @@
 package com.sqream.jdbc;
 
+import com.sqream.jdbc.connector.ConnectorImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -97,7 +98,7 @@ public class SQDriverTest {
 
     @Test
     public void whenPropertiesDoNotContainUserOrPasswordConnectReturnConnectionTest() throws SQLException, IOException,
-            KeyManagementException, NoSuchAlgorithmException, Connector.ConnException, ScriptException {
+            KeyManagementException, NoSuchAlgorithmException, ConnectorImpl.ConnException, ScriptException {
         SQConnection connMock = mock(SQConnection.class);
         when(connFactoryMock.init(any(Properties.class))).thenReturn(connMock);
 

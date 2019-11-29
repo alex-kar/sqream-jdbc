@@ -3,7 +3,6 @@ package com.sqream.jdbc;
 import java.text.MessageFormat;
 import java.time.LocalTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 //import org.junit.Assert;
 //import org.junit.Test;
 import java.util.logging.Logger;
@@ -32,7 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-import com.sqream.jdbc.Connector;
+import com.sqream.jdbc.connector.ConnectorImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -296,15 +295,9 @@ public class JDBC_Positive {
 
         assertTrue(a_ok);
     }
-
-    @Test
-    public void is_logging_off () {
-        assertFalse(Connector.is_logging());
-    }
     
     public void get_connection () throws SQLException {
     	conn = DriverManager.getConnection(url,"sqream","sqream");
-    	
     }
 
     @Test

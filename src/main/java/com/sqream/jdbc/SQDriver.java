@@ -10,7 +10,8 @@ import java.util.logging.Logger;
 import java.lang.reflect.Field;
 import javax.script.ScriptException;
 
-import com.sqream.jdbc.Connector.ConnException;
+import com.sqream.jdbc.connector.ConnectorImpl;
+import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
 // Logging
 import java.nio.file.Path;
@@ -24,9 +25,6 @@ import static java.nio.file.StandardOpenOption.CREATE;
 
 public class SQDriver implements java.sql.Driver {
 
-	private SQConnectionFactory connectionFactory = new SQConnectionFactory();
-
-	private boolean logging = Connector.is_logging();
 	private Path SQDriver_log = Paths.get("/tmp/SQDriver.txt");
 	private DriverPropertyInfo[] DPIArray;
 
@@ -111,7 +109,7 @@ public class SQDriver implements java.sql.Driver {
 		}
 		Connection SQC;
 		try {
-			SQC = connectionFactory.init(info);
+			SQC = new SQConnectionFactory().init(info);
 		} catch (NumberFormatException | IOException | ScriptException| NoSuchAlgorithmException | KeyManagementException | ConnException  e) {
 			e.printStackTrace();
 			throw new SQLException(e);
@@ -175,16 +173,7 @@ public class SQDriver implements java.sql.Driver {
 	}
 
 	private boolean log(String line) throws SQLException {
-		if (!logging)
-			return true;
-
-		try {
-			Files.write(SQDriver_log, Collections.singletonList(line), UTF_8, CREATE, APPEND);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new SQLException ("Error writing to SQDriver log");
-		}
-
+		//FIXME: replace log function with logger
 		return true;
 	}
 }

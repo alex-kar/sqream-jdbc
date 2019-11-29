@@ -27,7 +27,9 @@ import java.util.Map;
 
 import javax.script.ScriptException;
 
-import com.sqream.jdbc.Connector.ConnException;
+import com.sqream.jdbc.connector.Connector;
+import com.sqream.jdbc.connector.ConnectorImpl;
+import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 import com.sqream.jdbc.enums.RS_STAT;
 
 class SQResultSet implements ResultSet {
@@ -175,7 +177,7 @@ class SQResultSet implements ResultSet {
 	@Override
 	public boolean getBoolean(String columnLabel) throws SQLException {
 		try {
-			Boolean res = client.get_boolean(columnLabel.toLowerCase());
+			Boolean res = client.getBoolean(columnLabel.toLowerCase());
 			isNull = res == null;
 			return (res == null) ? false : res;
 		} catch (Exception e) {
@@ -189,7 +191,7 @@ class SQResultSet implements ResultSet {
 	public boolean getBoolean(int columnIndex) {
 		Boolean res = null;
 		try {
-			res = client.get_boolean(columnIndex);
+			res = client.getBoolean(columnIndex);
 			isNull = res == null;
 		} catch (ConnException e) {
 			e.printStackTrace();

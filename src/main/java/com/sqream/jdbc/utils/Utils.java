@@ -1,4 +1,4 @@
-package com.sqream.jdbc;
+package com.sqream.jdbc.utils;
 
 import java.nio.ByteBuffer;
 import java.sql.Date;
@@ -9,11 +9,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 
-import static com.sqream.jdbc.Connector.UTF8;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Utils {
 
-    static LocalDate intToLocalDate(int date_as_int) {
+    public static LocalDate intToLocalDate(int date_as_int) {
 
         long yy = ((long)10000*date_as_int + 14780)/3652425;
         long ddd =  (date_as_int - (365*yy + yy/4 - yy/100 + yy/400));
@@ -32,12 +32,12 @@ public class Utils {
         return LocalDate.of(year, month, day);
     }
 
-    static Date intToDate(int date_as_int, ZoneId zone) {
+    public static Date intToDate(int date_as_int, ZoneId zone) {
         LocalDateTime local_dt = intToLocalDate(date_as_int).atStartOfDay();
         return new Date(Timestamp.from(local_dt.atZone(zone).toInstant()).getTime());
     }
 
-    static int dateToInt(Date d ,ZoneId zone) {
+    public static int dateToInt(Date d ,ZoneId zone) {
 
         // Consider a different implementation here
         if (d == null) {
@@ -55,7 +55,7 @@ public class Utils {
         return (365 * year + year / 4 - year / 100 + year / 400 + (month * 306 + 5) / 10 + (day - 1));
     }
 
-    static long dtToLong(Timestamp ts, ZoneId zone) {  // ZonedDateTime
+    public static long dtToLong(Timestamp ts, ZoneId zone) {  // ZonedDateTime
 
         if (ts == null)
             return 0;
@@ -81,7 +81,7 @@ public class Utils {
         return (((long) date_as_int) << 32) | (time_as_int & 0xffffffffL);
     }
 
-    static Timestamp longToDt(long dt_as_long, ZoneId zone) {
+    public static Timestamp longToDt(long dt_as_long, ZoneId zone) {
 
         int date_as_int = (int)(dt_as_long >> 32);
         int time_as_int = (int)dt_as_long;
@@ -97,21 +97,21 @@ public class Utils {
         return Timestamp.from(local_dt.atZone(zone).toInstant());
     }
 
-    static Date dateFromTuple(int year, int month, int day) {
+    public static Date dateFromTuple(int year, int month, int day) {
         return Date.valueOf(LocalDate.of(year, month, day));
     }
 
-    static Timestamp dateTimeFromTuple(int year, int month, int day, int hour, int minutes, int seconds, int ms) {
+    public static Timestamp dateTimeFromTuple(int year, int month, int day, int hour, int minutes, int seconds, int ms) {
 
         return Timestamp.valueOf(LocalDateTime.of(LocalDate.of(year, month, day), LocalTime.of(hour, minutes, seconds, ms*(int)Math.pow(10, 6))));
     }
 
-    static String formJson(String command) {
+    public static String formJson(String command) {
         String SIMPLE_MESSAGE = "'{'\"{0}\":\"{0}\"'}'";
         return MessageFormat.format(SIMPLE_MESSAGE, command);
     }
 
-    static String decode(ByteBuffer message) {
-        return UTF8.decode(message).toString();
+    public static String decode(ByteBuffer message) {
+        return UTF_8.decode(message).toString();
     }
 }

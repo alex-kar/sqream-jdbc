@@ -27,7 +27,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.script.ScriptException;
 
-import com.sqream.jdbc.Connector.ConnException;
+import com.sqream.jdbc.connector.Connector;
+import com.sqream.jdbc.connector.ConnectorImpl;
+import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
 //Logging
 import java.util.Arrays;
@@ -40,8 +42,7 @@ import static java.nio.file.StandardOpenOption.CREATE;
 
 
 public class SQConnection implements Connection {
-	
-	private boolean logging = Connector.is_logging();
+
 	private Path SQConnection_log = Paths.get("/tmp/SQConnection.txt");
 	private Vector<SQStatment> Statement_list = new Vector<SQStatment>();
 	private Connector globalClient;
@@ -115,7 +116,7 @@ public class SQConnection implements Connection {
 			useSsl = true;
 		}
 
-		globalClient = new Connector(ipaddress, Integer.parseInt(s_port), cluster.equalsIgnoreCase("true"), useSsl);
+		globalClient = new ConnectorImpl(ipaddress, Integer.parseInt(s_port), cluster.equalsIgnoreCase("true"), useSsl);
 		globalClient.connect(dbName, usr, pswd, service);
 		
 		params.setCluster(isCluster);
@@ -394,19 +395,11 @@ public class SQConnection implements Connection {
 	}
 
 	private boolean log(String line) throws SQLException {
-		if (!logging) {
-			return true;
-		}
-		try {
-			Files.write(SQConnection_log, Arrays.asList(new String[] {line}), UTF_8, CREATE, APPEND);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new SQLException ("Error writing to SQConnection log");
-		}
+		//FIXME: replace log function with logger
 		return true;
 	}
 
-	ConnectionParams getParams() {
+	public ConnectionParams getParams() {
 		return params;
 	}
 
