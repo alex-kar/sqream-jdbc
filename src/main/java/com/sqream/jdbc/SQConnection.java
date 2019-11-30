@@ -3,25 +3,9 @@ package com.sqream.jdbc;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.CallableStatement;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.NClob;
-import java.sql.PreparedStatement;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLWarning;
-import java.sql.SQLXML;
-import java.sql.Savepoint;
-import java.sql.Statement;
-import java.sql.Struct;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Vector;
+import java.sql.*;
+import java.text.MessageFormat;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -32,16 +16,17 @@ import com.sqream.jdbc.connector.ConnectorImpl;
 import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
 //Logging
-import java.util.Arrays;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.Files;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.StandardOpenOption.APPEND;
-import static java.nio.file.StandardOpenOption.CREATE;
 
 
 public class SQConnection implements Connection {
+	private static final int[] RESULTSET_TYPES =
+			new int[]{ResultSet.TYPE_FORWARD_ONLY, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.TYPE_SCROLL_SENSITIVE};
+	private static final int[] RESULTSET_CONCURRENCY =
+			new int[]{ResultSet.CONCUR_READ_ONLY, ResultSet.CONCUR_UPDATABLE};
+	private static final int[] RESULTSET_HOLDABILITY =
+			new int[]{ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT};
 
 	private Path SQConnection_log = Paths.get("/tmp/SQConnection.txt");
 	private Vector<SQStatment> Statement_list = new Vector<SQStatment>();
@@ -141,6 +126,11 @@ public class SQConnection implements Connection {
 	@Override
 	public Statement createStatement() throws SQLException {
 		log("inside constructor SQConnection");
+
+		if (isClosed.get()) {
+			throw new SQLException(MessageFormat.format("Statement is closed: isClosed=[{0}]", isClosed));
+		}
+
 		SQStatment SQS;
 		try {
 			SQS = new SQStatment(this, dbName);
@@ -154,10 +144,12 @@ public class SQConnection implements Connection {
 	@Override
 	public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
 		log("inside constructor SQConnection");
-//		System.out.println("createStatement2");
-		String[] lables = { "resultSetType", "resultSetConcurrency" };
-		String[] values = { Integer.toString(resultSetType), Integer.toString(resultSetConcurrency) };
 
+		if (isClosed.get() || !validParams(resultSetType, resultSetConcurrency)) {
+			throw new SQLException(MessageFormat.format("Wrong params in createStatement: " +
+							"resultSetType=[{0}], resultSetConcurrency=[{1}]",
+					resultSetType, resultSetConcurrency));
+		}
 
 		SQStatment SQS = null;
 		try {
@@ -170,12 +162,30 @@ public class SQConnection implements Connection {
 		return SQS;
 	}
 
+	private static boolean validParams(int resultSetType, int resultSetConcurrency, int resultSetHoldability) {
+		// Spec: if a database access error occurs, this method is called on a closed connection or
+		// the given parameters are not ResultSet constants indicating type, concurrency and holdability
+		return Arrays.stream(RESULTSET_TYPES).anyMatch(i -> i == resultSetType) &&
+				Arrays.stream(RESULTSET_CONCURRENCY).noneMatch(i -> i == resultSetConcurrency) &&
+				Arrays.stream(RESULTSET_HOLDABILITY).noneMatch(i -> i == resultSetHoldability);
+	}
+
+	private static boolean validParams(int resultSetType, int resultSetConcurrency) {
+		// Spec: if a database access error occurs, this method is called on a closed connection or
+		// the given parameters are not ResultSet constants indicating type, concurrency and holdability
+		return Arrays.stream(RESULTSET_TYPES).anyMatch(i -> i == resultSetType) &&
+				Arrays.stream(RESULTSET_CONCURRENCY).noneMatch(i -> i == resultSetConcurrency);
+	}
+
 	@Override
 	public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
 		log("inside createStatement SQConnection");
 
-		String[] lables = { "resultSetType", "resultSetConcurrency", "resultSetHoldability" };
-		String[] values = { Integer.toString(resultSetType), Integer.toString(resultSetConcurrency), Integer.toString(resultSetHoldability) };
+		if (isClosed.get() || !validParams(resultSetType, resultSetConcurrency, resultSetHoldability)) {
+			throw new SQLException(MessageFormat.format("Wrong params in createStatement: " +
+							"resultSetType=[{0}], resultSetConcurrency=[{1}], resultSetHoldability=[{2}]",
+					resultSetType, resultSetConcurrency, resultSetHoldability));
+		}
 
 		SQStatment SQS;
 		try {
@@ -192,7 +202,11 @@ public class SQConnection implements Connection {
 	@Override
 	public PreparedStatement prepareStatement(String sql) throws SQLException {
 		log("inside prepareStatement SQConnection");
-		// System.out.println("prepareStatement");
+
+		if (isClosed.get()) {
+			throw new SQLException(MessageFormat.format("Statement is closed: isClosed=[{0}]", isClosed));
+		}
+
 		SQPreparedStatment SQPS = null;
 		try {
 			SQPS = new SQPreparedStatment(globalClient, sql, this, dbName);
@@ -204,6 +218,11 @@ public class SQConnection implements Connection {
 	@Override
 	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
 		log("inside prepareStatement 2 SQConnection");
+
+		if (isClosed.get()) {
+			throw new SQLException(MessageFormat.format("Statement is closed: isClosed=[{0}]", isClosed));
+		}
+
 		if (printouts) System.out.println("prepareStatement5");
 		//spark use this function 
 		//sql = sql.replace("\"", "");
