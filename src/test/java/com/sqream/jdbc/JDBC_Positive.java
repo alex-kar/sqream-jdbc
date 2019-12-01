@@ -122,11 +122,11 @@ public class JDBC_Positive {
 	
 	public boolean hundred_mil_fetch() throws SQLException {
 		
-		boolean a_ok = false;  // The test is visual, pass if ends
+		boolean a_ok = true;  // The test is visual, pass if ends
 		
 		conn = DriverManager.getConnection(url,"sqream","sqream");
 		
-		String sql = "create or replace table test_fetch (ints int)";
+		String sql = "create or replace table test_fetch (nvarc text)";
 	    stmt = conn.createStatement();
 	    stmt.execute(sql);
 	    stmt.close();
@@ -134,9 +134,10 @@ public class JDBC_Positive {
 	    sql = "insert into test_fetch values (?)";
         ps = conn.prepareStatement(sql);
         int random_int = 8;
+        String random_str = "bla";
         int times = 100000000;  // Assuming chunk size is around 1 million, giving X10 more
         for (int i = 0; i < times; i++) {
-            ps.setInt(1, random_int);
+            ps.setString(1, random_str);
             ps.addBatch();
         }
         ps.executeBatch();
@@ -146,13 +147,17 @@ public class JDBC_Positive {
 	    //stmt = conn.prepareStatement(sql);
 	    stmt = conn.createStatement();
 	    rs = stmt.executeQuery(sql);
+	    String res;
 	    
 	    while(rs.next()) { 
-	        rs.getInt(1);
+	    	res = rs.getString(1);
+	        if(!res.equals(random_str)) {
+	        	print ("was expceting:" + random_str + " got: " + res);
+	        	a_ok = false;
+	        	break;
+	        }
 	    }
 	    
-        a_ok = true;    
-        
 	    
 	    return a_ok;
 	}
@@ -1138,8 +1143,8 @@ public class JDBC_Positive {
         
         //String[] typelist = {"bool", "tinyint", "smallint", "int", "bigint", "real", "double", "varchar(100)", "nvarchar(100)", "date", "datetime"};
         print ("Hundred Million fetch test -  - " + (pos_tests.hundred_mil_fetch() ? "OK" : "Fail"));
+        /*
         print ("Unused fetch test - " + (pos_tests.unused_fetch() ? "OK" : "Fail"));
-        //*
         print ("Limited fetch test - " + (pos_tests.limited_fetch() ? "OK" : "Fail"));
         print ("Display size test - " + (pos_tests.display_size() ? "OK" : "Fail"));
         print ("parameter metadata test: " + (pos_tests.parameter_metadata() ? "OK" : "Fail"));
