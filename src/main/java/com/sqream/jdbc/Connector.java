@@ -759,11 +759,12 @@ public class Connector {
             
             // Assign data from parsed JSON objects to metadata arrays
             col_nullable.set(idx, (boolean)col_data.get("nullable")); 
-            col_tvc.set(idx, (boolean)col_data.get("isTrueVarChar")); 
+	    boolean is_text = (boolean)col_data.get("isTrueVarChar");
+            col_tvc.set(idx, is_text); 
             col_names[idx] = statement_type.equals("SELECT") ? (String)col_data.get("name"): "denied";
             col_names_map.put(col_names[idx].toLowerCase(), idx +1);
             col_types[idx] = (String) col_type_data.get(0);
-            col_sizes[idx] = (int) col_type_data.get(1);
+            col_sizes[idx] = is_text ? 0 : (int) col_type_data.get(1);
         }
         
         // Create Storage for insert / select operations
@@ -1298,10 +1299,12 @@ public class Connector {
     public String get_nvarchar(int col_num) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
         nvarc_len = nvarc_len_columns[col_num].getInt(row_counter * 4);
-        
         // Get bytes the size of this specific nvarchar into string_bytes
         if (col_calls[col_num]++ > 0)
         	data_columns[col_num].position(data_columns[col_num].position() - nvarc_len);
+
+	if (string_bytes.length < nvarc_len)
+		string_bytes = new byte[nvarc_len];
         data_columns[col_num].get(string_bytes, 0, nvarc_len);
         
         return (_validate_get(col_num, "ftBlob")) ? new String(string_bytes, 0, nvarc_len, UTF8) : null;
@@ -1542,6 +1545,11 @@ public class Connector {
         nvarc_len_columns[col_num].putInt(string_bytes.length);
         
         // Set actual value
+	if (data_columns[col_num].remaining() < string_bytes.length) {
+		ByteBuffer temp = ByteBuffer.allocateDirect(Math.max(data_columns[col_num].limit(), string_bytes.length)*2).order(ByteOrder.LITTLE_ENDIAN);
+		temp.put(data_columns[col_num]);
+		data_columns[col_num] = temp;
+        }
         data_columns[col_num].put(string_bytes);
         
         // Mark column as set
@@ -1643,7 +1651,8 @@ public class Connector {
     
     public int get_col_size(int col_num) throws ConnException {  
     
-        return col_sizes[_validate_col_num(col_num)];
+        int sz = col_sizes[_validate_col_num(col_num)];
+	return sz == 0 ? Integer.MAX_VALUE : sz;
     }
         
     public boolean is_col_nullable(int col_num) throws ConnException { 

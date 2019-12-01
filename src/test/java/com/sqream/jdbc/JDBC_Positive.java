@@ -258,10 +258,10 @@ public class JDBC_Positive {
         stmt.close();
         
         // Check result
-        if (rsmeta.getColumnDisplaySize(1) == 11)
+        if (rsmeta.getColumnDisplaySize(1) == Integer.MAX_VALUE)
             a_ok = true;    
         else
-        	print("nvarchar(11) display size should be 11 but got " +  rsmeta.getColumnDisplaySize(1));
+        	print("nvarchar(11) display size should be " + Integer.MAX_VALUE + " but got " +  rsmeta.getColumnDisplaySize(1));
         
         return a_ok;
     }
@@ -404,7 +404,7 @@ public class JDBC_Positive {
     	if (params.getPrecision(1) != 1 || params.getPrecision(2) != 1 || params.getPrecision(3) != 2 || 
 			params.getPrecision(4) != 4 || params.getPrecision(5) != 8 || params.getPrecision(6) != 4 || 
 			params.getPrecision(7) != 8 || params.getPrecision(8) != 4 || params.getPrecision(9) != 8 || 
-			params.getPrecision(10) != 10 || params.getPrecision(11) != 40)
+			params.getPrecision(10) != 10 || params.getPrecision(11) != Integer.MAX_VALUE)
 		{
     		print ("Bad precision returned from parameter test:\n" + params.getPrecision(1) + '\n' + params.getPrecision(2) + '\n' + params.getPrecision(3) + '\n' + params.getPrecision(4) + '\n' + params.getPrecision(5) + '\n' + params.getPrecision(6) + '\n' + params.getPrecision(7) + '\n' + params.getPrecision(8) + '\n' + params.getPrecision(9) + '\n' + params.getPrecision(10) + '\n' + params.getPrecision(11)  );
         	a_ok = false;
