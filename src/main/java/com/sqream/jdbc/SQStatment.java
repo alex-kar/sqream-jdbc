@@ -30,12 +30,14 @@ public class SQStatment implements Statement {
 	private String dbName;
 	private boolean isClosed;
 
-	SQStatment(SQConnection conn, String catalog)
+	SQStatment(SQConnection conn, String catalog, ConnectorFactory connectorFactory)
 			throws NumberFormatException, IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException {
 		this.connection = conn;
 		this.dbName = catalog;
-		this.client = new ConnectorFactory().getInstance(conn);
-		this.client.connect(conn.getParams().getDbName(), conn.getParams().getUser(), conn.getParams().getPassword(), conn.getParams().getService());
+		this.client = connectorFactory.initConnector(conn.getParams().getIp(), conn.getParams().getPort(),
+				conn.getParams().getCluster(), conn.getParams().getUseSsl());
+		this.client.connect(conn.getParams().getDbName(), conn.getParams().getUser(), conn.getParams().getPassword(),
+				conn.getParams().getService());
 		this.isClosed = false;
 	}
 	

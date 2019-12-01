@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.script.ScriptException;
 
 import com.sqream.jdbc.connector.Connector;
+import com.sqream.jdbc.connector.ConnectorFactory;
 import com.sqream.jdbc.connector.ConnectorImpl;
 import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
@@ -28,6 +29,7 @@ public class SQConnection implements Connection {
 	private static final int[] RESULTSET_HOLDABILITY =
 			new int[]{ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT};
 
+	private ConnectorFactory connectorFactory;
 	private Path SQConnection_log = Paths.get("/tmp/SQConnection.txt");
 	private Vector<SQStatment> Statement_list = new Vector<SQStatment>();
 	private Connector globalClient;
@@ -44,10 +46,12 @@ public class SQConnection implements Connection {
 		globalClient = client;
 	}
 	
-	SQConnection(Properties connectionInfo)
+	SQConnection(Properties connectionInfo, ConnectorFactory connectorFactory)
 			throws ScriptException, SQLException, NumberFormatException, IOException, NoSuchAlgorithmException, KeyManagementException, ConnException {
-		
 		log("inside constructor SQConnection");
+
+		this.connectorFactory = connectorFactory;
+
 		connInfo = connectionInfo;
 		String cluster = connectionInfo.getProperty("cluster");
 
@@ -101,7 +105,8 @@ public class SQConnection implements Connection {
 			useSsl = true;
 		}
 
-		globalClient = new ConnectorImpl(ipaddress, Integer.parseInt(s_port), cluster.equalsIgnoreCase("true"), useSsl);
+		globalClient = this.connectorFactory.initConnector(
+				ipaddress, Integer.parseInt(s_port), cluster.equalsIgnoreCase("true"), useSsl);
 		globalClient.connect(dbName, usr, pswd, service);
 		
 		params.setCluster(isCluster);
@@ -133,7 +138,7 @@ public class SQConnection implements Connection {
 
 		SQStatment SQS;
 		try {
-			SQS = new SQStatment(this, dbName);
+			SQS = new SQStatment(this, dbName, this.connectorFactory);
 			Statement_list.addElement(SQS);
 		} catch (Exception e) {
 			throw new SQLException(e);
@@ -153,7 +158,7 @@ public class SQConnection implements Connection {
 
 		SQStatment SQS = null;
 		try {
-			SQS = new SQStatment(this, dbName);
+			SQS = new SQStatment(this, dbName, this.connectorFactory);
 			Statement_list.addElement(SQS);
 		} catch (Exception e) {
 			throw new SQLException(e);
@@ -189,7 +194,7 @@ public class SQConnection implements Connection {
 
 		SQStatment SQS;
 		try {
-			SQS = new SQStatment(this, dbName);
+			SQS = new SQStatment(this, dbName, this.connectorFactory);
 			Statement_list.addElement(SQS);
 			
 		} catch (Exception e) {
