@@ -171,15 +171,15 @@ public class SQConnection implements Connection {
 		// Spec: if a database access error occurs, this method is called on a closed connection or
 		// the given parameters are not ResultSet constants indicating type, concurrency and holdability
 		return Arrays.stream(RESULTSET_TYPES).anyMatch(i -> i == resultSetType) &&
-				Arrays.stream(RESULTSET_CONCURRENCY).noneMatch(i -> i == resultSetConcurrency) &&
-				Arrays.stream(RESULTSET_HOLDABILITY).noneMatch(i -> i == resultSetHoldability);
+				Arrays.stream(RESULTSET_CONCURRENCY).anyMatch(i -> i == resultSetConcurrency) &&
+				Arrays.stream(RESULTSET_HOLDABILITY).anyMatch(i -> i == resultSetHoldability);
 	}
 
 	private static boolean validParams(int resultSetType, int resultSetConcurrency) {
 		// Spec: if a database access error occurs, this method is called on a closed connection or
 		// the given parameters are not ResultSet constants indicating type, concurrency and holdability
 		return Arrays.stream(RESULTSET_TYPES).anyMatch(i -> i == resultSetType) &&
-				Arrays.stream(RESULTSET_CONCURRENCY).noneMatch(i -> i == resultSetConcurrency);
+				Arrays.stream(RESULTSET_CONCURRENCY).anyMatch(i -> i == resultSetConcurrency);
 	}
 
 	@Override
