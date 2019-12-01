@@ -4,28 +4,19 @@ import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
-import java.util.Collections;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.lang.reflect.Field;
 import javax.script.ScriptException;
 
-import com.sqream.jdbc.connector.ConnectorImpl;
+import com.sqream.jdbc.connector.ConnectorFactory;
 import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
-// Logging
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.StandardOpenOption.APPEND;
-import static java.nio.file.StandardOpenOption.CREATE;
 
 
 public class SQDriver implements java.sql.Driver {
 
-	private Path SQDriver_log = Paths.get("/tmp/SQDriver.txt");
 	private DriverPropertyInfo[] DPIArray;
 
 	static {
@@ -109,8 +100,9 @@ public class SQDriver implements java.sql.Driver {
 		}
 		Connection SQC;
 		try {
-			SQC = new SQConnectionFactory().init(info);
-		} catch (NumberFormatException | IOException | ScriptException| NoSuchAlgorithmException | KeyManagementException | ConnException  e) {
+			SQC = new SQConnection(info, ConnectorFactory.getFactory());
+		} catch (NumberFormatException | ScriptException | IOException | NoSuchAlgorithmException |
+		KeyManagementException | ConnException e) {
 			e.printStackTrace();
 			throw new SQLException(e);
 		}

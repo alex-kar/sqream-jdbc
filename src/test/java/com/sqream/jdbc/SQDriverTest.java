@@ -1,21 +1,13 @@
 package com.sqream.jdbc;
 
-import com.sqream.jdbc.connector.ConnectorImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import javax.script.ScriptException;
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.Properties;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SQDriverTest {
@@ -28,17 +20,13 @@ public class SQDriverTest {
 
     private static final Properties CORRECT_CONN_PROPERTIES = new Properties();
 
+    private Driver driver = new SQDriver();
+
     // init connection properties
     static {
         CORRECT_CONN_PROPERTIES.setProperty("user", "sqream");
         CORRECT_CONN_PROPERTIES.setProperty("password", "password");
     }
-
-    @Mock
-    private SQConnectionFactory connFactoryMock;
-
-    @InjectMocks
-    private SQDriver driver;
 
     @Test
     public void whenCorrectUriAcceptsURLReturnTrue() throws SQLException {
@@ -97,13 +85,8 @@ public class SQDriverTest {
     }
 
     @Test
-    public void whenPropertiesDoNotContainUserOrPasswordConnectReturnConnectionTest() throws SQLException, IOException,
-            KeyManagementException, NoSuchAlgorithmException, ConnectorImpl.ConnException, ScriptException {
-        SQConnection connMock = mock(SQConnection.class);
-        when(connFactoryMock.init(any(Properties.class))).thenReturn(connMock);
-
-        Connection actualConnection = driver.connect(CORRECT_URI, new Properties());
-
-        assertSame(connMock, actualConnection);
+    public void whenPropertiesDoNotContainUserOrPasswordConnectReturnConnectionTest() throws SQLException {
+        Connection connection = driver.connect(CORRECT_URI, new Properties());
+        assertNotNull(connection);
     }
 }
