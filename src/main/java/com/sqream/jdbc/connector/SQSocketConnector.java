@@ -24,45 +24,43 @@ class SQSocketConnector extends SQSocket {
     }
 
     // (2)  /* Return ByteBuffer with appropriate header for message */
-    ByteBuffer generateHeaderedBuffer(long data_length, boolean is_text_msg) {
+    ByteBuffer generateHeaderedBuffer(long dataLength, boolean is_text_msg) {
 
-        return ByteBuffer.allocate(10 + (int) data_length).order(ByteOrder.LITTLE_ENDIAN).put(PROTOCOL_VERSION).put(is_text_msg ? (byte)1:(byte)2).putLong(data_length);
+        return ByteBuffer.allocate(10 + (int) dataLength).order(ByteOrder.LITTLE_ENDIAN).put(PROTOCOL_VERSION).put(is_text_msg ? (byte)1:(byte)2).putLong(dataLength);
     }
 
     // (3)  /* Used by _send_data()  (merge if only one )  */
     int getParseHeader() throws IOException, ConnectorImpl.ConnException {
 
-        header.clear();
+        this.header.clear();
         readData(header, HEADER_SIZE);
 
         //print ("header: " + header);
-        if (!SUPPORTED_PROTOCOLS.contains(header.get()))
+        if (!SUPPORTED_PROTOCOLS.contains(header.get())) {
             throw new ConnectorImpl.ConnException("bad protocol version returned - " + PROTOCOL_VERSION + " perhaps an older version of SQream or reading out of oreder");
+        }
 
-        byte is_text = header.get();  // Catching the 2nd byte of a response
-        long response_length = header.getLong();
+        header.get();  // Catching the 2nd byte of a response
+        long responseLength = this.header.getLong();
 
-        return (int)response_length;
+        return (int) responseLength;
     }
 
     // (4) /* Manage actual sending and receiving of ByteBuffers over exising socket  */
     String sendData(ByteBuffer data, boolean get_response) throws IOException, ConnectorImpl.ConnException {
-        /* Used by _send_message(), _flush()   */
 
         if (data != null ) {
             data.flip();
-            int written;
             while(data.hasRemaining()) {
                 super.write(data);
             }
         }
 
-
         // Sending null for data will get us here directly, allowing to only get socket response if needed
         if(get_response) {
             int msg_len = getParseHeader();
             if (msg_len > 64000) // If our 64K response_message buffer doesn't do
-                responseMessage = ByteBuffer.allocate(msg_len);
+            responseMessage = ByteBuffer.allocate(msg_len);
             responseMessage.clear();
             responseMessage.limit(msg_len);
             readData(responseMessage, msg_len);
@@ -72,38 +70,39 @@ class SQSocketConnector extends SQSocket {
     }
 
     // (5)   /* Send a JSON string to SQream over socket  */
+    String sendMessage(String message, boolean getResponse) throws IOException, ConnectorImpl.ConnException {
 
-    String sendMessage(String message, boolean get_response) throws IOException, ConnectorImpl.ConnException {
+        byte[] messageBytes = message.getBytes();
+        ByteBuffer messageBuffer = generateHeaderedBuffer(messageBytes.length, true);
+        messageBuffer.put(messageBytes);
 
-        byte[] message_bytes = message.getBytes();
-        ByteBuffer message_buffer = generateHeaderedBuffer((long)message_bytes.length, true);
-        message_buffer.put(message_bytes);
-
-        return sendData(message_buffer, get_response);
+        return sendData(messageBuffer, getResponse);
     }
 
-    int readData(ByteBuffer response, int msg_len) throws IOException, ConnectorImpl.ConnException {
+    int readData(ByteBuffer response, int msgLen) throws IOException, ConnectorImpl.ConnException {
         /* Read either a specific amount of data, or until socket is empty if msg_len is 0.
          * response ByteBuffer of a fitting size should be supplied.
          */
-        if (msg_len > response.capacity())
+        if (msgLen > response.capacity()) {
             throw new ConnectorImpl.ConnException("Attempting to read more data than supplied bytebuffer allows");
+        }
 
-        int total_bytes_read = 0;
+        int totalBytesRead = 0;
 
-        while (total_bytes_read < msg_len || msg_len == 0) {
-            int bytes_read = super.read(response);
-            if (bytes_read == -1)
+        while (totalBytesRead < msgLen || msgLen == 0) {
+            int bytesRead = super.read(response);
+            if (bytesRead == -1) {
                 throw new IOException("Socket closed. Last buffer written: " + response);
-            total_bytes_read += bytes_read;
+            }
+            totalBytesRead += bytesRead;
 
-            if (msg_len == 0 && bytes_read == 0)
+            if (msgLen == 0 && bytesRead == 0) {
                 break;  // Drain mode, read all that was available
+            }
         }
 
         response.flip();  // reset position to allow reading from buffer
 
-
-        return total_bytes_read;
+        return totalBytesRead;
     }
 }
