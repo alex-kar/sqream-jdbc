@@ -33,10 +33,7 @@ import java.security.NoSuchAlgorithmException;
 // Date / Time related
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 // Aux
 import java.util.Arrays;   //  To allow debug prints via Arrays.toString
@@ -62,117 +59,99 @@ public class ConnectorImpl implements Connector {
         
     // Protocol related
 
-    int connection_id = -1;
-    int statementId = -1;
-    String varchar_encoding = "ascii";  // default encoding/decoding for varchar columns
-    static Charset UTF8 = StandardCharsets.UTF_8;
-    boolean charitable = false;
+    private int connection_id = -1;
+    private int statementId = -1;
+    private String varchar_encoding = "ascii";  // default encoding/decoding for varchar columns
+    private static Charset UTF8 = StandardCharsets.UTF_8;
+    private boolean charitable = false;
 
-    String ip;
-    int port;
-    String database;
-    String user = "sqream";
-    String password = "sqream";
-    String service = "sqream";
-    boolean useSsl;
+    private String ip;
+    private int port;
+    private String database;
+    private String user = "sqream";
+    private String password = "sqream";
+    private String service = "sqream";
+    private boolean useSsl;
     
     // Reconnecting parameters that don't appear before that stage
-    int listener_id;
-    int port_ssl;
-    boolean reconnect;
+    private int listener_id;
+    private int port_ssl;
+    private boolean reconnect;
 
-    String json_wrapper = "Java.asJSONCompatible({0})";
     //@SuppressWarnings("rawtypes") // Remove "Map is a raw type"  warning
     //https://stackoverflow.com/questions/2770321/what-is-a-raw-type-and-why-shouldnt-we-use-it
-    JsonObject col_data; // response_json
-    JsonObject response_json;
-    JsonArray query_type; // JSONListAdapter represents a list inside a JSON
-    JsonArray fetch_sizes;
-    JsonArray col_type_data; 
-    Map<String, String> prepare_map;
+    private JsonObject col_data; // response_json
+    private JsonObject response_json;
+    private JsonArray query_type; // JSONListAdapter represents a list inside a JSON
+    private JsonArray fetch_sizes;
+    private JsonArray col_type_data;
+    private Map<String, String> prepare_map;
     
     // Message sending related
-    ByteBuffer response_buffer = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
-    int message_length, bytes_read, total_bytes_read;
-    String response_string;
-    boolean fetch_msg = false;
+    private ByteBuffer response_buffer = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
+    private int bytes_read;
     
     		
     // Binary data related
-
-    int FLUSH_SIZE = 10 * (int) Math.pow(10, 6);
+    private int FLUSH_SIZE = 10 * (int) Math.pow(10, 6);
     //byte [] buffer = new byte[FLUSH_SIZE];
-    int row_size, rows_per_flush;
-    int max_string_len = 0;   // For preallocating a bytearray for getVarchar/Nvarchar
-    int fetch_size = 0;      // How much to retrieve on a select statement
+    private int row_size, rows_per_flush;
     
     // Column metadata
-    String statement_type;
-    int row_length;
-    String [] col_names;
-    HashMap<String, Integer> col_names_map;
-    String [] col_types;
-    int []    col_sizes;
-    BitSet col_nullable;
-    BitSet col_tvc;
+    private String statement_type;
+    private int row_length;
+    private String [] col_names;
+    private HashMap<String, Integer> col_names_map;
+    private String [] col_types;
+    private int []    col_sizes;
+    private BitSet col_nullable;
+    private BitSet col_tvc;
 
-    boolean openStatement = false;
-    int chunk_size;
-    boolean closed_by_prefetch;
+    private boolean openStatement = false;
+    private int chunk_size;
     
     // Column Storage
-    List<ByteBuffer[]> data_buffers = new ArrayList<>();
-    List<ByteBuffer[]> null_buffers = new ArrayList<>();
-    List<ByteBuffer []> nvarc_len_buffers = new ArrayList<>();
-    List<Integer> rows_per_batch = new ArrayList<>();
-    ByteBuffer[] data_columns;
-    int rows_in_current_batch;
-    //byte[][] null_columns;
-    ByteBuffer[] null_columns;
-    ByteBuffer null_resetter;
-    ByteBuffer[] nvarc_len_columns;
-    ByteBuffer [] null_balls;
-    int fetch_limit = 0;
+    private List<ByteBuffer[]> data_buffers = new ArrayList<>();
+    private List<ByteBuffer[]> null_buffers = new ArrayList<>();
+    private List<ByteBuffer []> nvarc_len_buffers = new ArrayList<>();
+    private List<Integer> rows_per_batch = new ArrayList<>();
+    private ByteBuffer[] data_columns;
+    private int rows_in_current_batch;
+    private ByteBuffer[] null_columns;
+    private ByteBuffer null_resetter;
+    private ByteBuffer[] nvarc_len_columns;
+    private int fetch_limit = 0;
     
     // Get / Set related
-    int row_counter, total_row_counter;
-    BitSet columns_set;
-    int total_bytes;
-    boolean is_null;
+    private int row_counter, total_row_counter;
+    private BitSet columns_set;
+    private int total_bytes;
+    private boolean is_null;
 
-    byte[] string_bytes; // Storing converted string to be set
-    ByteBuffer[] fetch_buffers;
-    int new_rows_fetched, total_rows_fetched;
-    byte [] spaces; 
-    int nvarc_len;
-    int col_num;
-    int[] col_calls;
+    private byte[] string_bytes; // Storing converted string to be set
+    private ByteBuffer[] fetch_buffers;
+    private int new_rows_fetched, total_rows_fetched;
+    private byte [] spaces;
+    private int nvarc_len;
+    private int col_num;
+    private int[] col_calls;
     
     // Date/Time conversion related
-    static ZoneId UTC = ZoneOffset.UTC;
-    static ZoneId system_tz = ZoneId.systemDefault();
-    static int year, month, day, hour, minutes, seconds, ms;
-    static int date_as_int, time_as_int;
-    static long dt_as_long;
-    static LocalDate local_date;
-    static LocalDateTime local_datetime;
+    private final static ZoneId SYSTEM_TZ = ZoneId.systemDefault();
 
     // Managing stop_statement
     private AtomicBoolean IsCancelStatement = new AtomicBoolean(false);
-    
-    
+
     // Communication Strings
     // ---------------------
-
-    String connectDatabase = "'{'\"connectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\"'}'";
-    String prepareStatement = "'{'\"prepareStatement\":\"{0}\", \"chunkSize\":{1}'}'";
-    String reconnectDatabase = "'{'\"reconnectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\", \"connectionId\":{4, number, #}, \"listenerId\":{5, number, #}'}'";
-    String reconstructStatement = "'{'\"reconstructStatement\":{0, number, #}'}'";
-    String put = "'{'\"put\":{0, number, #}'}'";
+    private static final String CONNECT_DATABASE_TEMPLATE = "'{'\"connectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\"'}'";
+    private static final String PREPARE_STATEMENT_TEMPLATE = "'{'\"prepareStatement\":\"{0}\", \"chunkSize\":{1}'}'";
+    private static final String RECONNECT_DATABASE_TEMPLATE = "'{'\"reconnectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\", \"connectionId\":{4, number, #}, \"listenerId\":{5, number, #}'}'";
+    private static final String RECONSTRUCT_STATEMENT_TEMPLATE = "'{'\"reconstructStatement\":{0, number, #}'}'";
+    private static final String PUT_TEMPLATE = "'{'\"put\":{0, number, #}'}'";
     
     // Aux Classes
     // -----------
-    
     public static class ConnException extends Exception {
         /*  Connector exception class */
         
@@ -216,8 +195,7 @@ public class ConnectorImpl implements Connector {
             s.reconnect(ip, port, useSsl);
         }
     }
-    
-    
+
     // Internal Mechanism Functions
     // ----------------------------
     /*  
@@ -227,55 +205,19 @@ public class ConnectorImpl implements Connector {
      * (4)  _send_data -               
      * (5) _send_message -            
      */
-    
-    // (1) 
-    //@SuppressWarnings("rawtypes")  // Remove "Map is a raw type" warning
-    /*
-    Map<String,Object> _parse_sqream_json(String json) throws ScriptException, ConnException { 
-    	
-    	String error;
-    	
-    	response_json = (Map<String, Object>) engine.eval(MessageFormat.format(json_wrapper, json));
-        if (response_json.containsKey("error")) {
-            error = (String)response_json.get("error");
-            
-            if (!error.contains("stop_statement could not find a statement"))
-        		throw new ConnException("Error from SQream:" + error);
-        }
-    	
-    	return response_json;
-    }
-    //*/
-    
-    JsonObject _parse_sqream_json(String json_str) {
-    	
-    	
+
+    private JsonObject _parse_sqream_json(String json_str) {
     	return Json.parse(json_str).asObject();
-    	
     }
-    
-    Boolean _validate_open(String statement_type) throws ConnException {
-    	
-    	if (!isOpen()) {
-    		throw new ConnException("Trying to run command " + statement_type + " but connection closed");
-    	}
-    	
-		if (!openStatement) {
-			throw new ConnException("Trying to run command " + statement_type + " but statement closed");
-		}
-    	
-    	return true;
-    }
-    
-    String _validate_response(String response, String expected) throws ConnException {
+
+    private String _validate_response(String response, String expected) throws ConnException {
         
         if (!response.equals(expected))  // !response.contains("stop_statement could not find a statement")
             throw new ConnException("Expected message: " + expected + " but got " + response);
         
         return response;
     }
-    
-    
+
     // Internal API Functions
     // ----------------------------
     /*  
@@ -285,7 +227,7 @@ public class ConnectorImpl implements Connector {
     
     // ()  /* Unpack the json of column data arriving via queryType/(named). Called by prepare()  */
     //@SuppressWarnings("rawtypes") // "Map is a raw type" @ col_data = (Map)query_type.get(idx);
-    void _parse_query_type(JsonArray query_type) throws IOException, ScriptException{
+    private void _parse_query_type(JsonArray query_type) throws IOException, ScriptException{
         
         row_length = query_type.size();
         if(row_length ==0)
@@ -350,8 +292,8 @@ public class ConnectorImpl implements Connector {
             string_bytes = new byte[Arrays.stream(col_sizes).max().getAsInt()];
         }
     }
-    
-    int _fetch() throws IOException, ScriptException, ConnException {
+
+    private int _fetch() throws IOException, ScriptException, ConnException {
         /* Request and get data from SQream following a SELECT query */
         
         // Send fetch request and get metadata on data to be received
@@ -408,9 +350,9 @@ public class ConnectorImpl implements Connector {
  
         return new_rows_fetched;  // counter nullified by next()
     }
-    
-    
-    int _fetch(int row_amount) throws IOException, ScriptException, ConnException {
+
+
+    private int _fetch(int row_amount) throws IOException, ScriptException, ConnException {
     	int total_fetched = 0;
     	int new_rows_fetched;
     	
@@ -435,10 +377,10 @@ public class ConnectorImpl implements Connector {
     	
     	return total_fetched;
     }
-    
-    
-    
-    int _flush(int row_counter) throws IOException, ConnException {
+
+
+
+    private int _flush(int row_counter) throws IOException, ConnException {
         /* Send columnar data buffers to SQream. Called by next() and close() */
         
         if (!statement_type.equals("INSERT") || row_counter == 0) {  // Not an insert statement
@@ -446,7 +388,7 @@ public class ConnectorImpl implements Connector {
         }
 
         // Send put message
-        s.sendMessage(MessageFormat.format(put, row_counter), false);
+        s.sendMessage(MessageFormat.format(PUT_TEMPLATE, row_counter), false);
         
         // Get total column length for the header
         total_bytes = 0;
@@ -473,12 +415,10 @@ public class ConnectorImpl implements Connector {
         }
         
         _validate_response(s.sendData(null, true), formJson("putted"));  // Get {"putted" : "putted"}
-        
-        
+
         return row_counter;  // counter nullified by next()
     }
-    
-    
+
     // User API Functions
     /* ------------------
      * connect(), execute(), next(), close(), close_conenction() 
@@ -493,7 +433,7 @@ public class ConnectorImpl implements Connector {
         password = _password;
         service = _service;
         
-        String connStr = MessageFormat.format(connectDatabase, database, user, password, service);
+        String connStr = MessageFormat.format(CONNECT_DATABASE_TEMPLATE, database, user, password, service);
         response_json = _parse_sqream_json(s.sendMessage(connStr, true));
         connection_id = response_json.get("connectionId").asInt(); 
         varchar_encoding = response_json.getString("varcharEncoding", "ascii");
@@ -564,9 +504,9 @@ public class ConnectorImpl implements Connector {
             s.reconnect(ip, port, useSsl);
             
             // Sending reconnect, reconstruct commands
-            String reconnectStr = MessageFormat.format(reconnectDatabase, database, user, password, service, connection_id, listener_id);
+            String reconnectStr = MessageFormat.format(RECONNECT_DATABASE_TEMPLATE, database, user, password, service, connection_id, listener_id);
             s.sendMessage(reconnectStr, true);
-            _validate_response(s.sendMessage( MessageFormat.format(reconstructStatement, statementId), true), formJson("statementReconstructed"));
+            _validate_response(s.sendMessage( MessageFormat.format(RECONSTRUCT_STATEMENT_TEMPLATE, statementId), true), formJson("statementReconstructed"));
 
         }  
          
@@ -647,24 +587,14 @@ public class ConnectorImpl implements Connector {
         		null_columns = null_buffers.get(0);
         		nvarc_len_columns = nvarc_len_buffers.get(0);
         		
-        		/*
-        		print ("rows in current batch:" + rows_in_current_batch);
-        		print ("data columns:" + data_columns[0]);
-        		print ("null columns:" + null_columns[0]);
-        		print ("nvarc len columns:" + nvarc_len_columns[0]);
-        		print ("data size: " + data_buffers.size());
-        		// */
-        		
         		// Remove active buffer from list
         		data_buffers.remove(0);
                 null_buffers.remove(0);
                 nvarc_len_buffers.remove(0);
                 rows_per_batch.remove(0);
-        		
             }
             row_counter++;
             total_row_counter++;
-        
         }
         else if (statement_type.equals("DML"))
             throw new ConnException ("Calling next() on a non insert / select query");
@@ -676,7 +606,7 @@ public class ConnectorImpl implements Connector {
     }
     
     @Override
-    public Boolean close() throws IOException, ScriptException, ConnException {
+    public Boolean close() throws IOException, ConnException {
 
     	String res = "";
 
@@ -713,9 +643,9 @@ public class ConnectorImpl implements Connector {
     }
     
     boolean _validate_index(int col_num) throws ConnException {
-    	if (col_num <0 || col_num > row_length)
-    		 throw new ConnException("Illegal index on get/set\nAllowed indices are 0-" + (row_length -1));
-    	
+    	if (col_num <0 || col_num > row_length) {
+            throw new ConnException("Illegal index on get/set\nAllowed indices are 0-" + (row_length - 1));
+        }
     	return true;
     }
     
@@ -858,13 +788,13 @@ public class ConnectorImpl implements Connector {
     @Override
     public Date get_date(int col_num) throws ConnException {  
     
-    	return get_date(col_num, system_tz); // system_tz, UTC
+    	return get_date(col_num, SYSTEM_TZ); // system_tz, UTC
     }
     
     @Override
     public Timestamp get_datetime(int col_num) throws ConnException {   // set / get work with starting index 1
     	
-        return get_datetime(col_num, system_tz); // system_tz, UTC
+        return get_datetime(col_num, SYSTEM_TZ); // system_tz, UTC
     }
 
     // -o-o-o-o-o  By column name -o-o-o-o-o
@@ -1129,13 +1059,13 @@ public class ConnectorImpl implements Connector {
     
     public boolean set_date(int col_num, Date value) throws ConnException, UnsupportedEncodingException { 
         
-        return set_date(col_num, value, system_tz); // system_tz, UTC
+        return set_date(col_num, value, SYSTEM_TZ); // system_tz, UTC
     }
         
     
     public boolean set_datetime(int col_num, Timestamp value) throws ConnException, UnsupportedEncodingException {  
     	
-        return set_datetime(col_num, value, system_tz); // system_tz, UTC
+        return set_datetime(col_num, value, SYSTEM_TZ); // system_tz, UTC
 }
     
     // Metadata
