@@ -5,15 +5,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 // Socket communication
-import java.nio.channels.SocketChannel;
-import java.net.InetSocketAddress;
-
-import javax.net.ssl.SSLContext;
 
 // More SSL shite
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.security.cert.X509Certificate;
 
 // JSON parsing library
 import com.eclipsesource.json.ParseException;
@@ -56,16 +49,13 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 // SSL over SocketChannel abstraction
-import tlschannel.TlsChannel;
-import tlschannel.ClientTlsChannel;
 
 import static com.sqream.jdbc.utils.Utils.*;
 import static com.sqream.jdbc.utils.Utils.formJson;
 
 public class ConnectorImpl implements Connector {
 
-    SQSocket s;
-
+    SQSocketConnector s;
 
     // Class variables
     // ---------------
@@ -180,39 +170,10 @@ public class ConnectorImpl implements Connector {
     String reconstructStatement = "'{'\"reconstructStatement\":{0, number, #}'}'";
     String put = "'{'\"put\":{0, number, #}'}'";
     
-    // Socket Interaction
-    // ------------------
-    
-    int _read_data(ByteBuffer response, int msg_len) throws IOException, ConnException {
-    	/* Read either a specific amount of data, or until socket is empty if msg_len is 0.
-    	 * response ByteBuffer of a fitting size should be supplied.
-    	 */
-    	if (msg_len > response.capacity())
-    		throw new ConnException ("Attempting to read more data than supplied bytebuffer allows");
-		
-    	total_bytes_read = 0;
-		
-    	while (total_bytes_read < msg_len || msg_len == 0) {
-			bytes_read = s.read(response);
-			if (bytes_read == -1) 
-                throw new IOException("Socket closed. Last buffer written: " + response);
-			total_bytes_read += bytes_read;
-			
-			if (msg_len == 0 && bytes_read == 0)
-				break;  // Drain mode, read all that was available
-		}
-		
-		response.flip();  // reset position to allow reading from buffer
-		
-		
-		return total_bytes_read;
-    }
-    
-    
     // Aux Classes
     // -----------
     
-    public class ConnException extends Exception {
+    public static class ConnException extends Exception {
         /*  Connector exception class */
         
         private static final long serialVersionUID = 1L;
@@ -224,13 +185,13 @@ public class ConnectorImpl implements Connector {
     // Constructor  
     // -----------
 
-    public ConnectorImpl(String _ip, int _port, boolean _cluster, boolean _ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException, ScriptException, ConnException {
+    public ConnectorImpl(String _ip, int _port, boolean _cluster, boolean _ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         /* JSON parsing engine setup, initial socket connection */
 
         port = _port;
         ip = _ip;
         useSsl = _ssl;
-        s = new SQSocket(ip, port);
+        s = new SQSocketConnector(ip, port);
         s.connect(useSsl);
 
         // Clustered connection - reconnect to actual ip and port
@@ -313,87 +274,6 @@ public class ConnectorImpl implements Connector {
         
         return response;
     }
-
-    // TODO create private static var 'byte protocol_version = 7'
-    //TODO remove to SocketConnector class
-
-    // (2)  /* Return ByteBuffer with appropriate header for message */
-    ByteBuffer _generate_headered_buffer(long data_length, boolean is_text_msg) {
-        //TODO move to static var
-        byte protocol_version = 7;
-
-        return ByteBuffer.allocate(10 + (int) data_length).order(ByteOrder.LITTLE_ENDIAN).put(protocol_version).put(is_text_msg ? (byte)1:(byte)2).putLong(data_length);
-    }
-    
-    // (3)  /* Used by _send_data()  (merge if only one )  */
-    int _get_parse_header() throws IOException, ConnException {
-
-        //TODO move to static var
-        byte protocol_version = 7;
-        //TODO move to static var
-        int HEADER_SIZE = 10;
-        //TODO move to static var
-        List<Byte> supported_protocols = new ArrayList<Byte>(Arrays.asList((byte)6, (byte)7));
-
-        ByteBuffer header = ByteBuffer.allocateDirect(10).order(ByteOrder.LITTLE_ENDIAN);
-
-        header.clear();
-        _read_data(header, HEADER_SIZE);
-        	
-        //print ("header: " + header);
-    	if (!supported_protocols.contains(header.get())) 
-        	throw new ConnException("bad protocol version returned - " + protocol_version + " perhaps an older version of SQream or reading out of oreder");
-
-        byte is_text = header.get();  // Catching the 2nd byte of a response
-        long response_length = header.getLong();
-        
-        return (int)response_length;
-    }
-
-
-    //TODO remove to SocketConnector class
-    //TODO create static variable 'ByteBuffer response_message = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN)'
-
-    // (4) /* Manage actual sending and receiving of ByteBuffers over exising socket  */
-    String _send_data (ByteBuffer data, boolean get_response) throws IOException, ConnException {
-           /* Used by _send_message(), _flush()   */
-        
-        if (data != null ) {
-            data.flip();
-            int written;
-            while(data.hasRemaining()) {
-                s.write(data);
-            }
-        }
-
-        //TODO make static variable
-        ByteBuffer response_message = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);;
-        
-        // Sending null for data will get us here directly, allowing to only get socket response if needed
-        if(get_response) {
-        	int msg_len = _get_parse_header();
-        	if (msg_len > 64000) // If our 64K response_message buffer doesn't do
-        		response_message = ByteBuffer.allocate(msg_len);
-    		 response_message.clear();
-    		 response_message.limit(msg_len);
-    		_read_data(response_message, msg_len);
-        }   
-        
-        return (get_response) ? decode(response_message) : "" ;
-    }
-    
-    // (5)   /* Send a JSON string to SQream over socket  */
-
-    //TODO remove to SocketConnector class
-
-    String _send_message(String message, boolean get_response) throws IOException, ConnException {
-
-        byte[] message_bytes = message.getBytes();
-        ByteBuffer message_buffer = _generate_headered_buffer((long)message_bytes.length, true);
-        message_buffer.put(message_bytes);
-        
-        return _send_data(message_buffer, get_response);
-    }
     
     
     // Internal API Functions
@@ -475,7 +355,7 @@ public class ConnectorImpl implements Connector {
         /* Request and get data from SQream following a SELECT query */
         
         // Send fetch request and get metadata on data to be received
-        response_json = _parse_sqream_json(_send_message(formJson("fetch"), true));
+        response_json = _parse_sqream_json(s.sendMessage(formJson("fetch"), true));
         new_rows_fetched = response_json.get("rows").asInt();
         fetch_sizes =   response_json.get("colSzs").asArray();  // Chronological sizes of all rows recieved, only needed for nvarchars
         if (new_rows_fetched == 0) {
@@ -520,9 +400,9 @@ public class ConnectorImpl implements Connector {
         rows_per_batch.add(new_rows_fetched);
         
         // Initial naive implememntation - Get all socket data in advance
-        bytes_read = _get_parse_header();   // Get header out of the way
+        bytes_read = s.getParseHeader();   // Get header out of the way
         for (ByteBuffer fetched : fetch_buffers) {
-            _read_data(fetched, fetched.capacity());
+            s.readData(fetched, fetched.capacity());
         	//Arrays.stream(fetch_buffers).forEach(fetched -> fetched.flip());
         }
  
@@ -566,7 +446,7 @@ public class ConnectorImpl implements Connector {
         }
 
         // Send put message
-        _send_message(MessageFormat.format(put, row_counter), false);   
+        s.sendMessage(MessageFormat.format(put, row_counter), false);
         
         // Get total column length for the header
         total_bytes = 0;
@@ -578,21 +458,21 @@ public class ConnectorImpl implements Connector {
         }
         
         // Send header with total binary insert
-        ByteBuffer header_buffer = _generate_headered_buffer(total_bytes, false);
-        _send_data(header_buffer, false);
-        
+        ByteBuffer header_buffer = s.generateHeaderedBuffer(total_bytes, false);
+        s.sendData(header_buffer, false);
+
         // Send available columns
         for(int idx=0; idx < row_length; idx++) {
             if(null_columns[idx] != null) {
-                _send_data((ByteBuffer)null_columns[idx].position(row_counter), false); 
+                s.sendData((ByteBuffer)null_columns[idx].position(row_counter), false);
             }
             if(nvarc_len_columns[idx] != null) {
-                _send_data(nvarc_len_columns[idx], false);
+                s.sendData(nvarc_len_columns[idx], false);
             }
-            _send_data(data_columns[idx], false);
+            s.sendData(data_columns[idx], false);
         }
         
-        _validate_response(_send_data(null, true), formJson("putted"));  // Get {"putted" : "putted"}
+        _validate_response(s.sendData(null, true), formJson("putted"));  // Get {"putted" : "putted"}
         
         
         return row_counter;  // counter nullified by next()
@@ -614,7 +494,7 @@ public class ConnectorImpl implements Connector {
         service = _service;
         
         String connStr = MessageFormat.format(connectDatabase, database, user, password, service);
-        response_json = _parse_sqream_json(_send_message(connStr, true));
+        response_json = _parse_sqream_json(s.sendMessage(connStr, true));
         connection_id = response_json.get("connectionId").asInt(); 
         varchar_encoding = response_json.getString("varcharEncoding", "ascii");
     	varchar_encoding = (varchar_encoding.contains("874"))? "cp874" : "ascii";
@@ -646,7 +526,7 @@ public class ConnectorImpl implements Connector {
     			throw new ConnException("Trying to run a statement when another was not closed. Open statement id: " + statementId + " on connection: " + connection_id);
     	openStatement = true;
         // Get statement ID, send prepareStatement and get response parameters
-        statementId = _parse_sqream_json(_send_message(formJson("getStatementId"), true)).get("statementId").asInt();
+        statementId = _parse_sqream_json(s.sendMessage(formJson("getStatementId"), true)).get("statementId").asInt();
         
         // Generating a valid json string via external library
         JsonObject prepare_jsonify;
@@ -667,7 +547,7 @@ public class ConnectorImpl implements Connector {
         
         String prepareStr = prepare_jsonify.toString(WriterConfig.MINIMAL);
         
-        response_json =  _parse_sqream_json(_send_message(prepareStr, true));
+        response_json =  _parse_sqream_json(s.sendMessage(prepareStr, true));
         
         // Parse response parameters
         listener_id =    response_json.get("listener_id").asInt();
@@ -685,17 +565,17 @@ public class ConnectorImpl implements Connector {
             
             // Sending reconnect, reconstruct commands
             String reconnectStr = MessageFormat.format(reconnectDatabase, database, user, password, service, connection_id, listener_id);
-            _send_message(reconnectStr, true);      
-            _validate_response(_send_message( MessageFormat.format(reconstructStatement, statementId), true), formJson("statementReconstructed"));
+            s.sendMessage(reconnectStr, true);
+            _validate_response(s.sendMessage( MessageFormat.format(reconstructStatement, statementId), true), formJson("statementReconstructed"));
 
         }  
          
         // Getting query type manouver and setting the type of query
-        _validate_response(_send_message(formJson("execute"), true), formJson("executed"));
-        query_type =  _parse_sqream_json(_send_message(formJson("queryTypeIn"), true)).get("queryType").asArray();
+        _validate_response(s.sendMessage(formJson("execute"), true), formJson("executed"));
+        query_type =  _parse_sqream_json(s.sendMessage(formJson("queryTypeIn"), true)).get("queryType").asArray();
         
         if (query_type.isEmpty()) {
-            query_type =  _parse_sqream_json(_send_message(formJson("queryTypeOut"), true)).get("queryTypeNamed").asArray();
+            query_type =  _parse_sqream_json(s.sendMessage(formJson("queryTypeOut"), true)).get("queryTypeNamed").asArray();
             statement_type = query_type.isEmpty() ? "DML" : "SELECT";
         }
         else {
@@ -808,7 +688,7 @@ public class ConnectorImpl implements Connector {
     	        }
     	            // Statement is finished so no need to reset row_counter etc
 
-    			res = _validate_response(_send_message(formJson("closeStatement"), true), formJson("statementClosed"));
+    			res = _validate_response(s.sendMessage(formJson("closeStatement"), true), formJson("statementClosed"));
     	        openStatement = false;  // set to true in execute()
     		}
     		else
@@ -826,7 +706,7 @@ public class ConnectorImpl implements Connector {
         	if (openStatement) { // Close open statement if exists
                 close();
         	}
-        	_validate_response(_send_message(formJson("closeConnection"), true), formJson("connectionClosed"));
+        	_validate_response(s.sendMessage(formJson("closeConnection"), true), formJson("connectionClosed"));
 	        s.close();
         }
         return true;
