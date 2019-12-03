@@ -174,7 +174,7 @@ public class SQStatment implements Statement {
 			
 			return resultSet;
 
-		} catch (IOException | ConnException | ScriptException e) {
+		} catch (IOException | ConnException | ScriptException | KeyManagementException | NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			throw new SQLException(e);
 		}
@@ -184,7 +184,7 @@ public class SQStatment implements Statement {
 	public int executeUpdate(String sql) throws SQLException {
 		try {
 			statementId = client.execute(sql);
-		} catch (IOException | ConnException | ScriptException e) {			
+		} catch (IOException | ConnException | ScriptException | KeyManagementException | NoSuchAlgorithmException e) {
 			throw new SQLException(e);
 		} 
 		return 0;

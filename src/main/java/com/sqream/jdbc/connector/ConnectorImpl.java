@@ -22,15 +22,6 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonArray;
 
-import javax.script.Bindings;
-import javax.script.ScriptContext;
-//Formatting JSON strings, parsing JSONS
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-
-
-import jdk.nashorn.api.scripting.ScriptObjectMirror;
-
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashMap;
@@ -73,24 +64,20 @@ import static com.sqream.jdbc.utils.Utils.formJson;
 
 public class ConnectorImpl implements Connector {
 
+    SQSocket s;
+
+
     // Class variables
     // ---------------
         
     // Protocol related
-    byte protocol_version = 7;
-    List<Byte> supported_protocols = new ArrayList<Byte>(Arrays.asList((byte)6, (byte)7));
-    byte is_text;  // Catching the 2nd byte of a response
-    long response_length;
+
     int connection_id = -1;
     int statementId = -1;
     String varchar_encoding = "ascii";  // default encoding/decoding for varchar columns
     static Charset UTF8 = StandardCharsets.UTF_8;
     boolean charitable = false;
-    int msg_len;
-    // Connection related
-    SocketChannel s = SocketChannel.open();
-    SSLContext ssl_context = SSLContext.getDefault();
-    TlsChannel ss;  // secure socket
+
     String ip;
     int port;
     String database;
@@ -103,11 +90,7 @@ public class ConnectorImpl implements Connector {
     int listener_id;
     int port_ssl;
     boolean reconnect;
-    
-    // JSON parsing related
-    ScriptEngine engine;
-    Bindings engine_bindings;
-    ScriptObjectMirror json;
+
     String json_wrapper = "Java.asJSONCompatible({0})";
     //@SuppressWarnings("rawtypes") // Remove "Map is a raw type"  warning
     //https://stackoverflow.com/questions/2770321/what-is-a-raw-type-and-why-shouldnt-we-use-it
@@ -119,18 +102,14 @@ public class ConnectorImpl implements Connector {
     Map<String, String> prepare_map;
     
     // Message sending related
-    ByteBuffer message_buffer;
     ByteBuffer response_buffer = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
-    ByteBuffer header = ByteBuffer.allocateDirect(10).order(ByteOrder.LITTLE_ENDIAN);
-    ByteBuffer response_message = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);;
     int message_length, bytes_read, total_bytes_read;
     String response_string;
     boolean fetch_msg = false;
-    int written;
     
     		
     // Binary data related
-    int HEADER_SIZE = 10;
+
     int FLUSH_SIZE = 10 * (int) Math.pow(10, 6);
     //byte [] buffer = new byte[FLUSH_SIZE];
     int row_size, rows_per_flush;
@@ -170,7 +149,7 @@ public class ConnectorImpl implements Connector {
     BitSet columns_set;
     int total_bytes;
     boolean is_null;
-    byte[] message_bytes;
+
     byte[] string_bytes; // Storing converted string to be set
     ByteBuffer[] fetch_buffers;
     int new_rows_fetched, total_rows_fetched;
@@ -214,7 +193,7 @@ public class ConnectorImpl implements Connector {
     	total_bytes_read = 0;
 		
     	while (total_bytes_read < msg_len || msg_len == 0) {
-			bytes_read = (useSsl) ? ss.read(response) : s.read(response);
+			bytes_read = s.read(response);
 			if (bytes_read == -1) 
                 throw new IOException("Socket closed. Last buffer written: " + response);
 			total_bytes_read += bytes_read;
@@ -244,21 +223,16 @@ public class ConnectorImpl implements Connector {
 
     // Constructor  
     // -----------
-    
+
     public ConnectorImpl(String _ip, int _port, boolean _cluster, boolean _ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException, ScriptException, ConnException {
         /* JSON parsing engine setup, initial socket connection */
-        
-    	// https://stackoverflow.com/questions/25332640/getenginebynamenashorn-returns-null
-        engine = new ScriptEngineManager().getEngineByName("javascript");
-        //json = (ScriptObjectMirror) engine.eval("JSON");
-        engine_bindings = engine.getContext().getBindings(ScriptContext.GLOBAL_SCOPE);
+
         port = _port;
         ip = _ip;
         useSsl = _ssl;
-        
-        s.connect(new InetSocketAddress(ip, port));
-        //s.socket().setKeepAlive(true);
-        
+        s = new SQSocket(ip, port);
+        s.connect(useSsl);
+
         // Clustered connection - reconnect to actual ip and port
         if (_cluster) {
             // Get data from server picker
@@ -277,26 +251,8 @@ public class ConnectorImpl implements Connector {
 
             // Last is the port
             port = response_buffer.getInt();
-            
-            // Close and reconnect socket to given ip and port
-            s.close();
-            
-            s = SocketChannel.open();
-            s.connect(new InetSocketAddress(ip, port));
-        }
-        // At this point we have a regular sokcet connected to the right address
-        if (useSsl) {
-            ssl_context = SSLContext.getInstance("TLSv1.2");
-            ssl_context.init(null,
-               new TrustManager[]{ new X509TrustManager() {
-                   public X509Certificate[] getAcceptedIssuers() {return null;}
-                   public void checkClientTrusted(X509Certificate[] certs, String authType) 
-                   {}
-                   public void checkServerTrusted(X509Certificate[] certs, String authType)
-                   {}
-               }}, 
-               null); 
-            ss = ClientTlsChannel.newBuilder(s, ssl_context).build();
+
+            s.reconnect(ip, port, useSsl);
         }
     }
     
@@ -357,40 +313,65 @@ public class ConnectorImpl implements Connector {
         
         return response;
     }
-    
+
+    // TODO create private static var 'byte protocol_version = 7'
+    //TODO remove to SocketConnector class
+
     // (2)  /* Return ByteBuffer with appropriate header for message */
     ByteBuffer _generate_headered_buffer(long data_length, boolean is_text_msg) {
+        //TODO move to static var
+        byte protocol_version = 7;
+
         return ByteBuffer.allocate(10 + (int) data_length).order(ByteOrder.LITTLE_ENDIAN).put(protocol_version).put(is_text_msg ? (byte)1:(byte)2).putLong(data_length);
     }
     
     // (3)  /* Used by _send_data()  (merge if only one )  */
     int _get_parse_header() throws IOException, ConnException {
+
+        //TODO move to static var
+        byte protocol_version = 7;
+        //TODO move to static var
+        int HEADER_SIZE = 10;
+        //TODO move to static var
+        List<Byte> supported_protocols = new ArrayList<Byte>(Arrays.asList((byte)6, (byte)7));
+
+        ByteBuffer header = ByteBuffer.allocateDirect(10).order(ByteOrder.LITTLE_ENDIAN);
+
         header.clear();
         _read_data(header, HEADER_SIZE);
         	
         //print ("header: " + header);
     	if (!supported_protocols.contains(header.get())) 
         	throw new ConnException("bad protocol version returned - " + protocol_version + " perhaps an older version of SQream or reading out of oreder");
-    	
-    	is_text = header.get();
-        response_length = header.getLong();
+
+        byte is_text = header.get();  // Catching the 2nd byte of a response
+        long response_length = header.getLong();
         
         return (int)response_length;
     }
-    
+
+
+    //TODO remove to SocketConnector class
+    //TODO create static variable 'ByteBuffer response_message = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN)'
+
     // (4) /* Manage actual sending and receiving of ByteBuffers over exising socket  */
     String _send_data (ByteBuffer data, boolean get_response) throws IOException, ConnException {
            /* Used by _send_message(), _flush()   */
         
         if (data != null ) {
             data.flip();
-            while(data.hasRemaining()) 
-                written = (useSsl) ? ss.write(data) : s.write(data);
+            int written;
+            while(data.hasRemaining()) {
+                s.write(data);
+            }
         }
+
+        //TODO make static variable
+        ByteBuffer response_message = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);;
         
         // Sending null for data will get us here directly, allowing to only get socket response if needed
         if(get_response) {
-        	msg_len = _get_parse_header();
+        	int msg_len = _get_parse_header();
         	if (msg_len > 64000) // If our 64K response_message buffer doesn't do
         		response_message = ByteBuffer.allocate(msg_len);
     		 response_message.clear();
@@ -402,10 +383,13 @@ public class ConnectorImpl implements Connector {
     }
     
     // (5)   /* Send a JSON string to SQream over socket  */
+
+    //TODO remove to SocketConnector class
+
     String _send_message(String message, boolean get_response) throws IOException, ConnException {
-        
-    	message_bytes = message.getBytes();
-        message_buffer = _generate_headered_buffer((long)message_bytes.length, true);
+
+        byte[] message_bytes = message.getBytes();
+        ByteBuffer message_buffer = _generate_headered_buffer((long)message_bytes.length, true);
         message_buffer.put(message_bytes);
         
         return _send_data(message_buffer, get_response);
@@ -577,9 +561,10 @@ public class ConnectorImpl implements Connector {
     int _flush(int row_counter) throws IOException, ConnException {
         /* Send columnar data buffers to SQream. Called by next() and close() */
         
-        if (!statement_type.equals("INSERT"))  // Not an insert statement
+        if (!statement_type.equals("INSERT") || row_counter == 0) {  // Not an insert statement
             return 0;
-        
+        }
+
         // Send put message
         _send_message(MessageFormat.format(put, row_counter), false);   
         
@@ -593,8 +578,8 @@ public class ConnectorImpl implements Connector {
         }
         
         // Send header with total binary insert
-        message_buffer = _generate_headered_buffer(total_bytes, false); 
-        _send_data(message_buffer, false);
+        ByteBuffer header_buffer = _generate_headered_buffer(total_bytes, false);
+        _send_data(header_buffer, false);
         
         // Send available columns
         for(int idx=0; idx < row_length; idx++) {
@@ -638,7 +623,7 @@ public class ConnectorImpl implements Connector {
     }
     
     @Override
-    public int execute(String statement) throws IOException, ScriptException, ConnException {
+    public int execute(String statement) throws IOException, ScriptException, ConnException, KeyManagementException, NoSuchAlgorithmException {
     	/* Retains behavior of original execute()  */
     	
     	int default_chunksize = (int) Math.pow(10,6);
@@ -646,7 +631,7 @@ public class ConnectorImpl implements Connector {
     }
 
     @Override
-    public int execute(String statement, int _chunk_size) throws IOException, ScriptException, ConnException {
+    public int execute(String statement, int _chunk_size) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException {
         
     	chunk_size = _chunk_size;
     	if (chunk_size < 0)
@@ -694,16 +679,9 @@ public class ConnectorImpl implements Connector {
         port = useSsl ? port_ssl : port;
         // Reconnect and reestablish statement if redirected by load balancer
         if (reconnect) {
-            // Closing and reconnecting socket to new ip / port
-            if (useSsl)
-                ss.close();
             s.close();
             
-            s = SocketChannel.open();
-            s.connect(new InetSocketAddress(ip, port));
-            //s.socket().setKeepAlive(true);
-            if (useSsl)
-                ss = ClientTlsChannel.newBuilder(s, ssl_context).build();
+            s.reconnect(ip, port, useSsl);
             
             // Sending reconnect, reconstruct commands
             String reconnectStr = MessageFormat.format(reconnectDatabase, database, user, password, service, connection_id, listener_id);
@@ -849,13 +827,7 @@ public class ConnectorImpl implements Connector {
                 close();
         	}
         	_validate_response(_send_message(formJson("closeConnection"), true), formJson("connectionClosed"));
-	        if (useSsl) {
-	        	if (ss.isOpen()) {
-                    ss.close(); // finish ssl communcication and close SSLEngine
-                }
-	        }
-	        if (s.isOpen())
-	        	s.close();
+	        s.close();
         }
         return true;
     }
@@ -1352,8 +1324,7 @@ public class ConnectorImpl implements Connector {
 
     @Override
     public boolean isOpen() {
-        
-        return (useSsl) ? ss.isOpen() : s.isOpen();
+        return s.isOpen();
     }
 
     @Override

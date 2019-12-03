@@ -3,6 +3,8 @@ package com.sqream.jdbc.connector;
 import javax.script.ScriptException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.ZoneId;
@@ -12,9 +14,9 @@ public interface Connector {
 
     int connect(String _database, String _user, String _password, String _service) throws IOException, ScriptException, ConnectorImpl.ConnException;
 
-    int execute(String statement) throws IOException, ScriptException, ConnectorImpl.ConnException;
+    int execute(String statement) throws IOException, ScriptException, ConnectorImpl.ConnException, KeyManagementException, NoSuchAlgorithmException;
 
-    int execute(String statement, int _chunk_size) throws IOException, ScriptException, ConnectorImpl.ConnException;
+    int execute(String statement, int _chunk_size) throws IOException, ScriptException, ConnectorImpl.ConnException, NoSuchAlgorithmException, KeyManagementException;
 
     boolean next() throws ConnectorImpl.ConnException, IOException, ScriptException;
 

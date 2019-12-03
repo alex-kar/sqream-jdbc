@@ -251,7 +251,7 @@ public class Positive {
 		return a_ok;
     }
     
-    public void send_and_retreive_result (ConnectorImpl conn, String table_name, String table_type) throws ConnException, IOException, ScriptException, NoSuchAlgorithmException {
+    public void send_and_retreive_result (ConnectorImpl conn, String table_name, String table_type) throws ConnException, IOException, ScriptException, NoSuchAlgorithmException, KeyManagementException {
 		
     	conn.next();
 		conn.close();
