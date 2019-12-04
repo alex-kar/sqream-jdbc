@@ -70,11 +70,6 @@ public class ConnectorImpl implements Connector {
     private String password = "sqream";
     private String service = "sqream";
     private boolean useSsl;
-    
-    // Message sending related
-    private ByteBuffer response_buffer = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
-    private int bytes_read;
-    
     		
     // Binary data related
     private int FLUSH_SIZE = 10 * (int) Math.pow(10, 6);
@@ -137,39 +132,42 @@ public class ConnectorImpl implements Connector {
         }
     }
 
-    // Constructor  
-    // -----------
-
-    public ConnectorImpl(String _ip, int _port, boolean _cluster, boolean _ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
+    public ConnectorImpl(String ip, int port, boolean cluster, boolean ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         /* JSON parsing engine setup, initial socket connection */
 
-        port = _port;
-        ip = _ip;
-        useSsl = _ssl;
-        socket = new SQSocketConnector(ip, port);
+        this.port = port;
+        this.ip = ip;
+        useSsl = ssl;
+        socket = new SQSocketConnector(this.ip, this.port);
+
         socket.connect(useSsl);
 
         // Clustered connection - reconnect to actual ip and port
-        if (_cluster) {
-            // Get data from server picker
-            response_buffer.clear();
-            //_read_data(response_buffer, 0); // IP address size may vary
-            bytes_read = socket.read(response_buffer);
-            response_buffer.flip();     
-		    if (bytes_read == -1) {
-		    	throw new IOException("Socket closed When trying to connect to server picker");
-            } 
-
-            // Read size of IP address (7-15 bytes) and get the IP
-            byte [] ip_bytes = new byte[response_buffer.getInt()]; // Retreiving ip from clustered connection
-            response_buffer.get(ip_bytes);
-            ip = new String(ip_bytes, UTF8);
-
-            // Last is the port
-            port = response_buffer.getInt();
-
-            socket.reconnect(ip, port, useSsl);
+        if (cluster) {
+            reconnectToNode();
         }
+    }
+
+    private void reconnectToNode() throws NoSuchAlgorithmException, IOException, KeyManagementException {
+        ByteBuffer response_buffer = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
+        // Get data from server picker
+        response_buffer.clear();
+        //_read_data(response_buffer, 0); // IP address size may vary
+        int bytes_read = socket.read(response_buffer);
+        response_buffer.flip();
+        if (bytes_read == -1) {
+            throw new IOException("Socket closed When trying to connect to server picker");
+        }
+
+        // Read size of IP address (7-15 bytes) and get the IP
+        byte [] ip_bytes = new byte[response_buffer.getInt()]; // Retreiving ip from clustered connection
+        response_buffer.get(ip_bytes);
+        ip = new String(ip_bytes, UTF8);
+
+        // Last is the port
+        port = response_buffer.getInt();
+
+        socket.reconnect(ip, port, useSsl);
     }
 
     // Internal Mechanism Functions
@@ -318,7 +316,7 @@ public class ConnectorImpl implements Connector {
         rows_per_batch.add(new_rows_fetched);
         
         // Initial naive implememntation - Get all socket data in advance
-        bytes_read = socket.getParseHeader();   // Get header out of the way
+        int bytes_read = socket.getParseHeader();   // Get header out of the way
         for (ByteBuffer fetched : fetch_buffers) {
             socket.readData(fetched, fetched.capacity());
         	//Arrays.stream(fetch_buffers).forEach(fetched -> fetched.flip());
@@ -347,7 +345,8 @@ public class ConnectorImpl implements Connector {
     			total_fetched += new_rows_fetched;
     		}
     	}
-    	close(); 
+    	close();
+    	//TODO can remove and set 0 (rows_in_current_batch = 0) before calling this method
     	rows_in_current_batch = 0;
     	
     	
