@@ -15,7 +15,6 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonArray;
 
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +51,7 @@ import static com.sqream.jdbc.utils.Utils.formJson;
 
 public class ConnectorImpl implements Connector {
 
-    SQSocketConnector s;
+    private SQSocketConnector socket;
 
     // Class variables
     // ---------------
@@ -63,7 +62,6 @@ public class ConnectorImpl implements Connector {
     private int statementId = -1;
     private String varchar_encoding = "ascii";  // default encoding/decoding for varchar columns
     private static Charset UTF8 = StandardCharsets.UTF_8;
-    private boolean charitable = false;
 
     private String ip;
     private int port;
@@ -73,20 +71,6 @@ public class ConnectorImpl implements Connector {
     private String service = "sqream";
     private boolean useSsl;
     
-    // Reconnecting parameters that don't appear before that stage
-    private int listener_id;
-    private int port_ssl;
-    private boolean reconnect;
-
-    //@SuppressWarnings("rawtypes") // Remove "Map is a raw type"  warning
-    //https://stackoverflow.com/questions/2770321/what-is-a-raw-type-and-why-shouldnt-we-use-it
-    private JsonObject col_data; // response_json
-    private JsonObject response_json;
-    private JsonArray query_type; // JSONListAdapter represents a list inside a JSON
-    private JsonArray fetch_sizes;
-    private JsonArray col_type_data;
-    private Map<String, String> prepare_map;
-    
     // Message sending related
     private ByteBuffer response_buffer = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
     private int bytes_read;
@@ -94,9 +78,8 @@ public class ConnectorImpl implements Connector {
     		
     // Binary data related
     private int FLUSH_SIZE = 10 * (int) Math.pow(10, 6);
-    //byte [] buffer = new byte[FLUSH_SIZE];
-    private int row_size, rows_per_flush;
-    
+    private int rows_per_flush;
+
     // Column metadata
     private String statement_type;
     private int row_length;
@@ -108,7 +91,6 @@ public class ConnectorImpl implements Connector {
     private BitSet col_tvc;
 
     private boolean openStatement = false;
-    private int chunk_size;
     
     // Column Storage
     private List<ByteBuffer[]> data_buffers = new ArrayList<>();
@@ -125,15 +107,9 @@ public class ConnectorImpl implements Connector {
     // Get / Set related
     private int row_counter, total_row_counter;
     private BitSet columns_set;
-    private int total_bytes;
-    private boolean is_null;
 
     private byte[] string_bytes; // Storing converted string to be set
-    private ByteBuffer[] fetch_buffers;
-    private int new_rows_fetched, total_rows_fetched;
-    private byte [] spaces;
-    private int nvarc_len;
-    private int col_num;
+
     private int[] col_calls;
     
     // Date/Time conversion related
@@ -170,15 +146,15 @@ public class ConnectorImpl implements Connector {
         port = _port;
         ip = _ip;
         useSsl = _ssl;
-        s = new SQSocketConnector(ip, port);
-        s.connect(useSsl);
+        socket = new SQSocketConnector(ip, port);
+        socket.connect(useSsl);
 
         // Clustered connection - reconnect to actual ip and port
         if (_cluster) {
             // Get data from server picker
             response_buffer.clear();
             //_read_data(response_buffer, 0); // IP address size may vary
-            bytes_read = s.read(response_buffer);
+            bytes_read = socket.read(response_buffer);
             response_buffer.flip();     
 		    if (bytes_read == -1) {
 		    	throw new IOException("Socket closed When trying to connect to server picker");
@@ -192,7 +168,7 @@ public class ConnectorImpl implements Connector {
             // Last is the port
             port = response_buffer.getInt();
 
-            s.reconnect(ip, port, useSsl);
+            socket.reconnect(ip, port, useSsl);
         }
     }
 
@@ -228,11 +204,11 @@ public class ConnectorImpl implements Connector {
     // ()  /* Unpack the json of column data arriving via queryType/(named). Called by prepare()  */
     //@SuppressWarnings("rawtypes") // "Map is a raw type" @ col_data = (Map)query_type.get(idx);
     private void _parse_query_type(JsonArray query_type) throws IOException, ScriptException{
-        
+
         row_length = query_type.size();
         if(row_length ==0)
             return;
-        
+
         // Set metadata arrays given the amount of columns
         col_names = new String[row_length];
         col_types = new String[row_length];
@@ -246,8 +222,8 @@ public class ConnectorImpl implements Connector {
         // An internal item looks like: {"isTrueVarChar":false,"nullable":true,"type":["ftInt",4,0]}
         for(int idx=0; idx < row_length; idx++) {
             // Parse JSON to correct objects
-            col_data = query_type.get(idx).asObject();
-            col_type_data = col_data.get("type").asArray(); // type is a list of 3 items
+            JsonObject col_data = query_type.get(idx).asObject();
+            JsonArray col_type_data = col_data.get("type").asArray(); // type is a list of 3 items
             
             // Assign data from parsed JSON objects to metadata arrays
             col_nullable.set(idx, col_data.get("nullable").asBoolean()); 
@@ -261,7 +237,7 @@ public class ConnectorImpl implements Connector {
         // Create Storage for insert / select operations
         if (statement_type.equals("INSERT")) {
             // Calculate number of rows to flush at
-            row_size = IntStream.of(col_sizes).sum() + col_nullable.cardinality();    // not calculating nvarc lengths for now
+            int row_size = IntStream.of(col_sizes).sum() + col_nullable.cardinality();    // not calculating nvarc lengths for now
             rows_per_flush = FLUSH_SIZE / row_size;
             // rows_per_flush = 500000;
             // Buffer arrays for column storage
@@ -286,7 +262,7 @@ public class ConnectorImpl implements Connector {
             // Instantiate select counters, Initial storage same as insert
             row_counter = -1;
             total_row_counter = 0;
-            total_rows_fetched = -1;     
+            int total_rows_fetched = -1;
             
             // Get the maximal string size (or size fo another type if strings are very small)
             string_bytes = new byte[Arrays.stream(col_sizes).max().getAsInt()];
@@ -297,9 +273,9 @@ public class ConnectorImpl implements Connector {
         /* Request and get data from SQream following a SELECT query */
         
         // Send fetch request and get metadata on data to be received
-        response_json = _parse_sqream_json(s.sendMessage(formJson("fetch"), true));
-        new_rows_fetched = response_json.get("rows").asInt();
-        fetch_sizes =   response_json.get("colSzs").asArray();  // Chronological sizes of all rows recieved, only needed for nvarchars
+        JsonObject response_json = _parse_sqream_json(socket.sendMessage(formJson("fetch"), true));
+        int new_rows_fetched = response_json.get("rows").asInt();
+        JsonArray fetch_sizes =   response_json.get("colSzs").asArray();  // Chronological sizes of all rows recieved, only needed for nvarchars
         if (new_rows_fetched == 0) {
         	close();  // Auto closing statement if done fetching
         	return new_rows_fetched;
@@ -307,7 +283,7 @@ public class ConnectorImpl implements Connector {
         // Initiate storage columns using the "colSzs" returned by SQream
         // All buffers in a single array to use SocketChannel's read(ByteBuffer[] dsts)
         int col_buf_size;
-        fetch_buffers = new ByteBuffer[fetch_sizes.size()];
+        ByteBuffer[] fetch_buffers = new ByteBuffer[fetch_sizes.size()];
         data_columns = new ByteBuffer[row_length];
         null_columns = new ByteBuffer[row_length];
         nvarc_len_columns = new ByteBuffer[row_length];
@@ -342,9 +318,9 @@ public class ConnectorImpl implements Connector {
         rows_per_batch.add(new_rows_fetched);
         
         // Initial naive implememntation - Get all socket data in advance
-        bytes_read = s.getParseHeader();   // Get header out of the way
+        bytes_read = socket.getParseHeader();   // Get header out of the way
         for (ByteBuffer fetched : fetch_buffers) {
-            s.readData(fetched, fetched.capacity());
+            socket.readData(fetched, fetched.capacity());
         	//Arrays.stream(fetch_buffers).forEach(fetched -> fetched.flip());
         }
  
@@ -388,10 +364,10 @@ public class ConnectorImpl implements Connector {
         }
 
         // Send put message
-        s.sendMessage(MessageFormat.format(PUT_TEMPLATE, row_counter), false);
+        socket.sendMessage(MessageFormat.format(PUT_TEMPLATE, row_counter), false);
         
         // Get total column length for the header
-        total_bytes = 0;
+        int total_bytes = 0;
         for(int idx=0; idx < row_length; idx++) {
             total_bytes += (null_columns[idx] != null) ? row_counter : 0;
             total_bytes += (nvarc_len_columns[idx] != null) ? 4 * row_counter : 0;
@@ -400,21 +376,21 @@ public class ConnectorImpl implements Connector {
         }
         
         // Send header with total binary insert
-        ByteBuffer header_buffer = s.generateHeaderedBuffer(total_bytes, false);
-        s.sendData(header_buffer, false);
+        ByteBuffer header_buffer = socket.generateHeaderedBuffer(total_bytes, false);
+        socket.sendData(header_buffer, false);
 
         // Send available columns
         for(int idx=0; idx < row_length; idx++) {
             if(null_columns[idx] != null) {
-                s.sendData((ByteBuffer)null_columns[idx].position(row_counter), false);
+                socket.sendData((ByteBuffer)null_columns[idx].position(row_counter), false);
             }
             if(nvarc_len_columns[idx] != null) {
-                s.sendData(nvarc_len_columns[idx], false);
+                socket.sendData(nvarc_len_columns[idx], false);
             }
-            s.sendData(data_columns[idx], false);
+            socket.sendData(data_columns[idx], false);
         }
         
-        _validate_response(s.sendData(null, true), formJson("putted"));  // Get {"putted" : "putted"}
+        _validate_response(socket.sendData(null, true), formJson("putted"));  // Get {"putted" : "putted"}
 
         return row_counter;  // counter nullified by next()
     }
@@ -434,7 +410,7 @@ public class ConnectorImpl implements Connector {
         service = _service;
         
         String connStr = MessageFormat.format(CONNECT_DATABASE_TEMPLATE, database, user, password, service);
-        response_json = _parse_sqream_json(s.sendMessage(connStr, true));
+        JsonObject response_json = _parse_sqream_json(socket.sendMessage(connStr, true));
         connection_id = response_json.get("connectionId").asInt(); 
         varchar_encoding = response_json.getString("varcharEncoding", "ascii");
     	varchar_encoding = (varchar_encoding.contains("874"))? "cp874" : "ascii";
@@ -453,12 +429,12 @@ public class ConnectorImpl implements Connector {
     @Override
     public int execute(String statement, int _chunk_size) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException {
         
-    	chunk_size = _chunk_size;
+    	int chunk_size = _chunk_size;
     	if (chunk_size < 0)
     		throw new ConnException("chunk_size should be positive, got " + chunk_size);
     	
     	/* getStatementId, prepareStatement, reconnect, execute, queryType  */
-        charitable = true;
+        boolean charitable = true;
     	if (openStatement)
     		if (charitable)  // Automatically close previous unclosed statement
     			close();
@@ -466,7 +442,7 @@ public class ConnectorImpl implements Connector {
     			throw new ConnException("Trying to run a statement when another was not closed. Open statement id: " + statementId + " on connection: " + connection_id);
     	openStatement = true;
         // Get statement ID, send prepareStatement and get response parameters
-        statementId = _parse_sqream_json(s.sendMessage(formJson("getStatementId"), true)).get("statementId").asInt();
+        statementId = _parse_sqream_json(socket.sendMessage(formJson("getStatementId"), true)).get("statementId").asInt();
         
         // Generating a valid json string via external library
         JsonObject prepare_jsonify;
@@ -486,36 +462,36 @@ public class ConnectorImpl implements Connector {
         //String prepareStr = (String) engine.eval("JSON.stringify({prepareStatement: statement, chunkSize: 0})");
         
         String prepareStr = prepare_jsonify.toString(WriterConfig.MINIMAL);
-        
-        response_json =  _parse_sqream_json(s.sendMessage(prepareStr, true));
+
+        JsonObject response_json =  _parse_sqream_json(socket.sendMessage(prepareStr, true));
         
         // Parse response parameters
-        listener_id =    response_json.get("listener_id").asInt();
+        int listener_id =    response_json.get("listener_id").asInt();
         port =           response_json.get("port").asInt();
-        port_ssl =       response_json.get("port_ssl").asInt();
-        reconnect =      response_json.get("reconnect").asBoolean();
+        int port_ssl =       response_json.get("port_ssl").asInt();
+        boolean reconnect =      response_json.get("reconnect").asBoolean();
         ip =             response_json.get("ip").asString();
         
         port = useSsl ? port_ssl : port;
         // Reconnect and reestablish statement if redirected by load balancer
         if (reconnect) {
-            s.close();
+            socket.close();
             
-            s.reconnect(ip, port, useSsl);
+            socket.reconnect(ip, port, useSsl);
             
             // Sending reconnect, reconstruct commands
             String reconnectStr = MessageFormat.format(RECONNECT_DATABASE_TEMPLATE, database, user, password, service, connection_id, listener_id);
-            s.sendMessage(reconnectStr, true);
-            _validate_response(s.sendMessage( MessageFormat.format(RECONSTRUCT_STATEMENT_TEMPLATE, statementId), true), formJson("statementReconstructed"));
+            socket.sendMessage(reconnectStr, true);
+            _validate_response(socket.sendMessage( MessageFormat.format(RECONSTRUCT_STATEMENT_TEMPLATE, statementId), true), formJson("statementReconstructed"));
 
         }  
          
         // Getting query type manouver and setting the type of query
-        _validate_response(s.sendMessage(formJson("execute"), true), formJson("executed"));
-        query_type =  _parse_sqream_json(s.sendMessage(formJson("queryTypeIn"), true)).get("queryType").asArray();
+        _validate_response(socket.sendMessage(formJson("execute"), true), formJson("executed"));
+        JsonArray query_type =  _parse_sqream_json(socket.sendMessage(formJson("queryTypeIn"), true)).get("queryType").asArray();
         
         if (query_type.isEmpty()) {
-            query_type =  _parse_sqream_json(s.sendMessage(formJson("queryTypeOut"), true)).get("queryTypeNamed").asArray();
+            query_type =  _parse_sqream_json(socket.sendMessage(formJson("queryTypeOut"), true)).get("queryTypeNamed").asArray();
             statement_type = query_type.isEmpty() ? "DML" : "SELECT";
         }
         else {
@@ -528,7 +504,7 @@ public class ConnectorImpl implements Connector {
         
         // First fetch on the house, auto close statement if no data returned
         if (statement_type.equals("SELECT")) {
-        	total_rows_fetched = _fetch(fetch_limit); // 0 - prefetch all data 
+        	int total_rows_fetched = _fetch(fetch_limit); // 0 - prefetch all data
              //if (total_rows_fetched < (chunk_size == 0 ? 1 : chunk_size)) {
         }
         
@@ -618,7 +594,7 @@ public class ConnectorImpl implements Connector {
     	        }
     	            // Statement is finished so no need to reset row_counter etc
 
-    			res = _validate_response(s.sendMessage(formJson("closeStatement"), true), formJson("statementClosed"));
+    			res = _validate_response(socket.sendMessage(formJson("closeStatement"), true), formJson("statementClosed"));
     	        openStatement = false;  // set to true in execute()
     		}
     		else
@@ -636,8 +612,8 @@ public class ConnectorImpl implements Connector {
         	if (openStatement) { // Close open statement if exists
                 close();
         	}
-        	_validate_response(s.sendMessage(formJson("closeConnection"), true), formJson("connectionClosed"));
-	        s.close();
+        	_validate_response(socket.sendMessage(formJson("closeConnection"), true), formJson("connectionClosed"));
+	        socket.close();
         }
         return true;
     }
@@ -762,7 +738,7 @@ public class ConnectorImpl implements Connector {
     @Override
     public String get_nvarchar(int col_num) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
-        nvarc_len = nvarc_len_columns[col_num].getInt(row_counter * 4);
+        int nvarc_len = nvarc_len_columns[col_num].getInt(row_counter * 4);
         
         // Get bytes the size of this specific nvarchar into string_bytes
         if (col_calls[col_num]++ > 0)
@@ -880,7 +856,7 @@ public class ConnectorImpl implements Connector {
     // ----
     
     boolean _validate_set(int col_num, Object value, String value_type) throws ConnException {
-        
+        boolean is_null = false;
         // Validate type
         if (!col_types[col_num].equals(value_type))
             throw new ConnException("Trying to set " + value_type + " on a column number " + col_num + " of type " + col_types[col_num]);
@@ -890,13 +866,10 @@ public class ConnectorImpl implements Connector {
             if (null_columns[col_num] != null) { 
                 null_columns[col_num].put((byte)1);
                 is_null = true;
-            } else
+            } else {
                 throw new ConnException("Trying to set null on a non nullable column of type " + col_types[col_num]);
+            }
         }
-        else
-            is_null = false;
-        
-        
         return is_null;
     }
 
@@ -995,7 +968,7 @@ public class ConnectorImpl implements Connector {
         if (string_bytes.length > col_sizes[col_num]) 
             throw new ConnException("Trying to set string of size " + string_bytes.length + " on column of size " +  col_sizes[col_num] );
         // Generate missing spaces to fill up to size
-        spaces = new byte[col_sizes[col_num] - string_bytes.length];
+        byte [] spaces = new byte[col_sizes[col_num] - string_bytes.length];
         Arrays.fill(spaces, (byte) 32);  // ascii value of space
         
         // Set value and added spaces if needed
@@ -1134,7 +1107,7 @@ public class ConnectorImpl implements Connector {
 
     @Override
     public boolean isOpen() {
-        return s.isOpen();
+        return socket.isOpen();
     }
 
     @Override
