@@ -53,6 +53,22 @@ import static com.sqream.jdbc.utils.Utils.formJson;
 
 public class ConnectorImpl implements Connector {
 
+    private static final String DEFAULT_CHARACTER_CODES = "ascii";
+    private static final String DEFAULT_SERVICE = "sqream";
+    private static final String DEFAULT_USER = "sqream";
+    private static final String DEFAULT_PASSWORD = "sqream";
+
+    // Date/Time conversion related
+    private static final ZoneId SYSTEM_TZ = ZoneId.systemDefault();
+
+    private static final Charset UTF8 = StandardCharsets.UTF_8;
+
+    private static final String CONNECT_DATABASE_TEMPLATE = "'{'\"connectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\"'}'";
+    private static final String PREPARE_STATEMENT_TEMPLATE = "'{'\"prepareStatement\":\"{0}\", \"chunkSize\":{1}'}'";
+    private static final String RECONNECT_DATABASE_TEMPLATE = "'{'\"reconnectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\", \"connectionId\":{4, number, #}, \"listenerId\":{5, number, #}'}'";
+    private static final String RECONSTRUCT_STATEMENT_TEMPLATE = "'{'\"reconstructStatement\":{0, number, #}'}'";
+    private static final String PUT_TEMPLATE = "'{'\"put\":{0, number, #}'}'";
+
     private SQSocketConnector socket;
 
     // Class variables
@@ -62,15 +78,14 @@ public class ConnectorImpl implements Connector {
 
     private int connection_id = -1;
     private int statementId = -1;
-    private String varchar_encoding = "ascii";  // default encoding/decoding for varchar columns
-    private static Charset UTF8 = StandardCharsets.UTF_8;
+    private String varchar_encoding = DEFAULT_CHARACTER_CODES;  // default encoding/decoding for varchar columns
 
     private String ip;
     private int port;
     private String database;
-    private String user = "sqream";
-    private String password = "sqream";
-    private String service = "sqream";
+    private String user = DEFAULT_USER;
+    private String password = DEFAULT_PASSWORD;
+    private String service = DEFAULT_SERVICE;
     private boolean useSsl;
     		
     // Binary data related
@@ -108,20 +123,10 @@ public class ConnectorImpl implements Connector {
     private byte[] string_bytes; // Storing converted string to be set
 
     private int[] col_calls;
-    
-    // Date/Time conversion related
-    private final static ZoneId SYSTEM_TZ = ZoneId.systemDefault();
 
     // Managing stop_statement
     private AtomicBoolean IsCancelStatement = new AtomicBoolean(false);
 
-    // Communication Strings
-    // ---------------------
-    private static final String CONNECT_DATABASE_TEMPLATE = "'{'\"connectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\"'}'";
-    private static final String PREPARE_STATEMENT_TEMPLATE = "'{'\"prepareStatement\":\"{0}\", \"chunkSize\":{1}'}'";
-    private static final String RECONNECT_DATABASE_TEMPLATE = "'{'\"reconnectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\", \"connectionId\":{4, number, #}, \"listenerId\":{5, number, #}'}'";
-    private static final String RECONSTRUCT_STATEMENT_TEMPLATE = "'{'\"reconstructStatement\":{0, number, #}'}'";
-    private static final String PUT_TEMPLATE = "'{'\"put\":{0, number, #}'}'";
     
     // Aux Classes
     // -----------
@@ -348,10 +353,9 @@ public class ConnectorImpl implements Connector {
     		}
     	}
     	close();
-    	//TODO can remove and set 0 (rows_in_current_batch = 0) before calling this method
+
     	rows_in_current_batch = 0;
-    	
-    	
+
     	return total_fetched;
     }
 
@@ -436,11 +440,13 @@ public class ConnectorImpl implements Connector {
     	
     	/* getStatementId, prepareStatement, reconnect, execute, queryType  */
         boolean charitable = true;
-    	if (openStatement)
-    		if (charitable)  // Automatically close previous unclosed statement
-    			close();
-    		else
-    			throw new ConnException("Trying to run a statement when another was not closed. Open statement id: " + statementId + " on connection: " + connection_id);
+    	if (openStatement) {
+            if (charitable) {  // Automatically close previous unclosed statement
+                close();
+            } else {
+                throw new ConnException("Trying to run a statement when another was not closed. Open statement id: " + statementId + " on connection: " + connection_id);
+            }
+        }
     	openStatement = true;
         // Get statement ID, send prepareStatement and get response parameters
         statementId = _parse_sqream_json(socket.sendMessage(formJson("getStatementId"), true)).get("statementId").asInt();
