@@ -14,6 +14,7 @@ import com.eclipsesource.json.WriterConfig;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonArray;
+import com.sqream.jdbc.connector.enums.StatementType;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ import java.io.UnsupportedEncodingException;
 
 // SSL over SocketChannel abstraction
 
+import static com.sqream.jdbc.connector.enums.StatementType.*;
 import static com.sqream.jdbc.utils.Utils.*;
 import static com.sqream.jdbc.utils.Utils.formJson;
 
@@ -76,7 +78,7 @@ public class ConnectorImpl implements Connector {
     private int rows_per_flush;
 
     // Column metadata
-    private String statement_type;
+    private StatementType statement_type;
     private int row_length;
     private String [] col_names;
     private HashMap<String, Integer> col_names_map;
@@ -226,14 +228,14 @@ public class ConnectorImpl implements Connector {
             // Assign data from parsed JSON objects to metadata arrays
             col_nullable.set(idx, col_data.get("nullable").asBoolean()); 
             col_tvc.set(idx, col_data.get("isTrueVarChar").asBoolean()); 
-            col_names[idx] = statement_type.equals("SELECT") ? col_data.get("name").asString(): "denied";
+            col_names[idx] = statement_type.equals(SELECT) ? col_data.get("name").asString(): "denied";
             col_names_map.put(col_names[idx].toLowerCase(), idx +1);
             col_types[idx] = col_type_data.get(0).asString();
             col_sizes[idx] = col_type_data.get(1).asInt();
         }
         
         // Create Storage for insert / select operations
-        if (statement_type.equals("INSERT")) {
+        if (statement_type.equals(INSERT)) {
             // Calculate number of rows to flush at
             int row_size = IntStream.of(col_sizes).sum() + col_nullable.cardinality();    // not calculating nvarc lengths for now
             rows_per_flush = FLUSH_SIZE / row_size;
@@ -255,7 +257,7 @@ public class ConnectorImpl implements Connector {
                 nvarc_len_columns[idx] = col_tvc.get(idx) ? ByteBuffer.allocateDirect(4*rows_per_flush).order(ByteOrder.LITTLE_ENDIAN) : null;
             }
         }
-        if (statement_type.equals("SELECT")) { 
+        if (statement_type.equals(SELECT)) {
             
             // Instantiate select counters, Initial storage same as insert
             row_counter = -1;
@@ -358,7 +360,7 @@ public class ConnectorImpl implements Connector {
     private int _flush(int row_counter) throws IOException, ConnException {
         /* Send columnar data buffers to SQream. Called by next() and close() */
         
-        if (!statement_type.equals("INSERT") || row_counter == 0) {  // Not an insert statement
+        if (!statement_type.equals(INSERT) || row_counter == 0) {  // Not an insert statement
             return 0;
         }
 
@@ -491,18 +493,18 @@ public class ConnectorImpl implements Connector {
         
         if (query_type.isEmpty()) {
             query_type =  _parse_sqream_json(socket.sendMessage(formJson("queryTypeOut"), true)).get("queryTypeNamed").asArray();
-            statement_type = query_type.isEmpty() ? "DML" : "SELECT";
+            statement_type = query_type.isEmpty() ? DML : SELECT;
         }
         else {
-            statement_type = "INSERT";
+            statement_type = INSERT;
         }   
         
         // Select or Insert statement - parse queryType response for metadata
-        if (!statement_type.equals("DML"))  
+        if (!statement_type.equals(DML))
             _parse_query_type(query_type);
         
         // First fetch on the house, auto close statement if no data returned
-        if (statement_type.equals("SELECT")) {
+        if (statement_type.equals(SELECT)) {
         	int total_rows_fetched = _fetch(fetch_limit); // 0 - prefetch all data
              //if (total_rows_fetched < (chunk_size == 0 ? 1 : chunk_size)) {
         }
@@ -515,7 +517,7 @@ public class ConnectorImpl implements Connector {
         /* See that all needed buffers were set, flush if needed, nullify relevant
            counters */
         
-        if (statement_type.equals("INSERT")) {
+        if (statement_type.equals(INSERT)) {
                 
             // Were all columns set
             //if (!IntStream.range(0, columns_set.length).allMatch(i -> columns_set[i]))
@@ -545,7 +547,7 @@ public class ConnectorImpl implements Connector {
                 }
             }
         }
-        else if (statement_type.equals("SELECT")) {
+        else if (statement_type.equals(SELECT)) {
             //print ("select row counter: " + row_counter + " total: " + total_rows_fetched);
         	Arrays.fill(col_calls, 0); // calls in the same fetch - for varchar / nvarchar
         	if (fetch_limit !=0 && total_row_counter == fetch_limit)
@@ -571,11 +573,11 @@ public class ConnectorImpl implements Connector {
             row_counter++;
             total_row_counter++;
         }
-        else if (statement_type.equals("DML"))
+        else if (statement_type.equals(DML))
             throw new ConnException ("Calling next() on a non insert / select query");
         
         else
-            throw new ConnException ("Calling next() on a statement type different than INSERT / SELECT / DML: " + statement_type);
+            throw new ConnException ("Calling next() on a statement type different than INSERT / SELECT / DML: " + statement_type.getValue());
             
         return true;
     }
@@ -588,7 +590,7 @@ public class ConnectorImpl implements Connector {
     	if (isOpen()) {
     		if (openStatement) {
 
-    			if (statement_type!= null && statement_type.equals("INSERT")) {
+    			if (statement_type!= null && statement_type.equals(INSERT)) {
     	            _flush(row_counter);
     	        }
     	            // Statement is finished so no need to reset row_counter etc
@@ -1058,8 +1060,7 @@ public class ConnectorImpl implements Connector {
 
     @Override
     public String getQueryType() {
-        
-        return statement_type;
+        return statement_type.getValue();
     }
 
     @Override
