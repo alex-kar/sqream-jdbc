@@ -15,8 +15,8 @@ public class JDBCPerf {
 
     private static final String SQL_CREATE_TABLE = "create or replace table perf " +
             "(bools bool, bytes tinyint, shorts smallint, ints int, bigints bigint, floats real, doubles double, " +
-            "strings varchar(10), strangs nvarchar(10))"; //, dates date, dts datetime)";
-    private static final String SQL_INSERT = "insert into perf values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "strings varchar(10), strangs nvarchar(10), dates date, dts datetime)";
+    private static final String SQL_INSERT = "insert into perf values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String SQL_SELECT_COUNT = "select count(*) from perf;";
     private static final String URI = "jdbc:Sqream://127.0.0.1:5000/master;user=sqream;password=sqream";
     private static final String USER = "sqream";
@@ -52,6 +52,7 @@ public class JDBCPerf {
 
     @Test
     public void test() throws SQLException {
+
         Connection conn = createConenction();
         PreparedStatement ps = conn.prepareStatement(SQL_INSERT);
 
@@ -66,16 +67,8 @@ public class JDBCPerf {
             ps.setDouble(7, 57.0);
             ps.setString(8, "bla");
             ps.setString(9, "bla2");
-            //FIXME: if I try to set date (ps.setDate) it throws exception
-            //  Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: 9
-            //	at com.sqream.jdbc.connector.ConnectorImpl.set_date(ConnectorImpl.java:1015)
-              ps.setDate(10, date_from_tuple(2019, 11, 26));
-
-            //FIXME: if I try to set timestamp (ps.setTimestamp) it throws exception
-            //  com.sqream.jdbc.connector.ConnectorImpl$ConnException: Illegal index on get/set
-            //  Allowed indices are 0-8
-            //  at com.sqream.jdbc.connector.ConnectorImpl._validate_index(ConnectorImpl.java:630)
-            //  ps.setTimestamp(11, datetime_from_tuple(2019, 11, 26, 16, 45, 23, 45));
+            ps.setDate(10, date_from_tuple(2019, 11, 26));
+            ps.setTimestamp(11, datetime_from_tuple(2019, 11, 26, 16, 45, 23, 45));
             ps.addBatch();
         }
         long t1 = System.nanoTime();
