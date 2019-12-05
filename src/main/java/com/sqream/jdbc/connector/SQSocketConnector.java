@@ -30,14 +30,14 @@ class SQSocketConnector extends SQSocket {
     }
 
     // (3)  /* Used by _send_data()  (merge if only one )  */
-    int getParseHeader() throws IOException, ConnectorImpl.ConnException {
+    int getParseHeader() throws IOException, ConnException {
 
         this.header.clear();
         readData(header, HEADER_SIZE);
 
         //print ("header: " + header);
         if (!SUPPORTED_PROTOCOLS.contains(header.get())) {
-            throw new ConnectorImpl.ConnException("bad protocol version returned - " + PROTOCOL_VERSION + " perhaps an older version of SQream or reading out of oreder");
+            throw new ConnException("bad protocol version returned - " + PROTOCOL_VERSION + " perhaps an older version of SQream or reading out of oreder");
         }
 
         header.get();  // Catching the 2nd byte of a response
@@ -47,7 +47,7 @@ class SQSocketConnector extends SQSocket {
     }
 
     // (4) /* Manage actual sending and receiving of ByteBuffers over exising socket  */
-    String sendData(ByteBuffer data, boolean get_response) throws IOException, ConnectorImpl.ConnException {
+    String sendData(ByteBuffer data, boolean get_response) throws IOException, ConnException {
 
         if (data != null ) {
             data.flip();
@@ -70,7 +70,7 @@ class SQSocketConnector extends SQSocket {
     }
 
     // (5)   /* Send a JSON string to SQream over socket  */
-    String sendMessage(String message, boolean getResponse) throws IOException, ConnectorImpl.ConnException {
+    String sendMessage(String message, boolean getResponse) throws IOException, ConnException {
 
         byte[] messageBytes = message.getBytes();
         ByteBuffer messageBuffer = generateHeaderedBuffer(messageBytes.length, true);
@@ -79,12 +79,12 @@ class SQSocketConnector extends SQSocket {
         return sendData(messageBuffer, getResponse);
     }
 
-    int readData(ByteBuffer response, int msgLen) throws IOException, ConnectorImpl.ConnException {
+    int readData(ByteBuffer response, int msgLen) throws IOException, ConnException {
         /* Read either a specific amount of data, or until socket is empty if msg_len is 0.
          * response ByteBuffer of a fitting size should be supplied.
          */
         if (msgLen > response.capacity()) {
-            throw new ConnectorImpl.ConnException("Attempting to read more data than supplied bytebuffer allows");
+            throw new ConnException("Attempting to read more data than supplied bytebuffer allows");
         }
 
         int totalBytesRead = 0;

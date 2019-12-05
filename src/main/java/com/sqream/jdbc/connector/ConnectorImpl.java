@@ -127,18 +127,6 @@ public class ConnectorImpl implements Connector {
     // Managing stop_statement
     private AtomicBoolean IsCancelStatement = new AtomicBoolean(false);
 
-    
-    // Aux Classes
-    // -----------
-    public static class ConnException extends Exception {
-        /*  Connector exception class */
-        
-        private static final long serialVersionUID = 1L;
-        public ConnException(String message) {
-            super(message);
-        }
-    }
-
     public ConnectorImpl(String ip, int port, boolean cluster, boolean ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         /* JSON parsing engine setup, initial socket connection */
 
@@ -625,9 +613,10 @@ public class ConnectorImpl implements Connector {
         return true;
     }
     
-    boolean _validate_index(int col_num) throws ConnException {
-    	if (col_num <0 || col_num > row_length) {
-            throw new ConnException("Illegal index on get/set\nAllowed indices are 0-" + (row_length - 1));
+    private boolean _validate_index(int col_num) throws ConnException {
+    	if (col_num <0 || col_num >= row_length) {
+            throw new ConnException(MessageFormat.format(
+                    "Illegal index [{0}] on get/set\nAllowed indices are [0-{1}]", col_num, (row_length - 1)));
         }
     	return true;
     }
@@ -1013,7 +1002,7 @@ public class ConnectorImpl implements Connector {
         
     	// Set actual value
         data_columns[col_num].putInt(_validate_set(col_num, date, "ftDate") ? 0 : dateToInt(date, zone));
-        
+
         // Mark column as set
         columns_set.set(col_num);
         

@@ -13,7 +13,7 @@ import javax.script.ScriptException;
 
 import com.sqream.jdbc.connector.Connector;
 import com.sqream.jdbc.connector.ConnectorFactory;
-import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
+import com.sqream.jdbc.connector.ConnException;
 
 //Logging
 import java.nio.file.Path;

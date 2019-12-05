@@ -10,7 +10,7 @@ import java.lang.reflect.Field;
 import javax.script.ScriptException;
 
 import com.sqream.jdbc.connector.ConnectorFactory;
-import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
+import com.sqream.jdbc.connector.ConnException;
 
 import java.nio.charset.Charset;
 
