@@ -80,8 +80,6 @@ public class ConnectorImpl implements Connector {
     private int statementId = -1;
     private String varchar_encoding = DEFAULT_CHARACTER_CODES;  // default encoding/decoding for varchar columns
 
-    private String ip;
-    private int port;
     private String database;
     private String user = DEFAULT_USER;
     private String password = DEFAULT_PASSWORD;
@@ -130,10 +128,8 @@ public class ConnectorImpl implements Connector {
     public ConnectorImpl(String ip, int port, boolean cluster, boolean ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         /* JSON parsing engine setup, initial socket connection */
 
-        this.port = port;
-        this.ip = ip;
         useSsl = ssl;
-        socket = new SQSocketConnector(this.ip, this.port);
+        socket = new SQSocketConnector(ip, port);
 
         socket.connect(useSsl);
 
@@ -157,10 +153,10 @@ public class ConnectorImpl implements Connector {
         // Read size of IP address (7-15 bytes) and get the IP
         byte [] ip_bytes = new byte[response_buffer.getInt()]; // Retreiving ip from clustered connection
         response_buffer.get(ip_bytes);
-        ip = new String(ip_bytes, UTF8);
+        String ip = new String(ip_bytes, UTF8);
 
         // Last is the port
-        port = response_buffer.getInt();
+        int port = response_buffer.getInt();
 
         socket.reconnect(ip, port, useSsl);
     }
@@ -462,16 +458,14 @@ public class ConnectorImpl implements Connector {
         
         // Parse response parameters
         int listener_id =    response_json.get("listener_id").asInt();
-        port =           response_json.get("port").asInt();
+        int port =           response_json.get("port").asInt();
         int port_ssl =       response_json.get("port_ssl").asInt();
         boolean reconnect =      response_json.get("reconnect").asBoolean();
-        ip =             response_json.get("ip").asString();
+        String ip =             response_json.get("ip").asString();
         
         port = useSsl ? port_ssl : port;
         // Reconnect and reestablish statement if redirected by load balancer
         if (reconnect) {
-            socket.close();
-            
             socket.reconnect(ip, port, useSsl);
             
             // Sending reconnect, reconstruct commands

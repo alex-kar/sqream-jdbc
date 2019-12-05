@@ -63,6 +63,7 @@ class SQSocket {
     }
 
     void reconnect(String ip, int port, boolean useSsl) throws IOException, KeyManagementException, NoSuchAlgorithmException {
+        this.close();
         this.s = SocketChannel.open();
         this.ip = ip;
         this.port = port;
