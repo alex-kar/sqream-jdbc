@@ -9,13 +9,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.sqream.jdbc.connector.ConnectorImpl;
+import com.sqream.jdbc.connector.Connector;
 import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
 
 public class SQParameterMetaData implements ParameterMetaData{
 	
-	  ConnectorImpl conn;
+	  Connector conn;
 	  int param_count = 0;
 	  
 	  Map<String, Integer> sqream_to_sql = Stream.of(new Object[][] { 
@@ -34,7 +34,7 @@ public class SQParameterMetaData implements ParameterMetaData{
 	  
 	  
 	  
-	  public SQParameterMetaData(ConnectorImpl _conn) throws SQLException {
+	  public SQParameterMetaData(Connector _conn) throws SQLException {
 		  
 	     if (_conn == null)
 	    	 throw new SQLException("null connector object passed to SQParameterMetaData");

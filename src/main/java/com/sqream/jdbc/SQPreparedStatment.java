@@ -43,7 +43,7 @@ import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
 public class SQPreparedStatment implements PreparedStatement {
 
-    private ConnectorImpl Client = null;
+    private Connector Client;
     private SQResultSet SQRS = null;
     private SQResultSetMetaData metaData = null;
     private String sql;

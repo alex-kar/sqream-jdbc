@@ -6,7 +6,6 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
 
 import com.sqream.jdbc.connector.Connector;
-import com.sqream.jdbc.connector.ConnectorImpl;
 import com.sqream.jdbc.connector.ConnectorImpl.ConnException;
 
 

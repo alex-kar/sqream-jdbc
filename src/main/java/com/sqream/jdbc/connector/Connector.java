@@ -78,6 +78,32 @@ public interface Connector {
 
     Timestamp get_datetime(String col_name, ZoneId zone) throws ConnectorImpl.ConnException;
 
+    boolean set_boolean(int col_num, Boolean value) throws ConnectorImpl.ConnException;
+
+    boolean set_ubyte(int col_num, Byte value) throws ConnectorImpl.ConnException;
+
+    boolean set_short(int col_num, Short value) throws ConnectorImpl.ConnException;
+
+    boolean set_int(int col_num, Integer value) throws ConnectorImpl.ConnException;
+
+    boolean set_long(int col_num, Long value) throws ConnectorImpl.ConnException;
+
+    boolean set_float(int col_num, Float value) throws ConnectorImpl.ConnException;
+
+    boolean set_double(int col_num, Double value) throws ConnectorImpl.ConnException;
+
+    boolean set_varchar(int col_num, String value) throws ConnectorImpl.ConnException, UnsupportedEncodingException;
+
+    boolean set_nvarchar(int col_num, String value) throws ConnectorImpl.ConnException, UnsupportedEncodingException;
+
+    boolean set_date(int col_num, Date date, ZoneId zone) throws ConnectorImpl.ConnException, UnsupportedEncodingException;
+
+    boolean set_datetime(int col_num, Timestamp ts, ZoneId zone) throws ConnectorImpl.ConnException, UnsupportedEncodingException;
+
+    boolean set_date(int col_num, Date value) throws ConnectorImpl.ConnException, UnsupportedEncodingException;
+
+    boolean set_datetime(int col_num, Timestamp value) throws ConnectorImpl.ConnException, UnsupportedEncodingException;
+
     int getStatementId();
 
     String getQueryType();

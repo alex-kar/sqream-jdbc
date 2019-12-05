@@ -54,7 +54,7 @@ public class SQStatment implements Statement {
 		statementId = client.getStatementId();
 		String sql = "select stop_statement(" + statementId + ")";
 		
-		ConnectorImpl cancel = null;
+		Connector cancel = null;
 		try {
 			cancel = new ConnectorImpl(connection.getParams().getIp(), connection.getParams().getPort(), connection.getParams().getCluster(), connection.getParams().getUseSsl());
 			cancel.connect(connection.getParams().getDbName(), connection.getParams().getUser(), connection.getParams().getPassword(), connection.getParams().getService());

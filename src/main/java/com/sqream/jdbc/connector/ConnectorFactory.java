@@ -4,7 +4,6 @@ import javax.script.ScriptException;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.sql.Connection;
 
 public abstract class ConnectorFactory {
 

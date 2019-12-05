@@ -880,7 +880,7 @@ public class ConnectorImpl implements Connector {
         return is_null;
     }
 
-
+    @Override
     public boolean set_boolean(int col_num, Boolean value) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
         // Set actual value
@@ -891,7 +891,7 @@ public class ConnectorImpl implements Connector {
         return true;
     }
     
-    
+    @Override
     public boolean set_ubyte(int col_num, Byte value) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
         // Check the byte is positive
@@ -907,7 +907,7 @@ public class ConnectorImpl implements Connector {
         return true;
     }
     
-     
+    @Override
     public boolean set_short(int col_num, Short value) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
         // Set actual value
@@ -919,7 +919,7 @@ public class ConnectorImpl implements Connector {
         return true;
     }
         
-    
+    @Override
     public boolean set_int(int col_num, Integer value) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
         // Set actual value
@@ -931,7 +931,7 @@ public class ConnectorImpl implements Connector {
         return true;
     }
      
-
+    @Override
     public boolean set_long(int col_num, Long value) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
         // Set actual value
@@ -943,7 +943,7 @@ public class ConnectorImpl implements Connector {
         return true;
     }
      
-    
+    @Override
     public boolean set_float(int col_num, Float value) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
         // Set actual value
@@ -955,7 +955,7 @@ public class ConnectorImpl implements Connector {
         return true;
     }
     
-    
+    @Override
     public boolean set_double(int col_num, Double value) throws ConnException {  col_num--;
     	_validate_index(col_num);
         // Set actual value
@@ -967,7 +967,7 @@ public class ConnectorImpl implements Connector {
         return true;
     }
     
-    
+    @Override
     public boolean set_varchar(int col_num, String value) throws ConnException, UnsupportedEncodingException {  col_num--;
     	_validate_index(col_num);
         // Set actual value - padding with spaces to the left if needed
@@ -989,7 +989,7 @@ public class ConnectorImpl implements Connector {
         return true;
     }
     
-    
+    @Override
     public boolean set_nvarchar(int col_num, String value) throws ConnException, UnsupportedEncodingException {  col_num--;
     	_validate_index(col_num);
         // Convert string to bytes
@@ -1006,8 +1006,8 @@ public class ConnectorImpl implements Connector {
         
         return true;
     }
-    
-    
+
+    @Override
     public boolean set_date(int col_num, Date date, ZoneId zone) throws ConnException, UnsupportedEncodingException {  col_num--;
     	_validate_index(col_num);
         
@@ -1019,8 +1019,8 @@ public class ConnectorImpl implements Connector {
         
         return true;
     }
-        
-    
+
+    @Override
     public boolean set_datetime(int col_num, Timestamp ts, ZoneId zone) throws ConnException, UnsupportedEncodingException {  col_num--;
     	_validate_index(col_num);
         
@@ -1035,14 +1035,14 @@ public class ConnectorImpl implements Connector {
         
         return true;
     }
-    
-    
+
+    @Override
     public boolean set_date(int col_num, Date value) throws ConnException, UnsupportedEncodingException { 
         
         return set_date(col_num, value, SYSTEM_TZ); // system_tz, UTC
     }
         
-    
+    @Override
     public boolean set_datetime(int col_num, Timestamp value) throws ConnException, UnsupportedEncodingException {  
     	
         return set_datetime(col_num, value, SYSTEM_TZ); // system_tz, UTC
