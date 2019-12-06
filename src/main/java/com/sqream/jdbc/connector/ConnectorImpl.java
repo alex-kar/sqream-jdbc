@@ -49,7 +49,6 @@ import java.io.UnsupportedEncodingException;
 
 import static com.sqream.jdbc.connector.enums.StatementType.*;
 import static com.sqream.jdbc.utils.Utils.*;
-import static com.sqream.jdbc.utils.Utils.formJson;
 
 public class ConnectorImpl implements Connector {
 
@@ -57,24 +56,12 @@ public class ConnectorImpl implements Connector {
     private static final String DEFAULT_SERVICE = "sqream";
     private static final String DEFAULT_USER = "sqream";
     private static final String DEFAULT_PASSWORD = "sqream";
-
     // Date/Time conversion related
     private static final ZoneId SYSTEM_TZ = ZoneId.systemDefault();
-
     private static final Charset UTF8 = StandardCharsets.UTF_8;
 
-    private static final String CONNECT_DATABASE_TEMPLATE = "'{'\"connectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\"'}'";
-    private static final String PREPARE_STATEMENT_TEMPLATE = "'{'\"prepareStatement\":\"{0}\", \"chunkSize\":{1}'}'";
-    private static final String RECONNECT_DATABASE_TEMPLATE = "'{'\"reconnectDatabase\":\"{0}\", \"username\":\"{1}\", \"password\":\"{2}\", \"service\":\"{3}\", \"connectionId\":{4, number, #}, \"listenerId\":{5, number, #}'}'";
-    private static final String RECONSTRUCT_STATEMENT_TEMPLATE = "'{'\"reconstructStatement\":{0, number, #}'}'";
-    private static final String PUT_TEMPLATE = "'{'\"put\":{0, number, #}'}'";
-
     private SQSocketConnector socket;
-
-    // Class variables
-    // ---------------
-        
-    // Protocol related
+    private Messenger messenger;
 
     private int connection_id = -1;
     private int statementId = -1;
@@ -87,7 +74,7 @@ public class ConnectorImpl implements Connector {
     private boolean useSsl;
     		
     // Binary data related
-    private int FLUSH_SIZE = 10 * (int) Math.pow(10, 6);
+    private static final int FLUSH_SIZE = 10_000_000;
     private int rows_per_flush;
 
     // Column metadata
@@ -127,16 +114,14 @@ public class ConnectorImpl implements Connector {
 
     public ConnectorImpl(String ip, int port, boolean cluster, boolean ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         /* JSON parsing engine setup, initial socket connection */
-
         useSsl = ssl;
         socket = new SQSocketConnector(ip, port);
-
         socket.connect(useSsl);
-
         // Clustered connection - reconnect to actual ip and port
         if (cluster) {
             reconnectToNode();
         }
+        this.messenger = new Messenger(socket);
     }
 
     private void reconnectToNode() throws NoSuchAlgorithmException, IOException, KeyManagementException {
@@ -171,16 +156,8 @@ public class ConnectorImpl implements Connector {
      * (5) _send_message -            
      */
 
-    private JsonObject _parse_sqream_json(String json_str) {
-    	return Json.parse(json_str).asObject();
-    }
-
-    private String _validate_response(String response, String expected) throws ConnException {
-        
-        if (!response.equals(expected))  // !response.contains("stop_statement could not find a statement")
-            throw new ConnException("Expected message: " + expected + " but got " + response);
-        
-        return response;
+    private JsonObject parseJson(String jsonStr) {
+    	return Json.parse(jsonStr).asObject();
     }
 
     // Internal API Functions
@@ -192,12 +169,12 @@ public class ConnectorImpl implements Connector {
     
     // ()  /* Unpack the json of column data arriving via queryType/(named). Called by prepare()  */
     //@SuppressWarnings("rawtypes") // "Map is a raw type" @ col_data = (Map)query_type.get(idx);
-    private void _parse_query_type(JsonArray query_type) throws IOException, ScriptException{
+    private void parseQueryType(JsonArray query_type) throws IOException, ScriptException{
 
         row_length = query_type.size();
-        if(row_length ==0)
+        if(row_length ==0) {
             return;
-
+        }
         // Set metadata arrays given the amount of columns
         col_names = new String[row_length];
         col_types = new String[row_length];
@@ -262,7 +239,7 @@ public class ConnectorImpl implements Connector {
         /* Request and get data from SQream following a SELECT query */
         
         // Send fetch request and get metadata on data to be received
-        JsonObject response_json = _parse_sqream_json(socket.sendMessage(formJson("fetch"), true));
+        JsonObject response_json = parseJson(messenger.fetch());
         int new_rows_fetched = response_json.get("rows").asInt();
         JsonArray fetch_sizes =   response_json.get("colSzs").asArray();  // Chronological sizes of all rows recieved, only needed for nvarchars
         if (new_rows_fetched == 0) {
@@ -353,7 +330,7 @@ public class ConnectorImpl implements Connector {
         }
 
         // Send put message
-        socket.sendMessage(MessageFormat.format(PUT_TEMPLATE, row_counter), false);
+        messenger.put(row_counter);
         
         // Get total column length for the header
         int total_bytes = 0;
@@ -378,9 +355,7 @@ public class ConnectorImpl implements Connector {
             }
             socket.sendData(data_columns[idx], false);
         }
-        
-        _validate_response(socket.sendData(null, true), formJson("putted"));  // Get {"putted" : "putted"}
-
+        messenger.isPutted();
         return row_counter;  // counter nullified by next()
     }
 
@@ -397,9 +372,8 @@ public class ConnectorImpl implements Connector {
         user = _user;
         password = _password;
         service = _service;
-        
-        String connStr = MessageFormat.format(CONNECT_DATABASE_TEMPLATE, database, user, password, service);
-        JsonObject response_json = _parse_sqream_json(socket.sendMessage(connStr, true));
+
+        JsonObject response_json = parseJson(messenger.connect(database, user, password, service));
         connection_id = response_json.get("connectionId").asInt(); 
         varchar_encoding = response_json.getString("varcharEncoding", "ascii");
     	varchar_encoding = (varchar_encoding.contains("874"))? "cp874" : "ascii";
@@ -416,12 +390,10 @@ public class ConnectorImpl implements Connector {
     }
 
     @Override
-    public int execute(String statement, int _chunk_size) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException {
-        
-    	int chunk_size = _chunk_size;
-    	if (chunk_size < 0)
-    		throw new ConnException("chunk_size should be positive, got " + chunk_size);
-    	
+    public int execute(String statement, int chunkSize) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException {
+    	if (chunkSize < 0) {
+            throw new ConnException("chunk_size should be positive, got " + chunkSize);
+        }
     	/* getStatementId, prepareStatement, reconnect, execute, queryType  */
         boolean charitable = true;
     	if (openStatement) {
@@ -433,7 +405,7 @@ public class ConnectorImpl implements Connector {
         }
     	openStatement = true;
         // Get statement ID, send prepareStatement and get response parameters
-        statementId = _parse_sqream_json(socket.sendMessage(formJson("getStatementId"), true)).get("statementId").asInt();
+        statementId = parseJson(messenger.getStatementId()).get("statementId").asInt();
         
         // Generating a valid json string via external library
         JsonObject prepare_jsonify;
@@ -441,20 +413,18 @@ public class ConnectorImpl implements Connector {
         {
 	        prepare_jsonify = Json.object()
 		    		.add("prepareStatement", statement)
-		    		.add("chunkSize", chunk_size);  
+		    		.add("chunkSize", chunkSize);
         }
     	catch(ParseException e)
         {
     		throw new ConnException ("Could not parse the statement for PrepareStatement");
         }
-        
         // Jsonifying via standard library - verify with test
         //engine_bindings.put("statement", statement);
         //String prepareStr = (String) engine.eval("JSON.stringify({prepareStatement: statement, chunkSize: 0})");
-        
         String prepareStr = prepare_jsonify.toString(WriterConfig.MINIMAL);
 
-        JsonObject response_json =  _parse_sqream_json(socket.sendMessage(prepareStr, true));
+        JsonObject response_json =  parseJson(socket.sendMessage(prepareStr, true));
         
         // Parse response parameters
         int listener_id =    response_json.get("listener_id").asInt();
@@ -469,28 +439,26 @@ public class ConnectorImpl implements Connector {
             socket.reconnect(ip, port, useSsl);
             
             // Sending reconnect, reconstruct commands
-            String reconnectStr = MessageFormat.format(RECONNECT_DATABASE_TEMPLATE, database, user, password, service, connection_id, listener_id);
-            socket.sendMessage(reconnectStr, true);
-            _validate_response(socket.sendMessage( MessageFormat.format(RECONSTRUCT_STATEMENT_TEMPLATE, statementId), true), formJson("statementReconstructed"));
-
+            messenger.reconnect(database, user, password, service, connection_id, listener_id);
+            messenger.isStatementReconstructed(statementId);
         }  
          
         // Getting query type manouver and setting the type of query
-        _validate_response(socket.sendMessage(formJson("execute"), true), formJson("executed"));
-        JsonArray query_type =  _parse_sqream_json(socket.sendMessage(formJson("queryTypeIn"), true)).get("queryType").asArray();
+        messenger.execute();
+        JsonArray query_type =  parseJson(messenger.queryTypeInput()).get("queryType").asArray();
         
         if (query_type.isEmpty()) {
-            query_type =  _parse_sqream_json(socket.sendMessage(formJson("queryTypeOut"), true)).get("queryTypeNamed").asArray();
+            query_type =  parseJson(messenger.queryTypeOut()).get("queryTypeNamed").asArray();
             statement_type = query_type.isEmpty() ? DML : SELECT;
         }
         else {
             statement_type = INSERT;
-        }   
+        }
         
         // Select or Insert statement - parse queryType response for metadata
-        if (!statement_type.equals(DML))
-            _parse_query_type(query_type);
-        
+        if (!statement_type.equals(DML)) {
+            parseQueryType(query_type);
+        }
         // First fetch on the house, auto close statement if no data returned
         if (statement_type.equals(SELECT)) {
         	int total_rows_fetched = _fetch(fetch_limit); // 0 - prefetch all data
@@ -583,7 +551,7 @@ public class ConnectorImpl implements Connector {
     	        }
     	            // Statement is finished so no need to reset row_counter etc
 
-    			res = _validate_response(socket.sendMessage(formJson("closeStatement"), true), formJson("statementClosed"));
+    			res = messenger.closeStatement();
     	        openStatement = false;  // set to true in execute()
     		}
     		else
@@ -601,7 +569,7 @@ public class ConnectorImpl implements Connector {
         	if (openStatement) { // Close open statement if exists
                 close();
         	}
-        	_validate_response(socket.sendMessage(formJson("closeConnection"), true), formJson("connectionClosed"));
+        	messenger.closeConnection();
 	        socket.close();
         }
         return true;
