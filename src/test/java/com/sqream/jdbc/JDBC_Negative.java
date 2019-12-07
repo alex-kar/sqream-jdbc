@@ -23,6 +23,7 @@ public class JDBC_Negative {
             "strings varchar(10), strangs nvarchar(10))"; //, dates date, dts datetime)";
     private static final int AMOUNT_OF_COLUMNS = 10;
     private static final String SQL_INSERT = "insert into perf values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String SQL_INSERT_LESS_MARKS_THAN_COLUMNS = "insert into perf values (?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String SQL_SELECT_COUNT = "select count(*) from perf;";
     private static final String URI = "jdbc:Sqream://127.0.0.1:5000/master;user=sqream;password=sqream";
     private static final String USER = "sqream";
@@ -57,11 +58,18 @@ public class JDBC_Negative {
         ps.setDouble(7, 57.0);
         ps.setString(8, "bla");
         ps.setString(9, "bla2");
-        ps.setDate(10, date_from_tuple(2019, 11, 26));
+//        ps.setDate(10, date_from_tuple(2019, 11, 26));
         ps.addBatch();
         ps.executeBatch();
         ps.close();
         conn.close();
+    }
+
+    @Test(expected = SQLException.class)
+    public void whenSetLessQuestionMarksThanColumnsInTable() throws SQLException {
+        try (Connection conn = createConenction();
+             PreparedStatement ps = conn.prepareStatement(SQL_INSERT_LESS_MARKS_THAN_COLUMNS)) {
+        }
     }
 
     private Connection createConenction() throws SQLException {

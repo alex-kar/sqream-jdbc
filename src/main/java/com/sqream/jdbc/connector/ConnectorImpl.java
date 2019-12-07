@@ -425,7 +425,11 @@ public class ConnectorImpl implements Connector {
         String prepareStr = prepare_jsonify.toString(WriterConfig.MINIMAL);
 
         JsonObject response_json =  parseJson(socket.sendMessage(prepareStr, true));
-        
+
+        if(response_json.get("error") != null) {
+            throw new ConnException(response_json.get("error").asString());
+        }
+
         // Parse response parameters
         int listener_id =    response_json.get("listener_id").asInt();
         int port =           response_json.get("port").asInt();
