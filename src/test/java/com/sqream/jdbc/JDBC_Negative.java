@@ -46,23 +46,22 @@ public class JDBC_Negative {
      *          Expected SQLException instead of unchecked exception like NPE or ArrayIndexOutOfBoundsException.
      */
     @Test(expected = SQLException.class)
-    public void whenSetWrongIndexInResultSet() throws SQLException, ConnException {
-        Connection conn = createConenction();
-        PreparedStatement ps = conn.prepareStatement(SQL_INSERT);
-        ps.setBoolean(1, true);
-        ps.setByte(2, (byte)120);
-        ps.setShort(3, (short) 1400);
-        ps.setInt(4, 140000);
-        ps.setLong(5, (long) 5);
-        ps.setFloat(6, (float)56.0);
-        ps.setDouble(7, 57.0);
-        ps.setString(8, "bla");
-        ps.setString(9, "bla2");
-//        ps.setDate(10, date_from_tuple(2019, 11, 26));
-        ps.addBatch();
-        ps.executeBatch();
-        ps.close();
-        conn.close();
+    public void whenSetWrongIndexInResultSet() throws SQLException {
+        try (Connection conn = createConenction();
+             PreparedStatement ps = conn.prepareStatement(SQL_INSERT)) {
+            ps.setBoolean(1, true);
+            ps.setByte(2, (byte)120);
+            ps.setShort(3, (short) 1400);
+            ps.setInt(4, 140000);
+            ps.setLong(5, (long) 5);
+            ps.setFloat(6, (float)56.0);
+            ps.setDouble(7, 57.0);
+            ps.setString(8, "bla");
+            ps.setString(9, "bla2");
+            ps.setDate(10, date_from_tuple(2019, 11, 26));
+            ps.addBatch();
+            ps.executeBatch();
+        }
     }
 
     @Test(expected = SQLException.class)
