@@ -42,7 +42,7 @@ import static org.junit.Assert.*;
 public class JDBC_Positive {
 
     private static final Logger log = Logger.getLogger(JDBC_Positive.class.toString());
-    
+
     //public ConnectionHandle Client =null;
     
     // Test data
