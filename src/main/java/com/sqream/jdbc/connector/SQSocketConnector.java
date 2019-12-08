@@ -3,10 +3,12 @@ package com.sqream.jdbc.connector;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.StringJoiner;
 
 import static com.sqream.jdbc.utils.Utils.decode;
 
@@ -19,7 +21,7 @@ class SQSocketConnector extends SQSocket {
     private ByteBuffer responseMessage = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);;
     private ByteBuffer header = ByteBuffer.allocateDirect(10).order(ByteOrder.LITTLE_ENDIAN);
 
-    SQSocketConnector(String ip, int port) throws IOException, NoSuchAlgorithmException {
+    SQSocketConnector(String ip, int port) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         super(ip, port);
     }
 
@@ -36,8 +38,11 @@ class SQSocketConnector extends SQSocket {
         readData(header, HEADER_SIZE);
 
         //print ("header: " + header);
-        if (!SUPPORTED_PROTOCOLS.contains(header.get())) {
-            throw new ConnectorImpl.ConnException("bad protocol version returned - " + PROTOCOL_VERSION + " perhaps an older version of SQream or reading out of oreder");
+        byte userProtocolVersion = header.get();
+        if (!SUPPORTED_PROTOCOLS.contains(userProtocolVersion)) {
+            StringJoiner joiner = new StringJoiner(", ");
+            SUPPORTED_PROTOCOLS.forEach(newElement -> joiner.add(newElement.toString()));
+            throw new ConnectorImpl.ConnException(String.format("Unsupported protocol version - supported versions are %s, but got %s", joiner.toString(), userProtocolVersion));
         }
 
         header.get();  // Catching the 2nd byte of a response

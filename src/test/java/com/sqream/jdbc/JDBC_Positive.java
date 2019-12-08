@@ -311,9 +311,9 @@ public class JDBC_Positive {
         String sql = "create or replace table test_parameter(bools bool not null, tinies tinyint, smalls smallint, ints int, bigs bigint, floats real, doubles double, dates date, dts datetime, varcs varchar (10), nvarcs nvarchar (10))";
         ps = conn.prepareStatement(sql);
         ParameterMetaData params = ps.getParameterMetaData();
-        int count = params.getParameterCount() ;
+        int count = params.getParameterCount();
         if (count != 0) {
-        	log.info ("Should have 0 parameter count on a DML query, but got: " + count);
+        	log.info("Should have 0 parameter count on a DML query, but got: " + count);
         	a_ok = false;
         }
     	ps.close();

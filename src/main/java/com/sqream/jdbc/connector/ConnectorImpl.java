@@ -155,7 +155,7 @@ public class ConnectorImpl implements Connector {
         }
     }
 
-    private void reconnectToNode() throws NoSuchAlgorithmException, IOException, KeyManagementException {
+    private void reconnectToNode() throws IOException{
         ByteBuffer response_buffer = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
         // Get data from server picker
         response_buffer.clear();
@@ -432,7 +432,7 @@ public class ConnectorImpl implements Connector {
     }
 
     @Override
-    public int execute(String statement, int _chunk_size) throws IOException, ScriptException, ConnException, NoSuchAlgorithmException, KeyManagementException {
+    public int execute(String statement, int _chunk_size) throws IOException, ScriptException, ConnException {
         
     	int chunk_size = _chunk_size;
     	if (chunk_size < 0)

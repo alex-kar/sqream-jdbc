@@ -114,7 +114,7 @@ class SQResultSet implements ResultSet {
 	@Override
 	public void updateDate(int columnIndex, Date x) {
 		this.baseUsageError();
-		//FIXME: where is implementation of method? Need to implement or throw UnsupportedException.
+		//FIXME: Alex K 08.12.19: where is implementation of method? Need to implement or throw UnsupportedException.
 	}
 
 	/**

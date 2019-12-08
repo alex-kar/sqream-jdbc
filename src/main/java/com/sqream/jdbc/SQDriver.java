@@ -165,7 +165,7 @@ public class SQDriver implements java.sql.Driver {
 	}
 
 	private boolean log(String line) throws SQLException {
-		//FIXME: replace log function with logger
+		//FIXME: Alex K 08.12.19: replace log function with logger
 		return true;
 	}
 }
