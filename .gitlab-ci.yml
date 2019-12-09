@@ -5,7 +5,7 @@ before_script:
   - "git checkout develop"
   - "git pull"
   - "make -j7 all"
-  - "kill $(jobs -p);"
+  - "killall -9 metadata_server sqreamd"
   - "./build/metadata_server &"
   - "./build/sqreamd &"
   - "cd /home/gitlab-runner/jdbc-driver;"
