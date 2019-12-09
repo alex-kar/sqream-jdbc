@@ -4,11 +4,14 @@ before_script:
   - "cd /home/gitlab-runner/sqream-with-submodules/sqream"
   - "git checkout develop"
   - "git pull"
-  - "make -j7 all | tee /home/gitlab-runner/build_logs/${CI_COMMIT_REF_NAME}.log && echo $?" 
+  - "make -j7 all"
+  - "kill $(jobs -p);"
+  - "./build/metadata_server &"
+  - "./build/sqreamd &"
+  - "cd /home/gitlab-runner/jdbc-driver;"
 tests_and_benchmark:
   script:
-    # "python3 test_all.py"
-    - "./tests/jdbc_java_native_api.py"  
+    - "mvn clean package"
   only:
     refs:
       - merge_requests
