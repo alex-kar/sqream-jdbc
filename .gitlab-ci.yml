@@ -9,6 +9,7 @@ before_script:
   - "./build/metadata_server &"
   - "./build/sqreamd &"
   - "cd /home/gitlab-runner/jdbc-driver;"
+  - "git status"
 tests_and_benchmark:
   script:
     - "mvn clean package"
