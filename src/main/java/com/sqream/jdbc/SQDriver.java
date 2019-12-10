@@ -19,7 +19,7 @@ import java.nio.charset.Charset;
 
 public class SQDriver implements java.sql.Driver {
 	private static final Logger PARENT_LOGGER = Logger.getLogger("com.sqream.jdbc");
-	private static final Logger LOGGER = Logger.getLogger("com.sqream.jdbc.SQDriver");
+	private static final Logger LOGGER = Logger.getLogger(SQDriver.class.getName());
 	private static final String PROP_KEY_LOGGER_LEVEL = "loggerLevel";
 
 	private DriverPropertyInfo[] DPIArray;
@@ -149,9 +149,8 @@ public class SQDriver implements java.sql.Driver {
 		return PARENT_LOGGER;
 	}
 
-	private boolean log(String line) {
+	private void log(String line) {
 		LOGGER.log(Level.FINE, line);
-		return true;
 	}
 
 	private void setLoggerLevel(String url) {
