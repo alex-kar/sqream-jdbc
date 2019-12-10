@@ -44,7 +44,8 @@ public class SQDriver implements java.sql.Driver {
 
 	@Override
 	public Connection connect(String url, Properties info) throws SQLException {
-		setLoggerLevel(url);
+		setPropsLoggerLevel();
+		setUrlLoggerLevel(url);
 
 		log("inside connect in SQDriver");
 		try {
@@ -153,7 +154,7 @@ public class SQDriver implements java.sql.Driver {
 		LOGGER.log(Level.FINE, line);
 	}
 
-	private void setLoggerLevel(String url) {
+	private void setUrlLoggerLevel(String url) {
 		ConsoleHandler consoleHandler = new ConsoleHandler();
 		consoleHandler.setLevel(Level.ALL);
 		PARENT_LOGGER.addHandler(consoleHandler);
@@ -170,8 +171,15 @@ public class SQDriver implements java.sql.Driver {
 		}
 	}
 
+	private void setPropsLoggerLevel() {
+		String LOGGING_LEVEL = System.getProperty(PROP_KEY_LOGGER_LEVEL);
+		if (LOGGING_LEVEL != null) {
+			setLevel(LOGGING_LEVEL);
+		}
+	}
+
 	private void setLevel(String loggerLevel) {
-		switch (LoggerLevel.valueOf(loggerLevel)) {
+		switch (LoggerLevel.valueOf(loggerLevel.toUpperCase())) {
 			case OFF:
 				PARENT_LOGGER.setLevel(Level.OFF);
 				break;
