@@ -14,7 +14,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 
-class SQSocket {
+abstract class SQSocket {
 
     private SocketChannel s = SocketChannel.open();
     private TlsChannel ss;  // secure socket
@@ -24,12 +24,14 @@ class SQSocket {
     private int port;
     private boolean useSsl = false;
 
-    SQSocket(String ip, int port) throws IOException, NoSuchAlgorithmException {
+    SQSocket(String ip, int port, boolean useSsl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         this.ip = ip;
         this.port = port;
+        this.useSsl = useSsl;
+        connect(useSsl);
     }
 
-    void connect(boolean useSsl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
+    private void connect(boolean useSsl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         this.useSsl = useSsl;
         s.connect(new InetSocketAddress(ip, port));
         if (useSsl) {

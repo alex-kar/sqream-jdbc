@@ -49,7 +49,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 		return true;
 	}
 	
-	private Connector client;
+	private Connector connector;
 	private SQConnection conn =null;
 	private String user;
 	private String DatabaseProductName = "SqreamDB";
@@ -59,27 +59,23 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	private int DriverMajorVersion = 4;
 	private int DriverMinorVersion = 0;
 	private String DriverVersion = "4.0";
-	private String db_name;
+	private String dbName;
 	
 	static void print(Object printable) {
         System.out.println(printable);
     }
 	
-	public SQDatabaseMetaData(Connector client, SQConnection conn, String user_, String catalog) throws SQLException, NumberFormatException, UnknownHostException, IOException
-			 {
-		this.client = client;
-		this.conn =conn;
-		user = user_;
-		db_name = catalog;
+	public SQDatabaseMetaData(SQConnection conn, String user, String catalog) throws NumberFormatException {
+		this.conn = conn;
+		this.connector = conn.getConnector();
+		this.user = user;
+		this.dbName = catalog;
 	}
 	
-	SQResultSet metadataStatement(String sql) throws ConnException, IOException, SQLException, ScriptException, NoSuchAlgorithmException, KeyManagementException {
+	SQResultSet metadataStatement(String sql) throws ConnException, IOException, ScriptException, NoSuchAlgorithmException, KeyManagementException {
+		connector.execute(sql);
 		
-		Connector client = new ConnectorImpl(conn.getParams().getIp(), conn.getParams().getPort(), conn.getParams().getCluster(), conn.getParams().getUseSsl());
-		client.connect(conn.getParams().getDbName(), conn.getParams().getUser(), conn.getParams().getPassword(), conn.getParams().getService());
-		client.execute(sql);
-		
-		return new SQResultSet(client, db_name, true);
+		return new SQResultSet(connector, dbName, true);
 	}
 
 	@Override
@@ -321,7 +317,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public Connection getConnection() {
-		return new SQConnection(client);
+		return new SQConnection(connector);
 	}
 	
 	@Override

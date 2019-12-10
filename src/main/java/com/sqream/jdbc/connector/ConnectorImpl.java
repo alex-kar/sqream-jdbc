@@ -115,8 +115,7 @@ public class ConnectorImpl implements Connector {
     public ConnectorImpl(String ip, int port, boolean cluster, boolean ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         /* JSON parsing engine setup, initial socket connection */
         useSsl = ssl;
-        socket = new SQSocketConnector(ip, port);
-        socket.connect(useSsl);
+        socket = new SQSocketConnector(ip, port, ssl);
         // Clustered connection - reconnect to actual ip and port
         if (cluster) {
             reconnectToNode();

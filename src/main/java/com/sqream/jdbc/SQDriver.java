@@ -1,6 +1,7 @@
 package com.sqream.jdbc;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
@@ -11,8 +12,10 @@ import java.util.logging.*;
 import java.lang.reflect.Field;
 import javax.script.ScriptException;
 
+import com.sqream.jdbc.connector.Connector;
 import com.sqream.jdbc.connector.ConnectorFactory;
 import com.sqream.jdbc.connector.ConnException;
+import com.sqream.jdbc.connector.ConnectorImpl;
 import com.sqream.jdbc.enums.LoggerLevel;
 
 import java.nio.charset.Charset;
@@ -105,12 +108,21 @@ public class SQDriver implements java.sql.Driver {
 		if (UEX.getShowFullStackTrace() != null) {
 			info.put("showFullStackTrace", UEX.getShowFullStackTrace());
 		}
+
+		// create connection
+		Connector connector = null;
+		try {
+			connector =  ConnectorFactory.getFactory().initConnector(UEX.getHost(), UEX.getPort(),
+					UEX.getCluster().equalsIgnoreCase("true"), UEX.getSsl().equalsIgnoreCase("true"));
+			connector.connect(UEX.getDbName(), UEX.getUser(), UEX.getPswd(), UEX.getService());
+		} catch (KeyManagementException | ScriptException | NoSuchAlgorithmException | ConnException | IOException e) {
+			throw new SQLException(e);
+		}
+
 		Connection SQC;
 		try {
-			SQC = new SQConnection(info, ConnectorFactory.getFactory());
-		} catch (NumberFormatException | ScriptException | IOException | NoSuchAlgorithmException |
-		KeyManagementException | ConnException e) {
-			e.printStackTrace();
+			SQC = new SQConnection(info, connector);
+		} catch (NumberFormatException e) {
 			throw new SQLException(e);
 		}
 

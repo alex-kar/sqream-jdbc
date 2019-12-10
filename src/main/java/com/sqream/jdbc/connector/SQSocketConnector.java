@@ -3,6 +3,7 @@ package com.sqream.jdbc.connector;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,8 +20,8 @@ class SQSocketConnector extends SQSocket {
     private ByteBuffer responseMessage = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);;
     private ByteBuffer header = ByteBuffer.allocateDirect(10).order(ByteOrder.LITTLE_ENDIAN);
 
-    SQSocketConnector(String ip, int port) throws IOException, NoSuchAlgorithmException {
-        super(ip, port);
+    SQSocketConnector(String ip, int port, boolean useSsl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
+        super(ip, port, useSsl);
     }
 
     // (2)  /* Return ByteBuffer with appropriate header for message */

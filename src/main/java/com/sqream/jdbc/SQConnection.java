@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.script.ScriptException;
 
 import com.sqream.jdbc.connector.Connector;
-import com.sqream.jdbc.connector.ConnectorFactory;
 import com.sqream.jdbc.connector.ConnException;
 
 //Logging
@@ -32,10 +31,9 @@ public class SQConnection implements Connection {
 	private static final int[] RESULTSET_HOLDABILITY =
 			new int[]{ResultSet.HOLD_CURSORS_OVER_COMMIT, ResultSet.CLOSE_CURSORS_AT_COMMIT};
 
-	private ConnectorFactory connectorFactory;
 	private Path SQConnection_log = Paths.get("/tmp/SQConnection.txt");
 	private Vector<SQStatment> Statement_list = new Vector<SQStatment>();
-	private Connector globalClient;
+	private Connector connector;
 	private boolean printouts = false;
 	private SQDatabaseMetaData data = null;
 	private ConnectionParams params = new ConnectionParams();
@@ -46,14 +44,13 @@ public class SQConnection implements Connection {
 	private String DEFAULT_SERVICE = "sqream";
     
 	SQConnection(Connector client) {
-		globalClient = client;
+		connector = client;
 	}
 	
-	SQConnection(Properties connectionInfo, ConnectorFactory connectorFactory)
-			throws ScriptException, SQLException, NumberFormatException, IOException, NoSuchAlgorithmException, KeyManagementException, ConnException {
+	SQConnection(Properties connectionInfo, Connector connector) throws SQLException, NumberFormatException {
 		log("inside constructor SQConnection");
 
-		this.connectorFactory = connectorFactory;
+		this.connector = connector;
 
 		connInfo = connectionInfo;
 		String cluster = connectionInfo.getProperty("cluster");
@@ -107,10 +104,6 @@ public class SQConnection implements Connection {
 		else if (SSL_Connection.equalsIgnoreCase("true")){
 			useSsl = true;
 		}
-
-		globalClient = this.connectorFactory.initConnector(
-				ipaddress, Integer.parseInt(s_port), cluster.equalsIgnoreCase("true"), useSsl);
-		globalClient.connect(dbName, usr, pswd, service);
 		
 		params.setCluster(isCluster);
 		params.setIp(ipaddress);
@@ -131,6 +124,10 @@ public class SQConnection implements Connection {
 		Statement_list.remove(obj);
 	}
 
+	Connector getConnector() {
+		return this.connector;
+	}
+
 	@Override
 	public Statement createStatement() throws SQLException {
 		log("inside constructor SQConnection");
@@ -141,7 +138,7 @@ public class SQConnection implements Connection {
 
 		SQStatment SQS;
 		try {
-			SQS = new SQStatment(this, dbName, this.connectorFactory);
+			SQS = new SQStatment(this, dbName);
 			Statement_list.addElement(SQS);
 		} catch (Exception e) {
 			throw new SQLException(e);
@@ -161,7 +158,7 @@ public class SQConnection implements Connection {
 
 		SQStatment SQS = null;
 		try {
-			SQS = new SQStatment(this, dbName, this.connectorFactory);
+			SQS = new SQStatment(this, dbName);
 			Statement_list.addElement(SQS);
 		} catch (Exception e) {
 			throw new SQLException(e);
@@ -197,7 +194,7 @@ public class SQConnection implements Connection {
 
 		SQStatment SQS;
 		try {
-			SQS = new SQStatment(this, dbName, this.connectorFactory);
+			SQS = new SQStatment(this, dbName);
 			Statement_list.addElement(SQS);
 			
 		} catch (Exception e) {
@@ -217,7 +214,7 @@ public class SQConnection implements Connection {
 
 		SQPreparedStatment SQPS = null;
 		try {
-			SQPS = new SQPreparedStatment(globalClient, sql, this, dbName);
+			SQPS = new SQPreparedStatment(sql, this, dbName);
 		} catch (KeyManagementException | NoSuchAlgorithmException | IOException | SQLException | ScriptException | ConnException e) {
 			throw new SQLException(e);
 		} return SQPS;
@@ -236,7 +233,7 @@ public class SQConnection implements Connection {
 		//sql = sql.replace("\"", "");
 		SQPreparedStatment SQPS = null;
 		try {
-			SQPS = new SQPreparedStatment(globalClient, sql, this, dbName);
+			SQPS = new SQPreparedStatment(sql, this, dbName);
 		} catch (KeyManagementException | NoSuchAlgorithmException | IOException | ScriptException | ConnException e) {
 			e.printStackTrace();
 			throw new SQLException(e);
@@ -254,8 +251,8 @@ public class SQConnection implements Connection {
 				}
 				Statement_list.clear();
 			}
-			if(globalClient !=null && globalClient.isOpen())
-				globalClient.closeConnection();      // Closing Connector
+			if(connector !=null && connector.isOpen())
+				connector.closeConnection();      // Closing Connector
 			isClosed.set(true);
 
 		} catch (IOException | ScriptException | ConnException e) {
@@ -269,7 +266,7 @@ public class SQConnection implements Connection {
 		log("inside getMetaData SQConnection");
 		if (data == null) {
 			try {
-				data = new SQDatabaseMetaData(globalClient,this, username, dbName);
+				data = new SQDatabaseMetaData(this, username, dbName);
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SQLException(e);
@@ -338,7 +335,7 @@ public class SQConnection implements Connection {
 	@Override
 	public boolean isValid(int timeout) throws SQLException {
 		log("inside isValid SQConnection");
-		return globalClient.isOpen();
+		return connector.isOpen();
 	}
 	
 	@Override
