@@ -4,7 +4,8 @@ before_script:
   - "cd /home/gitlab-runner/sqream-with-submodules/sqream"
   - "git checkout develop"
   - "git pull"
-  - "if make -j7 all ; then
+  - "if make -j7 all
+     then
         echo 'COMPILE SUCCESS'
      else
         make clean_all && make -j7 all
