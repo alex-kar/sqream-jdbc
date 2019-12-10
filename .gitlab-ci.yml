@@ -8,9 +8,7 @@ before_script:
   - "killall -9 sqreamd metadata_server || echo 'Sqream wan not running.'"
   - "./build/metadata_server &"
   - "./build/sqreamd &"
-  - "cd /home/gitlab-runner/jdbc-driver"
-  - "git fetch"
-  - "git checkout $CI_COMMIT_REF_NAME"
+  - "cd /home/gitlab-runner/sqream-with-submodules/jdbc-driver/"
   - "git status"
   - "git log"
 tests_and_benchmark:
