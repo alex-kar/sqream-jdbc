@@ -180,6 +180,7 @@ public class SQDriver implements java.sql.Driver {
 				break;
 			case TRACE:
 				PARENT_LOGGER.setLevel(Level.FINEST);
+				break;
 			default:
 				StringJoiner supportedLevels = new StringJoiner(", ");
 				Arrays.stream(LoggerLevel.values()).forEach(value -> supportedLevels.add(value.getValue()));

@@ -107,17 +107,19 @@ public class SQDriverTest {
 
     @Test
     public void loggerLevelTraceTest() throws SQLException {
-        driver.connect(CORRECT_URI + "?loggerLevel=DEBUG", new Properties());
+        driver.connect(CORRECT_URI + "?loggerLevel=TRACE", new Properties());
         Level expectedLevel = driver.getParentLogger().getLevel();
         assertEquals(expectedLevel, Level.FINEST);
     }
 
-    @Test(expected = SQLException.class)
-    public void loggerLevelWrongParamKeyTest() throws SQLException {
+    @Test
+    public void loggerLevelWrongParamKeyIgnoredTest() throws SQLException {
         driver.connect(CORRECT_URI + "?loggerWronKeyLevel=DEBUG", new Properties());
+        Level expectedLevel = driver.getParentLogger().getLevel();
+        assertEquals(expectedLevel, Level.OFF);
     }
 
-    @Test(expected = SQLException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void loggerLevelUnsupportedLevel() throws SQLException {
         driver.connect(CORRECT_URI + "?loggerLevel=UNSUPPORTED_LEVEL", new Properties());
     }
