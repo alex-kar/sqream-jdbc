@@ -4,9 +4,12 @@ before_script:
   - "cd /home/gitlab-runner/sqream-with-submodules/sqream"
   - "git checkout develop"
   - "git pull"
-  - "make clean_all"
-  - "make -j7 all"
-  - "killall -9 sqreamd metadata_server || echo 'Sqream wan not running.'"
+  - "if make -j7 all ; then
+        echo 'COMPILE SUCCESS'
+     else
+        make clean_all; make -j7 all
+     fi"
+  - "killall -9 sqreamd metadata_server || echo 'Sqream was not running.'"
   - "./build/metadata_server &"
   - "./build/sqreamd &"
   - "cd /home/gitlab-runner/sqream-with-submodules/jdbc-driver/"
