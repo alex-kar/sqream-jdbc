@@ -3,11 +3,15 @@ package com.sqream.jdbc;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 // Extended uri data
 public class UriEx {
+    private static final Logger LOGGER = Logger.getLogger(UriEx.class.getName());
+
     private URI uri;
-    private String provider; // hopefully "sqream"
+    private String provider;
     private String host;
     private int port;
     private String dbName;
@@ -16,11 +20,19 @@ public class UriEx {
     private String debug;
     private String logger;
     private String showFullStackTrace;
-    private String cluster = "false";;
+    private boolean cluster = false;;
     private String service;
-    private String ssl = "false";
+    private boolean ssl = false;
+    private String schema;
+    private boolean skipPicker = false;
 
     UriEx(String url) throws SQLException {
+        parse(url);
+        validate(url);
+        setDefaultValues();
+    }
+
+    private void parse(String url) {
         try {
             this.uri = parseURI(url);
             this.port = uri.getPort();
@@ -51,17 +63,57 @@ public class UriEx {
                     else if (entryType.toLowerCase().equals("showfullstacktrace"))
                         showFullStackTrace = entryValue;
                     else if (entryType.toLowerCase().equals("cluster"))
-                        cluster = entryValue;
+                        cluster = entryValue.toLowerCase().equals("true");
                     else if (entryType.toLowerCase().equals("ssl"))
-                        ssl = entryValue;
+                        ssl = entryValue.toLowerCase().equals("true");
                     else if (entryType.toLowerCase().equals("service"))
                         service = entryValue;
+                    else if (entryType.toLowerCase().equals("schema"))
+                        schema = entryType;
+                    else if (entryType.toLowerCase().equals("skipPicker"))
+                        skipPicker = entryValue.toLowerCase().equals("true");
+                    else {
+                        throw new IllegalArgumentException(String.format("Unsupported url argument: %s", entryType));
+                    }
                 }
             }
-
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException | SQLException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        }
+    }
+
+    private void validate(String url) throws SQLException {
+        String prfx = "jdbc:Sqream";
+
+        if (!url.trim().substring(0, prfx.length()).equals(prfx)) {
+            throw new SQLException("Wrong prefix for connection string. Should be jdbc:Sqream but got: " + url.trim().substring(0, prfx.length()));
+        }
+        if (!provider.toLowerCase().equals("sqream")) {
+            throw new SQLException("Bad provider in connection string. Should be sqream but got: " + provider.toLowerCase());
+        }
+        if (user == null || pswd == null) {
+            throw new SQLException("please apply user and password");
+        }
+        if (dbName == null || "".equals(dbName)) {
+            throw new SQLException("connection string : missing database name error");
+        }
+        if (host == null) {
+            throw new SQLException("connection string : missing host ip error");
+        }
+        if (port == -1) {
+            throw new SQLException("connection string : missing port error");
+        }
+    }
+
+    private void setDefaultValues() {
+        if(service == null) {
+            log("no service passed, defaulting to sqream");
+            service = "sqream";
+        }
+        if(schema == null) {
+            log("no schema passed, defaulting to public");
+            schema = "public";
         }
     }
 
@@ -105,7 +157,7 @@ public class UriEx {
         return showFullStackTrace;
     }
 
-    public String getCluster() {
+    public boolean getCluster() {
         return cluster;
     }
 
@@ -113,8 +165,12 @@ public class UriEx {
         return service;
     }
 
-    public String getSsl() {
+    public boolean getSsl() {
         return ssl;
+    }
+
+    public String getSchema() {
+        return schema;
     }
 
     private URI parseURI(String url) throws SQLException, URISyntaxException {
@@ -128,5 +184,9 @@ public class UriEx {
                     + "\nnew format Example: 'jdbc:Sqream://<host>:<port>/<dbname>;user=sa;password=sa'");
         }
         return result;
+    }
+
+    private void log(String str) {
+        LOGGER.log(Level.FINE, str);
     }
 }

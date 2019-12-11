@@ -38,82 +38,26 @@ public class SQConnection implements Connection {
 	private SQDatabaseMetaData data = null;
 	private ConnectionParams params = new ConnectionParams();
 	private AtomicBoolean isClosed = new AtomicBoolean(true);
-	private String username;
-	private Properties connInfo;
-	private String dbName;
-	private String DEFAULT_SERVICE = "sqream";
     
 	SQConnection(Connector client) {
 		connector = client;
 	}
 	
-	SQConnection(Properties connectionInfo, Connector connector) throws SQLException, NumberFormatException {
+	SQConnection(UriEx uriEx, Connector connector) throws SQLException, NumberFormatException {
 		log("inside constructor SQConnection");
 
 		this.connector = connector;
 
-		connInfo = connectionInfo;
-		String cluster = connectionInfo.getProperty("cluster");
+		params.setCluster(uriEx.getCluster());
+		params.setIp(uriEx.getHost());
+		params.setPort(uriEx.getPort());
+		params.setSchema(getSchema());
+		params.setDbName(uriEx.getDbName());
+		params.setPassword(uriEx.getPswd());
+		params.setUser(uriEx.getUser());
+		params.setUseSsl(uriEx.getSsl());
+		params.setService(uriEx.getService());
 
-		String ipaddress = connectionInfo.getProperty("host");
-		if (ipaddress.equals("-1"))
-			throw new SQLException("missing host error");
-
-		String s_port = connectionInfo.getProperty("port");
-		if (s_port.equals("-1"))
-			throw new SQLException("missing port error");
-			
-		dbName = connectionInfo.getProperty("dbname");
-		if (dbName.equals("-1"))
-			throw new SQLException("missing database name error");
-
-		String service = connectionInfo.getProperty("service");
-		if(service == null || service.equals("-1")) {
-			System.out.println ("no service passed, defaulting to sqream");
-			service = "sqream";
-		}
-		
-		String schema = connectionInfo.getProperty("schema");
-		if(schema == null || schema.equals("-1")) {
-			System.out.println ("no schema passed, defaulting to public");
-			schema = "public";
-		}
-		
-		String usr = connectionInfo.getProperty("user");
-		username = usr;
-		if (usr.equals("-1"))
-			throw new SQLException("missing user");
-
-		String pswd = connectionInfo.getProperty("password");
-		if (pswd.equals("-1"))
-			throw new SQLException("missing database name error");
-
-		// Related to bug #541 - skip the picker if we are in cancel state
-		String skipPicker = connectionInfo.getProperty("SkipPicker");
-		if (skipPicker == null) {
-			skipPicker = "false";
-		}
-
-		boolean isCluster=cluster.equalsIgnoreCase("true");
-		
-		boolean useSsl = false;
-		String SSL_Connection = connectionInfo.getProperty("ssl");
-		if (SSL_Connection == null || SSL_Connection.isEmpty()) {
-			useSsl = true;
-		}
-		else if (SSL_Connection.equalsIgnoreCase("true")){
-			useSsl = true;
-		}
-		
-		params.setCluster(isCluster);
-		params.setIp(ipaddress);
-		params.setPort(Integer.parseInt(s_port));
-		params.setSchema(schema);
-		params.setDbName(dbName);
-		params.setPassword(pswd);
-		params.setUser(usr);
-		params.setUseSsl(useSsl);
-		params.setService(service);
 		isClosed.set(false);
 	}
 
@@ -138,7 +82,7 @@ public class SQConnection implements Connection {
 
 		SQStatment SQS;
 		try {
-			SQS = new SQStatment(this, dbName);
+			SQS = new SQStatment(this, params.getDbName());
 			Statement_list.addElement(SQS);
 		} catch (Exception e) {
 			throw new SQLException(e);
@@ -158,7 +102,7 @@ public class SQConnection implements Connection {
 
 		SQStatment SQS = null;
 		try {
-			SQS = new SQStatment(this, dbName);
+			SQS = new SQStatment(this, params.getDbName());
 			Statement_list.addElement(SQS);
 		} catch (Exception e) {
 			throw new SQLException(e);
@@ -194,7 +138,7 @@ public class SQConnection implements Connection {
 
 		SQStatment SQS;
 		try {
-			SQS = new SQStatment(this, dbName);
+			SQS = new SQStatment(this, params.getDbName());
 			Statement_list.addElement(SQS);
 			
 		} catch (Exception e) {
@@ -214,7 +158,7 @@ public class SQConnection implements Connection {
 
 		SQPreparedStatment SQPS = null;
 		try {
-			SQPS = new SQPreparedStatment(sql, this, dbName);
+			SQPS = new SQPreparedStatment(sql, this, params.getDbName());
 		} catch (KeyManagementException | NoSuchAlgorithmException | IOException | SQLException | ScriptException | ConnException e) {
 			throw new SQLException(e);
 		} return SQPS;
@@ -233,7 +177,7 @@ public class SQConnection implements Connection {
 		//sql = sql.replace("\"", "");
 		SQPreparedStatment SQPS = null;
 		try {
-			SQPS = new SQPreparedStatment(sql, this, dbName);
+			SQPS = new SQPreparedStatment(sql, this, params.getDbName());
 		} catch (KeyManagementException | NoSuchAlgorithmException | IOException | ScriptException | ConnException e) {
 			e.printStackTrace();
 			throw new SQLException(e);
@@ -266,7 +210,7 @@ public class SQConnection implements Connection {
 		log("inside getMetaData SQConnection");
 		if (data == null) {
 			try {
-				data = new SQDatabaseMetaData(this, username, dbName);
+				data = new SQDatabaseMetaData(this, params.getUser(), params.getDbName());
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SQLException(e);

@@ -59,61 +59,15 @@ public class SQDriver implements java.sql.Driver {
 		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} 
-		String prfx = "jdbc:Sqream";
-
-		if (!url.trim().substring(0, prfx.length()).equals(prfx))
-			
-			throw new SQLException("Wrong prefix for connection string. Should be jdbc:Sqream but got: " + url.trim().substring(0, prfx.length())); // assaf: don't try to this url, it was not ment for
-							// sqream. (propegate it on..)
-
-		if (info == null)
-			throw new SQLException("Properties info is null");
-
-		UriEx UEX = new UriEx(url.trim()); // parse the url to object.
-		if (!UEX.getProvider().toLowerCase().equals("sqream")) {
-
-			throw new SQLException("Bad provider in connection string. Should be sqream but got: " + UEX.getProvider().toLowerCase());
-		}
-
-		if (UEX.getUser() == null && info.getProperty("user") == null || UEX.getPswd() == null && info.getProperty("password") == null) {
-
-			throw new SQLException("please apply user and password");
-		}
-
-		if (UEX.getUser() != null)
-
-		{
-			info.put("user", UEX.getUser());
-			info.put("password", UEX.getPswd());
-		}
-		// now cast it to JDBC Properties object (cause thats what the
-		// DriverManager gives us as parameter):
-		if (UEX.getDbName() == null || UEX.getDbName().equals(""))
-			throw new SQLException("connection string : missing database name error");
-		if (UEX.getHost() == null)
-			throw new SQLException("connection string : missing host ip error");
-		if (UEX.getPort() == -1)
-			throw new SQLException("connection string : missing port error");
-
-		info.put("dbname", UEX.getDbName());
-		info.put("port", String.valueOf(UEX.getPort()));
-		info.put("host", UEX.getHost());
-		info.put("cluster", UEX.getCluster());
-		info.put("ssl", UEX.getSsl());
-
-		if(UEX.getService() != null)
-			info.put("service", UEX.getService());
-
-		if (UEX.getShowFullStackTrace() != null) {
-			info.put("showFullStackTrace", UEX.getShowFullStackTrace());
 		}
 
 		// create connection
 		Connector connector = null;
+
+		UriEx UEX = new UriEx(url);
 		try {
 			connector =  ConnectorFactory.getFactory().initConnector(UEX.getHost(), UEX.getPort(),
-					UEX.getCluster().equalsIgnoreCase("true"), UEX.getSsl().equalsIgnoreCase("true"));
+					UEX.getCluster(), UEX.getSsl());
 			connector.connect(UEX.getDbName(), UEX.getUser(), UEX.getPswd(), UEX.getService());
 		} catch (KeyManagementException | ScriptException | NoSuchAlgorithmException | ConnException | IOException e) {
 			throw new SQLException(e);
@@ -121,7 +75,7 @@ public class SQDriver implements java.sql.Driver {
 
 		Connection SQC;
 		try {
-			SQC = new SQConnection(info, connector);
+			SQC = new SQConnection(UEX, connector);
 		} catch (NumberFormatException e) {
 			throw new SQLException(e);
 		}
