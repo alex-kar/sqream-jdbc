@@ -195,7 +195,7 @@ public class ConnectorImpl implements Connector {
         // Create Storage for insert / select operations
         if (statement_type.equals(INSERT)) {
             // Calculate number of rows to flush at
-            int row_size = colMetadata.getSizesSum() + colMetadata.colNullable().cardinality();    // not calculating nvarc lengths for now
+            int row_size = colMetadata.getSizesSum() + colMetadata.getAmountNullablleColumns();    // not calculating nvarc lengths for now
             rows_per_flush = FLUSH_SIZE / row_size;
             // rows_per_flush = 500000;
             // Buffer arrays for column storage
@@ -210,9 +210,9 @@ public class ConnectorImpl implements Connector {
             
             // Initiate buffers for each column using the metadata
             for (int idx=0; idx < row_length; idx++) {
-                data_columns[idx] = ByteBuffer.allocateDirect(colMetadata.size(idx)*rows_per_flush).order(ByteOrder.LITTLE_ENDIAN);
-                null_columns[idx] = colMetadata.nullable(idx) ? ByteBuffer.allocateDirect(rows_per_flush).order(ByteOrder.LITTLE_ENDIAN) : null;
-                nvarc_len_columns[idx] = colMetadata.truVarchar(idx) ? ByteBuffer.allocateDirect(4*rows_per_flush).order(ByteOrder.LITTLE_ENDIAN) : null;
+                data_columns[idx] = ByteBuffer.allocateDirect(colMetadata.getSize(idx)*rows_per_flush).order(ByteOrder.LITTLE_ENDIAN);
+                null_columns[idx] = colMetadata.isNullable(idx) ? ByteBuffer.allocateDirect(rows_per_flush).order(ByteOrder.LITTLE_ENDIAN) : null;
+                nvarc_len_columns[idx] = colMetadata.isTruVarchar(idx) ? ByteBuffer.allocateDirect(4*rows_per_flush).order(ByteOrder.LITTLE_ENDIAN) : null;
             }
         }
         if (statement_type.equals(SELECT)) {
@@ -251,7 +251,7 @@ public class ConnectorImpl implements Connector {
         
         // Sort buffers to appropriate arrays (row_length determied during _query_type())
         for (int idx=0, buf_idx = 0; idx < row_length; idx++, buf_idx++) {
-            if(colMetadata.nullable(idx)) {
+            if(colMetadata.isNullable(idx)) {
                 null_columns[idx] = fetch_buffers[buf_idx];
                 //fetch_buffers[buf_idx].get(null_columns[idx]);
                 //fetch_buffers[buf_idx].clear();
@@ -260,7 +260,7 @@ public class ConnectorImpl implements Connector {
             } else
                 null_columns[idx] = null;
             
-            if(colMetadata.truVarchar(idx)) {
+            if(colMetadata.isTruVarchar(idx)) {
                 nvarc_len_columns[idx] = fetch_buffers[buf_idx];
                 buf_idx++;
             } else
@@ -585,8 +585,8 @@ public class ConnectorImpl implements Connector {
     boolean _validate_get(int col_num, String value_type) throws ConnException {
         /* If get function is appropriate, return true for non null values, false for a null */
         // Validate type
-        if (!colMetadata.type(col_num).equals(value_type))
-            throw new ConnException("Trying to get a value of type " + value_type + " from column number " + col_num + " of type " + colMetadata.type(col_num));
+        if (!colMetadata.getType(col_num).equals(value_type))
+            throw new ConnException("Trying to get a value of type " + value_type + " from column number " + col_num + " of type " + colMetadata.getType(col_num));
         
         // print ("null column holder: " + Arrays.toString(null_columns));
         return null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0;
@@ -609,7 +609,7 @@ public class ConnectorImpl implements Connector {
     public Short get_short(int col_num) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
     	//*
-    	if (colMetadata.type(col_num).equals("ftUByte"))
+    	if (colMetadata.getType(col_num).equals("ftUByte"))
             return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (short)(data_columns[col_num].get(row_counter) & 0xFF) : null;
 		//*/
 		
@@ -620,9 +620,9 @@ public class ConnectorImpl implements Connector {
     public Integer get_int(int col_num) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
     	//*
-	    if (colMetadata.type(col_num).equals("ftShort"))
+	    if (colMetadata.getType(col_num).equals("ftShort"))
 	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (int)data_columns[col_num].getShort(row_counter * 2) : null;
-	    else if (colMetadata.type(col_num).equals("ftUByte"))
+	    else if (colMetadata.getType(col_num).equals("ftUByte"))
 	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (int)(data_columns[col_num].get(row_counter) & 0xFF) : null;
 		//*/
         return (_validate_get(col_num, "ftInt")) ? data_columns[col_num].getInt(row_counter * 4) : null;
@@ -633,7 +633,7 @@ public class ConnectorImpl implements Connector {
     public Long get_long(int col_num) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
 
-    	String type = colMetadata.type(col_num);
+    	String type = colMetadata.getType(col_num);
     	if (type.equals("ftInt"))
 	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (long)data_columns[col_num].getInt(row_counter * 4) : null;
     	else if (type.equals("ftShort"))
@@ -648,7 +648,7 @@ public class ConnectorImpl implements Connector {
     public Float get_float(int col_num) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
 
-        String type = colMetadata.type(col_num);
+        String type = colMetadata.getType(col_num);
     	if (type.equals("ftInt"))
 	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (float)data_columns[col_num].getInt(row_counter * 4) : null;
     	else if (type.equals("ftShort"))
@@ -663,7 +663,7 @@ public class ConnectorImpl implements Connector {
     public Double get_double(int col_num) throws ConnException {   col_num--;  // set / get work with starting index 1
     	_validate_index(col_num);
 
-        String type = colMetadata.type(col_num);
+        String type = colMetadata.getType(col_num);
 	    if (type.equals("ftFloat"))
 	        return (null_columns[col_num] == null || null_columns[col_num].get(row_counter) == 0) ? (double)data_columns[col_num].getFloat(row_counter * 4) : null;
         else if (type.equals("ftLong"))
@@ -685,11 +685,11 @@ public class ConnectorImpl implements Connector {
         // Get bytes the size of the varchar column into string_bytes
         if (col_calls[col_num]++ > 0) {
 	        // Resetting buffer position in case someone runs the same get()
-	        data_columns[col_num].position(data_columns[col_num].position() - colMetadata.size(col_num));
+	        data_columns[col_num].position(data_columns[col_num].position() - colMetadata.getSize(col_num));
         }
-        data_columns[col_num].get(string_bytes, 0, colMetadata.size(col_num));
+        data_columns[col_num].get(string_bytes, 0, colMetadata.getSize(col_num));
         
-        return (_validate_get(col_num, "ftVarchar")) ? ("X" + (new String(string_bytes, 0, colMetadata.size(col_num), varchar_encoding))).trim().substring(1) : null;
+        return (_validate_get(col_num, "ftVarchar")) ? ("X" + (new String(string_bytes, 0, colMetadata.getSize(col_num), varchar_encoding))).trim().substring(1) : null;
     }
     
     @Override
@@ -734,79 +734,79 @@ public class ConnectorImpl implements Connector {
     @Override
     public Boolean getBoolean(String col_name) throws ConnException {
     	
-        return getBoolean(colMetadata.getIndexByName(col_name));
+        return getBoolean(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public Byte get_ubyte(String col_name) throws ConnException {  
     
-        return get_ubyte(colMetadata.getIndexByName(col_name));
+        return get_ubyte(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public Short get_short(String col_name) throws ConnException {  
         
-        return get_short(colMetadata.getIndexByName(col_name));
+        return get_short(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public Integer get_int(String col_name) throws ConnException {     
         
-        return get_int(colMetadata.getIndexByName(col_name));
+        return get_int(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public Long get_long(String col_name) throws ConnException {  
     	
-        return get_long(colMetadata.getIndexByName(col_name));
+        return get_long(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public Float get_float(String col_name) throws ConnException {   
         
-        return get_float(colMetadata.getIndexByName(col_name));
+        return get_float(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public Double get_double(String col_name) throws ConnException {  
         
-        return get_double(colMetadata.getIndexByName(col_name));
+        return get_double(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public String get_varchar(String col_name) throws ConnException, UnsupportedEncodingException {  
         
-        return get_varchar(colMetadata.getIndexByName(col_name));
+        return get_varchar(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public String get_nvarchar(String col_name) throws ConnException {   
         
-        return get_nvarchar(colMetadata.getIndexByName(col_name));
+        return get_nvarchar(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public Date get_date(String col_name) throws ConnException {   
             
-        return get_date(colMetadata.getIndexByName(col_name));
+        return get_date(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public Date get_date(String col_name, ZoneId zone) throws ConnException {   
         
-        return get_date(colMetadata.getIndexByName(col_name), zone);
+        return get_date(colMetadata.getColNumByName(col_name), zone);
     }
 
     @Override
     public Timestamp get_datetime(String col_name) throws ConnException {   
         
-        return get_datetime(colMetadata.getIndexByName(col_name));
+        return get_datetime(colMetadata.getColNumByName(col_name));
     }
 
     @Override
     public Timestamp get_datetime(String col_name, ZoneId zone) throws ConnException {   
         
-        return get_datetime(colMetadata.getIndexByName(col_name), zone);
+        return get_datetime(colMetadata.getColNumByName(col_name), zone);
     }
     
     // Sets
@@ -815,7 +815,7 @@ public class ConnectorImpl implements Connector {
     boolean _validate_set(int col_num, Object value, String value_type) throws ConnException {
         boolean is_null = false;
         // Validate type
-        String type = colMetadata.type(col_num);
+        String type = colMetadata.getType(col_num);
         if (!type.equals(value_type))
             throw new ConnException("Trying to set " + value_type + " on a column number " + col_num + " of type " + type);
     
@@ -923,7 +923,7 @@ public class ConnectorImpl implements Connector {
     	_validate_index(col_num);
         // Set actual value - padding with spaces to the left if needed
         string_bytes = _validate_set(col_num, value, "ftVarchar") ? "".getBytes(varchar_encoding) : value.getBytes(varchar_encoding);
-        int colSize = colMetadata.size(col_num);
+        int colSize = colMetadata.getSize(col_num);
         if (string_bytes.length > colSize)
             throw new ConnException("Trying to set string of size " + string_bytes.length + " on column of size " +  colSize);
         // Generate missing spaces to fill up to size
@@ -1030,17 +1030,17 @@ public class ConnectorImpl implements Connector {
     @Override
     public String getColName(int col_num) throws ConnException {
     
-        return colMetadata.name(_validate_col_num(col_num));
+        return colMetadata.getName(_validate_col_num(col_num));
     }
 
     @Override
     public String get_col_type(int col_num) throws ConnException {
-        return colMetadata.type(_validate_col_num(col_num));
+        return colMetadata.getType(_validate_col_num(col_num));
     }
 
     @Override
     public String get_col_type(String col_name) throws ConnException {
-    	Integer colNum = colMetadata.getIndexByName(col_name);
+    	Integer colNum = colMetadata.getColNumByName(col_name);
     	if (colNum == null)
     		throw new ConnException("\nno column found for name: " + col_name + "\nExisting columns: \n" + colMetadata.getAllNames());
         return get_col_type(colNum);
@@ -1049,13 +1049,13 @@ public class ConnectorImpl implements Connector {
     @Override
     public int get_col_size(int col_num) throws ConnException {  
     
-        return colMetadata.size(_validate_col_num(col_num));
+        return colMetadata.getSize(_validate_col_num(col_num));
     }
 
     @Override
     public boolean is_col_nullable(int col_num) throws ConnException { 
         
-        return colMetadata.nullable(_validate_col_num(col_num));
+        return colMetadata.isNullable(_validate_col_num(col_num));
     }
 
     @Override

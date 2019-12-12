@@ -33,28 +33,28 @@ public class ColumnsMetadata {
         colNamesMap.put(colNames[index].toLowerCase(), index + 1);
     }
 
-    String name(int index) {
+    String getName(int index) {
         return colNames[index];
     }
 
-    String type(int index) {
+    String getType(int index) {
         return colTypes[index];
     }
 
-    int size(int index) {
+    int getSize(int index) {
         return colSizes[index];
     }
 
-    boolean nullable(int index) {
+    boolean isNullable(int index) {
         return colNullable.get(index);
     }
 
-    boolean truVarchar(int index) {
+    boolean isTruVarchar(int index) {
         return colTvc.get(index);
     }
 
-    BitSet colNullable() {
-        return colNullable;
+    int getAmountNullablleColumns() {
+        return colNullable.cardinality();
     }
 
     int getSizesSum() {
@@ -65,7 +65,7 @@ public class ColumnsMetadata {
         return Arrays.stream(colSizes).max().getAsInt();
     }
 
-    Integer getIndexByName(String name) {
+    Integer getColNumByName(String name) {
         return colNamesMap.get(name);
     }
 
