@@ -98,12 +98,15 @@ public class ColumnStorage {
         return data_columns[index];
     }
 
-
     public ByteBuffer getNullColumn(int index) {
         return null_columns[index];
     }
 
     public ByteBuffer getNvarcLenColumn(int index) {
         return nvarc_len_columns[index];
+    }
+
+    public boolean isValueNotNull(int colNum, int rowCounter) {
+        return null_columns[colNum] == null || null_columns[colNum].get(rowCounter) == 0;
     }
 }

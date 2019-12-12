@@ -594,7 +594,7 @@ public class ConnectorImpl implements Connector {
     	_validate_index(col_num);
     	//*
     	if (colMetadata.getType(col_num).equals("ftUByte"))
-            return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (short)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
+            return colStorage.isValueNotNull(col_num, row_counter) ? (short)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
 		//*/
 		
     	return (_validate_get(col_num, "ftShort")) ? colStorage.getDataColumns(col_num).getShort(row_counter * 2) : null;
@@ -605,9 +605,9 @@ public class ConnectorImpl implements Connector {
     	_validate_index(col_num);
     	//*
 	    if (colMetadata.getType(col_num).equals("ftShort"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (int) colStorage.getDataColumns(col_num).getShort(row_counter * 2) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (int) colStorage.getDataColumns(col_num).getShort(row_counter * 2) : null;
 	    else if (colMetadata.getType(col_num).equals("ftUByte"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (int)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (int)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
 		//*/
         return (_validate_get(col_num, "ftInt")) ? colStorage.getDataColumns(col_num).getInt(row_counter * 4) : null;
         //return (null_balls[col_num].get() == 0) ? data_columns[col_num].getInt() : null;
@@ -619,11 +619,11 @@ public class ConnectorImpl implements Connector {
 
     	String type = colMetadata.getType(col_num);
     	if (type.equals("ftInt"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (long)colStorage.getDataColumns(col_num).getInt(row_counter * 4) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (long)colStorage.getDataColumns(col_num).getInt(row_counter * 4) : null;
     	else if (type.equals("ftShort"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (long)colStorage.getDataColumns(col_num).getShort(row_counter * 2) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (long)colStorage.getDataColumns(col_num).getShort(row_counter * 2) : null;
 	    else if (type.equals("ftUByte"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (long)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (long)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
 	        
         return (_validate_get(col_num, "ftLong")) ? colStorage.getDataColumns(col_num).getLong(row_counter * 8) : null;
     }
@@ -634,11 +634,11 @@ public class ConnectorImpl implements Connector {
 
         String type = colMetadata.getType(col_num);
     	if (type.equals("ftInt"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (float)colStorage.getDataColumns(col_num).getInt(row_counter * 4) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (float)colStorage.getDataColumns(col_num).getInt(row_counter * 4) : null;
     	else if (type.equals("ftShort"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (float)colStorage.getDataColumns(col_num).getShort(row_counter * 2) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (float)colStorage.getDataColumns(col_num).getShort(row_counter * 2) : null;
 	    else if (type.equals("ftUByte"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (float)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (float)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
 	        
     	return (_validate_get(col_num, "ftFloat")) ? colStorage.getDataColumns(col_num).getFloat(row_counter * 4) : null;
     }
@@ -649,15 +649,15 @@ public class ConnectorImpl implements Connector {
 
         String type = colMetadata.getType(col_num);
 	    if (type.equals("ftFloat"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (double)colStorage.getDataColumns(col_num).getFloat(row_counter * 4) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (double)colStorage.getDataColumns(col_num).getFloat(row_counter * 4) : null;
         else if (type.equals("ftLong"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (double)colStorage.getDataColumns(col_num).getLong(row_counter * 8) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (double)colStorage.getDataColumns(col_num).getLong(row_counter * 8) : null;
         else if (type.equals("ftInt"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (double)colStorage.getDataColumns(col_num).getInt(row_counter * 4) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (double)colStorage.getDataColumns(col_num).getInt(row_counter * 4) : null;
     	else if (type.equals("ftShort"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (double)colStorage.getDataColumns(col_num).getShort(row_counter * 2) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (double)colStorage.getDataColumns(col_num).getShort(row_counter * 2) : null;
 	    else if (type.equals("ftUByte"))
-	        return (colStorage.getNullColumn(col_num) == null || colStorage.getNullColumn(col_num).get(row_counter) == 0) ? (double)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
+	        return colStorage.isValueNotNull(col_num, row_counter) ? (double)(colStorage.getDataColumns(col_num).get(row_counter) & 0xFF) : null;
 	        
         
         return (_validate_get(col_num, "ftDouble")) ? colStorage.getDataColumns(col_num).getDouble(row_counter * 8) : null;
