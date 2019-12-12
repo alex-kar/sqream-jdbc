@@ -323,13 +323,7 @@ public class ConnectorImpl implements Connector {
         messenger.put(row_counter);
         
         // Get total column length for the header
-        int total_bytes = 0;
-        for(int idx=0; idx < row_length; idx++) {
-            total_bytes += (colStorage.getNullColumn(idx) != null) ? row_counter : 0;
-            total_bytes += (colStorage.getNvarcLenColumn(idx) != null) ? 4 * row_counter : 0;
-
-            total_bytes += colStorage.getDataColumns(idx).position();
-        }
+        int total_bytes = colStorage.getTotalLengthForHeader(row_length, row_counter);
         
         // Send header with total binary insert
         ByteBuffer header_buffer = socket.generateHeaderedBuffer(total_bytes, false);

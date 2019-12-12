@@ -60,6 +60,16 @@ public class ColumnStorage {
         }
     }
 
+    public int getTotalLengthForHeader(int row_length, int row_counter) {
+        int total_bytes = 0;
+        for(int idx=0; idx < row_length; idx++) {
+            total_bytes += (null_columns[idx] != null) ? row_counter : 0;
+            total_bytes += (nvarc_len_columns[idx] != null) ? 4 * row_counter : 0;
+            total_bytes += data_columns[idx].position();
+        }
+        return total_bytes;
+    }
+
     public void setNullColumns(int index, ByteBuffer value) {
         null_columns[index] = value;
     }
