@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.StringJoiner;
 
 import static com.sqream.jdbc.utils.Utils.decode;
 
@@ -40,7 +41,7 @@ class SQSocketConnector extends SQSocket {
         if (!SUPPORTED_PROTOCOLS.contains(userProtocolVersion)) {
             StringJoiner joiner = new StringJoiner(", ");
             SUPPORTED_PROTOCOLS.forEach(newElement -> joiner.add(newElement.toString()));
-            throw new ConnectorImpl.ConnException(String.format("Unsupported protocol version - supported versions are %s, but got %s", joiner.toString(), userProtocolVersion));
+            throw new ConnException(String.format("Unsupported protocol version - supported versions are %s, but got %s", joiner.toString(), userProtocolVersion));
         }
 
         header.get();  // Catching the 2nd byte of a response

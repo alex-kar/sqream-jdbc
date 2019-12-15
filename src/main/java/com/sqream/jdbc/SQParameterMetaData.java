@@ -15,7 +15,7 @@ import com.sqream.jdbc.connector.ConnException;
 
 public class SQParameterMetaData implements ParameterMetaData{
 	
-	  ConnectorImpl conn;
+	  Connector conn;
 	  int param_count = 0;
 	  
 	  Map<String, Integer> sqream_to_sql = Stream.of(new Object[][] { 
@@ -34,7 +34,7 @@ public class SQParameterMetaData implements ParameterMetaData{
 	  
 	  
 	  
-	  public SQParameterMetaData(ConnectorImpl _conn) throws SQLException {
+	  public SQParameterMetaData(Connector _conn) throws SQLException {
 		  
 	     if (_conn == null)
 	    	 throw new SQLException("null connector object passed to SQParameterMetaData");
