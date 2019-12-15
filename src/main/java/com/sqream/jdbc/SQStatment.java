@@ -50,7 +50,7 @@ public class SQStatment implements Statement {
 		if (!client.isOpenStatement()) {
 			return;
 		}
-		
+
 		statementId = client.getStatementId();
 		String sql = "select stop_statement(" + statementId + ")";
 		
@@ -189,7 +189,7 @@ public class SQStatment implements Statement {
 		} 
 		return 0;
 	}
-	
+
 	@Override
 	public void setFetchSize(int arg0) throws SQLException {
 		SIZE_RESULT = arg0;

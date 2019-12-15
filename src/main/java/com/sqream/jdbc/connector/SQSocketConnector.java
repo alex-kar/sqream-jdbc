@@ -36,8 +36,11 @@ class SQSocketConnector extends SQSocket {
         readData(header, HEADER_SIZE);
 
         //print ("header: " + header);
-        if (!SUPPORTED_PROTOCOLS.contains(header.get())) {
-            throw new ConnException("bad protocol version returned - " + PROTOCOL_VERSION + " perhaps an older version of SQream or reading out of oreder");
+        byte userProtocolVersion = header.get();
+        if (!SUPPORTED_PROTOCOLS.contains(userProtocolVersion)) {
+            StringJoiner joiner = new StringJoiner(", ");
+            SUPPORTED_PROTOCOLS.forEach(newElement -> joiner.add(newElement.toString()));
+            throw new ConnectorImpl.ConnException(String.format("Unsupported protocol version - supported versions are %s, but got %s", joiner.toString(), userProtocolVersion));
         }
 
         header.get();  // Catching the 2nd byte of a response

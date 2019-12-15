@@ -375,7 +375,6 @@ public class Negative {
 				try {
 					log.info("Attempted bad insert value: " + bad);
 					conn.set_ubyte(1, bad);
-					log.info("yeish");
 				}catch (ConnException e) {
 					if (e.getMessage().contains("Trying to set")) {
 						log.info("Correct error message on setting bad value");
@@ -415,8 +414,7 @@ public class Negative {
 				
 				try {
 					log.info("Attempted bad insert value: " + bad);
-					conn.set_date(1, bad);
-					log.info("yeish");}
+					conn.set_date(1, bad);}
 				finally {
 					conn.close();
 					// log.info("Correct exception thrown on bad date");
@@ -432,8 +430,7 @@ public class Negative {
 			for (Timestamp bad: badDatetimes) {
 				try {
 					log.info("Attempted bad insert value: " + bad);
-					conn.set_datetime(1, bad);
-					log.info("yeish");}
+					conn.set_datetime(1, bad);}
 				finally {
 					conn.close();
 					// log.info("Correct exception thrown on bad datetime");

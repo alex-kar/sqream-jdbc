@@ -23,8 +23,6 @@ import java.util.logging.Logger;
 
 
 public class SQConnection implements Connection {
-	private static final Logger LOGGER = Logger.getLogger(SQConnection.class.getName());
-
 	private static final int[] RESULTSET_TYPES =
 			new int[]{ResultSet.TYPE_FORWARD_ONLY, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.TYPE_SCROLL_SENSITIVE};
 	private static final int[] RESULTSET_CONCURRENCY =
