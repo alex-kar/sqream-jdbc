@@ -12,6 +12,8 @@ import java.util.stream.Stream;
 import com.sqream.jdbc.connector.Connector;
 import com.sqream.jdbc.connector.ConnException;
 
+import static com.sqream.jdbc.connector.enums.StatementType.INSERT;
+
 
 public class SQParameterMetaData implements ParameterMetaData{
 	
@@ -41,7 +43,7 @@ public class SQParameterMetaData implements ParameterMetaData{
 	     
 	     conn = _conn;
 	     // A query is marked "INSERT" in Connector.java when we get a non-empty queryTypeIn - network insert
-    	 param_count = (conn.getQueryType().equals("INSERT")) ? conn.getRowLength() : 0;
+    	 param_count = (conn.getQueryType().equals(INSERT.getValue())) ? conn.getRowLength() : 0;
     	 
 	  }
 	  
