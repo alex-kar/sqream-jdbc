@@ -90,6 +90,8 @@ public class ConnectorImpl implements Connector {
     		
     // Binary data related
     private int FLUSH_SIZE = 10 * (int) Math.pow(10, 6);
+    int ROWS_PER_FLUSH = 100000;
+    int TEXT_ITEM_SIZE = (int) Math.pow(10, 5);
     private int rows_per_flush;
 
     // Column metadata
@@ -226,6 +228,9 @@ public class ConnectorImpl implements Connector {
             col_names_map.put(col_names[idx].toLowerCase(), idx +1);
             col_types[idx] = col_type_data.get(0).asString();
             col_sizes[idx] = col_type_data.get(1).asInt();
+            if (col_sizes[idx] == 0) {
+                col_sizes[idx] = TEXT_ITEM_SIZE;
+            }
         }
         
         // Create Storage for insert / select operations
@@ -233,7 +238,7 @@ public class ConnectorImpl implements Connector {
             // Calculate number of rows to flush at
             int row_size = IntStream.of(col_sizes).sum() + col_nullable.cardinality();    // not calculating nvarc lengths for now
             rows_per_flush = FLUSH_SIZE / row_size;
-            // rows_per_flush = 500000;
+            rows_per_flush = ROWS_PER_FLUSH;
             // Buffer arrays for column storage
             data_columns = new ByteBuffer[row_length];
             null_columns = new ByteBuffer[row_length];
@@ -992,8 +997,14 @@ public class ConnectorImpl implements Connector {
         nvarc_len_columns[col_num].putInt(string_bytes.length);
         
         // Set actual value
+        if (string_bytes.length > data_columns[col_num].remaining()) {
+            ByteBuffer new_text_buf = ByteBuffer.allocateDirect((data_columns[col_num].capacity() + string_bytes.length) * 2).order(ByteOrder.LITTLE_ENDIAN);
+            new_text_buf.put(data_columns[col_num]);
+            data_columns[col_num] = new_text_buf;
+        }
+
         data_columns[col_num].put(string_bytes);
-        
+
         // Mark column as set
         columns_set.set(col_num);
         
