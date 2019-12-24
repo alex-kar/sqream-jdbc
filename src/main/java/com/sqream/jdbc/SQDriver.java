@@ -157,6 +157,9 @@ public class SQDriver implements java.sql.Driver {
 	private void setUrlLoggerLevel(String url) {
 		ConsoleHandler consoleHandler = new ConsoleHandler();
 		consoleHandler.setLevel(Level.ALL);
+		for (Handler handler : PARENT_LOGGER.getHandlers()) {
+			PARENT_LOGGER.removeHandler(handler);
+		}
 		PARENT_LOGGER.addHandler(consoleHandler);
 		PARENT_LOGGER.setLevel(Level.OFF);
 

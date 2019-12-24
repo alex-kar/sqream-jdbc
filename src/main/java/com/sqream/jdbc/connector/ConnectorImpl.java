@@ -77,6 +77,8 @@ public class ConnectorImpl implements Connector {
     int TEXT_ITEM_SIZE = (int) Math.pow(10, 5);
     private int rows_per_flush;
 
+    private static final int BLOCK_SIZE = 100_000;
+
     // Column metadata
     private StatementType statement_type;
     private int row_length;
@@ -104,6 +106,8 @@ public class ConnectorImpl implements Connector {
 
     // Managing stop_statement
     private AtomicBoolean IsCancelStatement = new AtomicBoolean(false);
+
+    private InsertService insertService;
 
     public ConnectorImpl(String ip, int port, boolean cluster, boolean ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         /* JSON parsing engine setup, initial socket connection */
@@ -229,6 +233,9 @@ public class ConnectorImpl implements Connector {
             // Get the maximal string size (or size fo another type if strings are very small)
             string_bytes = new byte[colMetadata.getMaxSize()];
         }
+
+        // init blockBuilder when column metadata is filled.
+        this.insertService = new InsertService(colMetadata, BLOCK_SIZE);
     }
 
     private int _fetch() throws IOException, ScriptException, ConnException {
@@ -457,8 +464,18 @@ public class ConnectorImpl implements Connector {
         return statementId;
     }
 
+
     @Override
-    public boolean next() throws ConnException, IOException, ScriptException {
+    public boolean next() throws ConnException {
+        try {
+            insertService.nextRow();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    public boolean oldNext() throws ConnException, IOException, ScriptException {
         /* See that all needed buffers were set, flush if needed, nullify relevant
            counters */
 
@@ -817,112 +834,50 @@ public class ConnectorImpl implements Connector {
     }
 
     @Override
-    public boolean set_boolean(int col_num, Boolean value) throws ConnException {   col_num--;  // set / get work with starting index 1
-        _validate_index(col_num);
-        // Set actual value
-        colStorage.getDataColumns(col_num).put((byte)(_validate_set(col_num, value, "ftBool") ? 0 : (value == true) ? 1 : 0));
-        // Mark column as set (BitSet at location col_num set to true
-        columns_set.set(col_num);
-
+    public boolean set_boolean(int col_num, Boolean value) throws ConnException {
+        insertService.addValue(col_num - 1, value);
         return true;
     }
 
     @Override
-    public boolean set_ubyte(int col_num, Byte value) throws ConnException {   col_num--;  // set / get work with starting index 1
-        _validate_index(col_num);
-        // Check the byte is positive
-        if (value!= null && value < 0 )
-            throw new ConnException("Trying to set a negative byte value on an unsigned byte column");
-
-        // Set actual value - null or positive at this point
-        colStorage.getDataColumns(col_num).put(_validate_set(col_num, value, "ftUByte") ? 0 : value);
-
-        // Mark column as set (BitSet at location col_num set to true
-        columns_set.set(col_num);
-
+    public boolean set_ubyte(int col_num, Byte value) throws ConnException {
+        insertService.addValue(col_num - 1, value);
         return true;
     }
 
     @Override
-    public boolean set_short(int col_num, Short value) throws ConnException {   col_num--;  // set / get work with starting index 1
-        _validate_index(col_num);
-        // Set actual value
-        colStorage.getDataColumns(col_num).putShort(_validate_set(col_num, value, "ftShort") ? 0 : value);
-
-        // Mark column as set (BitSet at location col_num set to true
-        columns_set.set(col_num);
-
+    public boolean set_short(int col_num, Short value) throws ConnException {
+        insertService.addValue(col_num - 1, value);
         return true;
     }
 
     @Override
-    public boolean set_int(int col_num, Integer value) throws ConnException {   col_num--;  // set / get work with starting index 1
-        _validate_index(col_num);
-        // Set actual value
-        colStorage.getDataColumns(col_num).putInt(_validate_set(col_num, value, "ftInt") ? 0 : value);
-
-        // Mark column as set (BitSet at location col_num set to true
-        columns_set.set(col_num);
-
+    public boolean set_int(int col_num, Integer value) throws ConnException {
+        insertService.addValue(col_num - 1, value);
         return true;
     }
 
     @Override
-    public boolean set_long(int col_num, Long value) throws ConnException {   col_num--;  // set / get work with starting index 1
-        _validate_index(col_num);
-        // Set actual value
-        colStorage.getDataColumns(col_num).putLong(_validate_set(col_num, value, "ftLong") ? (long) 0 : value);
-
-        // Mark column as set (BitSet at location col_num set to true
-        columns_set.set(col_num);
-
+    public boolean set_long(int col_num, Long value) throws ConnException {
+        insertService.addValue(col_num - 1, value);
         return true;
     }
 
     @Override
-    public boolean set_float(int col_num, Float value) throws ConnException {   col_num--;  // set / get work with starting index 1
-        _validate_index(col_num);
-        // Set actual value
-        colStorage.getDataColumns(col_num).putFloat(_validate_set(col_num, value, "ftFloat") ? (float)0.0 : value);
-
-        // Mark column as set (BitSet at location col_num set to true
-        columns_set.set(col_num);
-
+    public boolean set_float(int col_num, Float value) throws ConnException {
+        insertService.addValue(col_num - 1, value);
         return true;
     }
 
     @Override
-    public boolean set_double(int col_num, Double value) throws ConnException {  col_num--;
-        _validate_index(col_num);
-        // Set actual value
-        colStorage.getDataColumns(col_num).putDouble(_validate_set(col_num, value, "ftDouble") ? 0.0 : value);
-
-        // Mark column as set
-        columns_set.set(col_num);
-
+    public boolean set_double(int col_num, Double value) throws ConnException {
+        insertService.addValue(col_num - 1, value);
         return true;
     }
 
     @Override
-    public boolean set_varchar(int col_num, String value) throws ConnException, UnsupportedEncodingException {  col_num--;
-        _validate_index(col_num);
-        // Set actual value - padding with spaces to the left if needed
-        string_bytes = _validate_set(col_num, value, "ftVarchar") ? "".getBytes(varchar_encoding) : value.getBytes(varchar_encoding);
-        int colSize = colMetadata.getSize(col_num);
-        if (string_bytes.length > colSize)
-            throw new ConnException("Trying to set string of size " + string_bytes.length + " on column of size " +  colSize);
-        // Generate missing spaces to fill up to size
-        byte [] spaces = new byte[colSize - string_bytes.length];
-        Arrays.fill(spaces, (byte) 32);  // ascii value of space
-
-        // Set value and added spaces if needed
-        colStorage.getDataColumns(col_num).put(string_bytes);
-        colStorage.getDataColumns(col_num).put(spaces);
-        // data_columns[col_num].put(String.format("%-" + col_sizes[col_num] + "s", value).getBytes());
-
-        // Mark column as set
-        columns_set.set(col_num);
-
+    public boolean set_varchar(int col_num, String value) throws ConnException, UnsupportedEncodingException {
+        insertService.addValue(col_num - 1, value);
         return true;
     }
 
@@ -981,14 +936,14 @@ public class ConnectorImpl implements Connector {
 
     @Override
     public boolean set_date(int col_num, Date value) throws ConnException, UnsupportedEncodingException {
-
-        return set_date(col_num, value, SYSTEM_TZ); // system_tz, UTC
+        insertService.addValue(col_num - 1, value);
+        return true;
     }
 
     @Override
     public boolean set_datetime(int col_num, Timestamp value) throws ConnException, UnsupportedEncodingException {
-
-        return set_datetime(col_num, value, SYSTEM_TZ); // system_tz, UTC
+        insertService.addValue(col_num - 1, value);
+        return true;
     }
 
     // Metadata

@@ -18,7 +18,7 @@ public class JDBCPerf {
             "strings varchar(10), strangs nvarchar(10), dates date, dts datetime)";
     private static final String SQL_INSERT = "insert into perf values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String SQL_SELECT_COUNT = "select count(*) from perf;";
-    private static final String URI = "jdbc:Sqream://127.0.0.1:5000/master;user=sqream;password=sqream";
+    private static final String URI = "jdbc:Sqream://127.0.0.1:5000/master;user=sqream;password=sqream?loggerLevel=DEBUG";
     private static final String USER = "sqream";
     private static final String PASSWORD = "sqream";
     private static final int AMOUNT = 10_000_000;
@@ -58,6 +58,7 @@ public class JDBCPerf {
 
         long t0 = System.nanoTime();
         for (int j = 0; j < AMOUNT; j++) {
+            long t2 = System.nanoTime();
             ps.setBoolean(1, true);
             ps.setByte(2, (byte)120);
             ps.setShort(3, (short) 1400);
@@ -70,6 +71,8 @@ public class JDBCPerf {
             ps.setDate(10, date_from_tuple(2019, 11, 26));
             ps.setTimestamp(11, datetime_from_tuple(2019, 11, 26, 16, 45, 23, 45));
             ps.addBatch();
+            long t3 = System.nanoTime();
+            System.out.println("Batch: " + (t3 - t2));
         }
         long t1 = System.nanoTime();
 

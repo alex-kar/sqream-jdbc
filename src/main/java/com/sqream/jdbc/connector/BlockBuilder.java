@@ -32,14 +32,17 @@ public class BlockBuilder {
         init();
     }
 
+    // FIXME: Alex K 24.12.19 after replacing ConnException with Runtime remove throws declaration.
     public void addValue(int index, Object value) throws ConnException {
         validateColumnIndex(index);
+        // FIXME: Alex K 24.12.19 make validateCursor throwing Runtime exception.
         validateCursor();
         try {
             block[index][cursor] = value;
         } catch (ArrayStoreException e) {
-            throw new ConnException(String.format("Trying to set a value of type %s to column number %s of type %s",
-                    value.getClass(), index, metadata.getType(index)));
+            // FIXME: Alex K 24.12.19 replace with any Runtime exception
+            throw new ConnException(String.format("Trying to set a value of type [%s] to column by index %s of type %s",
+                    value.getClass().getName(), index, metadata.getType(index)));
         }
         curRowSet.set(index);
     }
@@ -122,9 +125,9 @@ public class BlockBuilder {
         else if (type.equals("ftVarchar"))
             return new String[size];
         else if (type.equals("ftBlob"))
-            throw  new NotImplementedException();
+            return new String[size];
         else {
-            throw new UnsupportedOperationException(String.format("Column type [%s] is not supported", type));
+            throw new UnsupportedOperationException(String.format("Type [%s] is not supported", type));
         }
     }
 }

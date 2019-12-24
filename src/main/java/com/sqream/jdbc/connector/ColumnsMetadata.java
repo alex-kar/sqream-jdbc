@@ -33,6 +33,13 @@ public class ColumnsMetadata {
         colNamesMap.put(colNames[index].toLowerCase(), index + 1);
     }
 
+    public int getRowLength() {
+        if (colNames == null) {
+            throw new RuntimeException("Call getRowLength() on not initialized columns metadata");
+        }
+        return colNames.length;
+    }
+
     String getName(int index) {
         return colNames[index];
     }
