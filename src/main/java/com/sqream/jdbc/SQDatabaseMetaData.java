@@ -807,7 +807,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean storesLowerCaseIdentifiers() throws SQLException {
-		return false;
+		return true;
 	}
 
 	@Override
@@ -822,7 +822,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean storesMixedCaseQuotedIdentifiers() throws SQLException {
-		return false;
+		return true;
 	}
 
 	@Override
@@ -992,7 +992,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
-		return false;
+		return true;
 	}
 
 	@Override
