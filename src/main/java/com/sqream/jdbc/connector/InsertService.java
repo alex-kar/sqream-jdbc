@@ -13,7 +13,7 @@ public class InsertService {
 
     private BlockBuilder blockBuilder;
     private ColumnsMetadata metadata;
-    private BlockingQueue queue;
+    private BlockingQueue<BlockDto> queue;
     /**
      * Amount of rows in block
      */
@@ -23,16 +23,13 @@ public class InsertService {
      */
     private int rowCounter;
 
+    private long t0 = System.currentTimeMillis();
+
     public InsertService(ColumnsMetadata metadata, int blockSize) {
         this.metadata = metadata;
         this.blockSize = blockSize;
-        this.queue = new ArrayBlockingQueue(QUEUE_SIZE);
+        this.queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
         resetBuilder();
-    }
-
-    public void resetBuilder() {
-        blockBuilder = new BlockBuilder(metadata.getRowLength(), blockSize, metadata);
-        rowCounter = 0;
     }
 
     public void addValue(int index, Object value) throws ConnException {
@@ -43,9 +40,22 @@ public class InsertService {
         blockBuilder.buildRow();
         rowCounter++;
         if (rowCounter == blockSize) {
+
+            long t1 = System.currentTimeMillis();
+            System.out.println("Block: " + (t1 - t0));
+
             queue.put(blockBuilder.buildBlock());
             resetBuilder();
             LOGGER.log(Level.FINE, MessageFormat.format("Put block in queue. Queue size: [{0}]", queue.size()));
         }
+    }
+
+    public BlockingQueue<BlockDto> getQueue() {
+        return queue;
+    }
+
+    private void resetBuilder() {
+        blockBuilder = new BlockBuilder(metadata.getRowLength(), blockSize, metadata);
+        rowCounter = 0;
     }
 }

@@ -1,10 +1,17 @@
 package com.sqream.jdbc.connector;
 
+import java.text.MessageFormat;
+
 public class BlockDto {
 
     private Object[][] columns;
+    /**
+     * Null values represented as 1 in array.
+     */
+    private byte[] nullValues;
 
-    public BlockDto(Object[][] columns) {
+    public BlockDto(byte[] nullColumns, Object[][] columns) {
+        this.nullValues = nullColumns;
         this.columns = columns;
     }
 
@@ -18,5 +25,10 @@ public class BlockDto {
 
     public Object[] getColumn(int index) {
         return columns[index];
+    }
+
+    @Override
+    public String toString() {
+        return MessageFormat.format("Block: [rowLength: {0}, size: {1}]", getRowLength(), getSize());
     }
 }

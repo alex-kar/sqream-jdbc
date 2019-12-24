@@ -15,6 +15,13 @@ public class BlockBuilder {
      */
     private Object[][] block;
     /**
+     * Null values represented as 1 in array.
+     * Example: 5 Integers: [10, 15, null, 20, null] will be represented as byte[]{0, 0, 1, 0, 1}.
+     */
+    private byte[][] nullValues;
+
+    private byte[][] nvarcLenColumns;
+    /**
      * Indexes of cells that already set in current row.
      */
     private BitSet curRowSet;
@@ -62,7 +69,7 @@ public class BlockBuilder {
     }
 
     public BlockDto buildBlock() {
-        BlockDto result = new BlockDto(block);
+        BlockDto result = new BlockDto(null, block);
         init();
         return result;
     }
