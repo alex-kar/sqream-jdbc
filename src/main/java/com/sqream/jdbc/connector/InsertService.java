@@ -22,6 +22,7 @@ public class InsertService {
      * Amount of added rows in current block
      */
     private int rowCounter;
+    private InsertValidator validator;
 
     private long t0 = System.currentTimeMillis();
 
@@ -29,24 +30,36 @@ public class InsertService {
         this.metadata = metadata;
         this.blockSize = blockSize;
         this.queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
+        this.validator = new InsertValidator(metadata);
         resetBuilder();
     }
 
-    public void addValue(int index, Object value) throws ConnException {
+    public void addValue(int index, Object value, String type) {
+        validator.validateSet(index, value, type);
+        if (blockBuilder.isFull()) {
+            try {
+                queue.put(blockBuilder.buildBlock());
+            } catch (InterruptedException e) {
+                // FIXME: Alex K 25.12.19 Figure out how to deal with InterruptedException.
+                e.printStackTrace();
+            }
+        }
         blockBuilder.addValue(index, value);
     }
 
-    public void nextRow() throws ConnException, InterruptedException {
+    public void nextRow() throws InterruptedException {
         blockBuilder.buildRow();
         rowCounter++;
         if (rowCounter == blockSize) {
 
             long t1 = System.currentTimeMillis();
-            System.out.println("Block: " + (t1 - t0));
+            System.out.println(String.format("Block: %s ms", (t1 - t0)));
+            t0 = System.currentTimeMillis();
 
             queue.put(blockBuilder.buildBlock());
             resetBuilder();
-            LOGGER.log(Level.FINE, MessageFormat.format("Put block in queue. Queue size: [{0}]", queue.size()));
+            LOGGER.log(Level.FINE,
+                    MessageFormat.format("Putted block in queue. Queue size: [{0}]", queue.size()));
         }
     }
 

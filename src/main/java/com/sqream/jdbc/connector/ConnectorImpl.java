@@ -15,6 +15,7 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonArray;
 import com.sqream.jdbc.connector.enums.StatementType;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.List;
@@ -98,7 +99,6 @@ public class ConnectorImpl implements Connector {
 
     // Get / Set related
     private int row_counter, total_row_counter;
-    private BitSet columns_set;
 
     private byte[] string_bytes; // Storing converted string to be set
 
@@ -192,7 +192,7 @@ public class ConnectorImpl implements Connector {
                     col_data.get("isTrueVarChar").asBoolean(),
                     statement_type.equals(SELECT) ? col_data.get("name").asString() : "denied",
                     col_type_data.get(0).asString(),
-                    col_type_data.get(1).asInt() != 0 ? col_type_data.get(1).asInt() : TEXT_ITEM_SIZE
+                    col_type_data.get(1).asInt()
             );
         }
 
@@ -200,13 +200,13 @@ public class ConnectorImpl implements Connector {
         if (statement_type.equals(INSERT)) {
             // Calculate number of rows to flush at
             int row_size = colMetadata.getSizesSum() + colMetadata.getAmountNullablleColumns();    // not calculating nvarc lengths for now
-            rows_per_flush = ROWS_PER_FLUSH;
+            rows_per_flush = FLUSH_SIZE / row_size;
+            // rows_per_flush = 500000;
             colStorage.init(row_length);
             colStorage.setNullReseter(rows_per_flush);
 
             // Instantiate flags for managing network insert operations
             row_counter = 0;
-            columns_set = new BitSet(row_length); // defaults to false
 
             // Initiate buffers for each column using the metadata
             for (int idx=0; idx < row_length; idx++) {
@@ -481,13 +481,6 @@ public class ConnectorImpl implements Connector {
 
         if (statement_type.equals(INSERT)) {
 
-            // Were all columns set
-            //if (!IntStream.range(0, columns_set.length).allMatch(i -> columns_set[i]))
-            if (columns_set.cardinality() < row_length)
-                throw new ConnException ("All columns must be set before calling next(). Set " + columns_set.cardinality() +  " columns out of "  + row_length);
-
-            // Nullify column flags and update counter
-            columns_set.clear();
             row_counter++;
 
             // Flush and clean if needed
@@ -834,115 +827,101 @@ public class ConnectorImpl implements Connector {
     }
 
     @Override
-    public boolean set_boolean(int col_num, Boolean value) throws ConnException {
-        insertService.addValue(col_num - 1, value);
+    public boolean set_boolean(int colNum, Boolean value) throws ConnException {
+        insertService.addValue(colNum - 1, value, "ftBool");
         return true;
     }
 
     @Override
-    public boolean set_ubyte(int col_num, Byte value) throws ConnException {
-        insertService.addValue(col_num - 1, value);
+    public boolean set_ubyte(int colNum, Byte value) throws ConnException {
+        insertService.addValue(colNum - 1, value, "ftUByte");
         return true;
     }
 
     @Override
-    public boolean set_short(int col_num, Short value) throws ConnException {
-        insertService.addValue(col_num - 1, value);
+    public boolean set_short(int colNum, Short value) throws ConnException {
+        insertService.addValue(colNum - 1, value, "ftShort");
         return true;
     }
 
     @Override
     public boolean set_int(int col_num, Integer value) throws ConnException {
-        insertService.addValue(col_num - 1, value);
+        insertService.addValue(col_num - 1, value, "ftInt");
         return true;
     }
 
     @Override
     public boolean set_long(int col_num, Long value) throws ConnException {
-        insertService.addValue(col_num - 1, value);
+        insertService.addValue(col_num - 1, value, "ftLong");
         return true;
     }
 
     @Override
     public boolean set_float(int col_num, Float value) throws ConnException {
-        insertService.addValue(col_num - 1, value);
+        insertService.addValue(col_num - 1, value, "ftFloat");
         return true;
     }
 
     @Override
     public boolean set_double(int col_num, Double value) throws ConnException {
-        insertService.addValue(col_num - 1, value);
+        insertService.addValue(col_num - 1, value, "ftDouble");
         return true;
     }
 
     @Override
     public boolean set_varchar(int col_num, String value) throws ConnException, UnsupportedEncodingException {
-        insertService.addValue(col_num - 1, value);
+        insertService.addValue(col_num - 1, value, "ftVarchar");
         return true;
     }
 
     @Override
-    public boolean set_nvarchar(int col_num, String value) throws ConnException, UnsupportedEncodingException {  col_num--;
-        _validate_index(col_num);
-        // Convert string to bytes
-        string_bytes = _validate_set(col_num, value, "ftBlob") ? "".getBytes(UTF8) : value.getBytes(UTF8);
-
-        // Add string length to lengths column
-        colStorage.getNvarcLenColumn(col_num).putInt(string_bytes.length);
-
-        // Set actual value
-        if (string_bytes.length > colStorage.getDataColumns(col_num).remaining()) {
-            ByteBuffer new_text_buf = ByteBuffer.allocateDirect((colStorage.getDataColumns(col_num).capacity() +
-                    string_bytes.length) * 2).order(ByteOrder.LITTLE_ENDIAN);
-            new_text_buf.put(colStorage.getDataColumns(col_num));
-            colStorage.setDataColumns(col_num, new_text_buf);
-        }
-        colStorage.getDataColumns(col_num).put(string_bytes);
-
-        // Mark column as set
-        columns_set.set(col_num);
-
+    public boolean set_nvarchar(int colNum, String value) throws ConnException, UnsupportedEncodingException {
+        insertService.addValue(colNum - 1, value, "ftBlob");
         return true;
     }
 
     @Override
-    public boolean set_date(int col_num, Date date, ZoneId zone) throws ConnException, UnsupportedEncodingException {  col_num--;
-        _validate_index(col_num);
+    public boolean set_date(int col_num, Date date, ZoneId zone) throws ConnException, UnsupportedEncodingException {
+        throw new NotImplementedException();
+//        col_num--;
+//        _validate_index(col_num);
+//
+//        // Set actual value
+//        colStorage.getDataColumns(col_num).putInt(_validate_set(col_num, date, "ftDate") ? 0 : dateToInt(date, zone));
+//
+//        // Mark column as set
+//        columns_set.set(col_num);
+//
+//        return true;
+    }
 
-        // Set actual value
-        colStorage.getDataColumns(col_num).putInt(_validate_set(col_num, date, "ftDate") ? 0 : dateToInt(date, zone));
+    @Override
+    public boolean set_datetime(int col_num, Timestamp ts, ZoneId zone) throws ConnException, UnsupportedEncodingException {
+        throw new NotImplementedException();
+//        col_num--;
+//        _validate_index(col_num);
+//
+//        //ZonedDateTime dt = ts.toLocalDateTime().atZone(zone);
+//        // ZonedDateTime dt = ts.toInstant().atZone(zone);
+//
+//        // Set actual value
+//        colStorage.getDataColumns(col_num).putLong(_validate_set(col_num, ts, "ftDateTime") ? 0 : dtToLong(ts, zone));
+//
+//        // Mark column as set
+//        columns_set.set(col_num);
+//
+//        return true;
+    }
 
-        // Mark column as set
-        columns_set.set(col_num);
-
+    @Override
+    public boolean set_date(int colNum, Date value) {
+        insertService.addValue(colNum - 1, value, "ftDate");
         return true;
     }
 
     @Override
-    public boolean set_datetime(int col_num, Timestamp ts, ZoneId zone) throws ConnException, UnsupportedEncodingException {  col_num--;
-        _validate_index(col_num);
-
-        //ZonedDateTime dt = ts.toLocalDateTime().atZone(zone);
-        // ZonedDateTime dt = ts.toInstant().atZone(zone);
-
-        // Set actual value
-        colStorage.getDataColumns(col_num).putLong(_validate_set(col_num, ts, "ftDateTime") ? 0 : dtToLong(ts, zone));
-
-        // Mark column as set
-        columns_set.set(col_num);
-
-        return true;
-    }
-
-    @Override
-    public boolean set_date(int col_num, Date value) throws ConnException, UnsupportedEncodingException {
-        insertService.addValue(col_num - 1, value);
-        return true;
-    }
-
-    @Override
-    public boolean set_datetime(int col_num, Timestamp value) throws ConnException, UnsupportedEncodingException {
-        insertService.addValue(col_num - 1, value);
+    public boolean set_datetime(int col_num, Timestamp value) {
+        insertService.addValue(col_num - 1, value, "ftDateTime");
         return true;
     }
 

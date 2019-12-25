@@ -1,7 +1,5 @@
 package com.sqream.jdbc.connector;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.BitSet;
@@ -13,14 +11,7 @@ public class BlockBuilder {
     /**
      * Represents block as Object[ColumnIndex][RowIndex]
      */
-    private Object[][] block;
-    /**
-     * Null values represented as 1 in array.
-     * Example: 5 Integers: [10, 15, null, 20, null] will be represented as byte[]{0, 0, 1, 0, 1}.
-     */
-    private byte[][] nullValues;
-
-    private byte[][] nvarcLenColumns;
+    private Object[][] values;
     /**
      * Indexes of cells that already set in current row.
      */
@@ -39,37 +30,42 @@ public class BlockBuilder {
         init();
     }
 
-    // FIXME: Alex K 24.12.19 after replacing ConnException with Runtime remove throws declaration.
-    public void addValue(int index, Object value) throws ConnException {
+    public void addValue(int index, Object value) {
         validateColumnIndex(index);
-        // FIXME: Alex K 24.12.19 make validateCursor throwing Runtime exception.
         validateCursor();
-        try {
-            block[index][cursor] = value;
-        } catch (ArrayStoreException e) {
-            // FIXME: Alex K 24.12.19 replace with any Runtime exception
-            throw new ConnException(String.format("Trying to set a value of type [%s] to column by index %s of type %s",
-                    value.getClass().getName(), index, metadata.getType(index)));
-        }
+        setValue(index, value);
         curRowSet.set(index);
+    }
+
+    private void setValue(int index, Object value) {
+        try {
+            values[index][cursor] = value;
+        } catch (ArrayStoreException e) {
+            throw new IllegalArgumentException(String.format("Trying to set a value of type [%s] to column by index %s of type %s",
+                    value.getClass().getName(), index, metadata.getType(index)), e);
+        }
+    }
+
+    public boolean isFull() {
+        return cursor > blockSize;
     }
 
     /**
      * Validate set values and move cursor to the next row.
      */
-    public void buildRow() throws ConnException {
+    public void buildRow() {
         if (isColumnsSet()) {
             cursor++;
             curRowSet.clear();
         } else {
-            throw new ConnException(
+            throw new IllegalStateException(
                     String.format("All columns must be set before calling next(). Set %s columns out of %s",
                             curRowSet.cardinality(), rowLength));
         }
     }
 
     public BlockDto buildBlock() {
-        BlockDto result = new BlockDto(null, block);
+        BlockDto result = new BlockDto(null, values);
         init();
         return result;
     }
@@ -81,9 +77,9 @@ public class BlockBuilder {
     }
 
     private void initStorage() {
-        block = new Object[rowLength][];
+        values = new Object[rowLength][];
         for (int i = 0; i < rowLength; i++) {
-            block[i] = createArrayByType(metadata.getType(i), blockSize);
+            values[i] = createArrayByType(metadata.getType(i), blockSize);
         }
     }
 
@@ -104,9 +100,9 @@ public class BlockBuilder {
         }
     }
 
-    private void validateCursor() throws ConnException {
+    private void validateCursor() {
         if (cursor >= blockSize) {
-            throw new ConnException(String.format("Block is full. Size: %s", blockSize));
+            throw new IllegalStateException(String.format("Block is full. Size: %s", blockSize));
         }
     }
 

@@ -148,7 +148,7 @@ public class Negative {
 		else if (table_type == "date")
 			try {
 				conn.set_datetime(1, test_datetime); 
-			}catch (ConnException e) {
+			}catch (IllegalArgumentException e) {
 				if (e.getMessage().contains("Trying to set")) {
 					log.info("Correct error message on wrong set function");
 					a_ok = true;
@@ -157,7 +157,7 @@ public class Negative {
 		else if (table_type == "datetime")
 			try {
 				conn.set_date(1, test_date);
-			}catch (ConnException e) {
+			}catch (IllegalArgumentException e) {
 				if (e.getMessage().contains("Trying to set")) {
 					log.info("Correct error message on wrong set function");
 					a_ok = true;

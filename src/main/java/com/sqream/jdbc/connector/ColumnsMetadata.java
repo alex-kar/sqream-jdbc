@@ -35,7 +35,7 @@ public class ColumnsMetadata {
 
     public int getRowLength() {
         if (colNames == null) {
-            throw new RuntimeException("Call getRowLength() on not initialized columns metadata");
+            throw new IllegalStateException("Call getRowLength() on not initialized metadata");
         }
         return colNames.length;
     }
