@@ -75,6 +75,7 @@ public class SQPreparedStatment implements PreparedStatement {
     
     @Override
     public void close() throws SQLException {
+        TimerService.work();
     	LOGGER.log(Level.FINE,"Close prepared statement");
         try {
         	if (Client!= null && Client.isOpen()) {
@@ -88,10 +89,13 @@ public class SQPreparedStatment implements PreparedStatement {
             throw new SQLException(e);
         } 
         is_closed = true;
+        TimerService.sleep();
+        LOGGER.info(TimerService.getReport());
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
+        TimerService.work();
         LOGGER.log(Level.FINE,"execute batch");
 
         int[] res = new int[setsPerBatch.size()];
@@ -99,6 +103,7 @@ public class SQPreparedStatment implements PreparedStatement {
         setsPerBatch.clear();
         rowsInBatch = 0;
 
+        TimerService.sleep();
         return res;
     }
     
@@ -109,6 +114,7 @@ public class SQPreparedStatment implements PreparedStatement {
 
     @Override
     public void addBatch() throws SQLException {
+        TimerService.work();
         LOGGER.log(Level.FINEST, "add batch");
 
         try {
@@ -121,13 +127,17 @@ public class SQPreparedStatment implements PreparedStatement {
         } catch (IOException | ConnException | ScriptException e) {
             throw new SQLException(e.getMessage());
         }
+        TimerService.sleep();
     }
 
     @Override
     public boolean execute() {
+        TimerService.work();
         LOGGER.log(Level.FINE,"execute");
 
         SQRS = new SQResultSet(Client, db_name);
+
+        TimerService.sleep();
 
         //TODO: Duplicate logic in SQStatement
         return (!"INSERT".equals(Client.getQueryType())) && Client.getRowLength() > 0;
@@ -136,9 +146,12 @@ public class SQPreparedStatment implements PreparedStatement {
     
     @Override
     public ResultSet executeQuery() {
+        TimerService.work();
         LOGGER.log(Level.FINE,"execute query");
 
         SQRS = new SQResultSet(Client, db_name);
+
+        TimerService.sleep();
         return SQRS;
     }
 
@@ -147,105 +160,119 @@ public class SQPreparedStatment implements PreparedStatement {
     
     @Override
     public void setBoolean(int arg0, boolean arg1) {
+        TimerService.work();
         
         try {
 			Client.set_boolean(arg0, arg1);
 		} catch (ConnException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} setCounter++;      
+		} setCounter++;
+        TimerService.sleep();
     }
 
     @Override
     public void setByte(int arg0, byte arg1) throws SQLException {
-        
+        TimerService.work();
     	try {
 			Client.set_ubyte(arg0, arg1);
 		} catch (ConnException e) {
 			e.printStackTrace();
-		} setCounter++; 
+		} setCounter++;
+        TimerService.sleep();
     }
     
     @Override
     public void setShort(int arg0, short arg1) throws SQLException {
+        TimerService.work();
 	    try {
 			Client.set_short(arg0, arg1);
 		} catch (ConnException e) {
 			e.printStackTrace();
-		} setCounter++;    
+		} setCounter++;
+        TimerService.sleep();
     }
 
     @Override
     public void setInt(int arg0, int arg1) throws SQLException {
-
+        TimerService.work();
     	try {
 			Client.set_int(arg0, arg1);
 		} catch (ConnException e) {
 			e.printStackTrace();
-		} setCounter++;    
+		} setCounter++;
+        TimerService.sleep();
     }
 
     @Override
     public void setLong(int arg0, long arg1) throws SQLException {
-        
+        TimerService.work();
         try {
 			Client.set_long(arg0, arg1);
 		} catch (ConnException e) {
 			e.printStackTrace();
-		} setCounter++; 
+		} setCounter++;
+        TimerService.sleep();
     }
     
     @Override
     public void setFloat(int arg0, float arg1) throws SQLException {
+        TimerService.work();
         try {
 			Client.set_float(arg0, arg1);
 		} catch (ConnException e) {
 			e.printStackTrace();
-		} setCounter++;    
+		} setCounter++;
+        TimerService.sleep();
     }
     
     @Override
     public void setDouble(int arg0, double arg1) throws SQLException {
-        
+        TimerService.work();
          try {
 			Client.set_double(arg0, arg1);
 		} catch (ConnException e) {
 			e.printStackTrace();
-		} setCounter++;  
+		} setCounter++;
+        TimerService.sleep();
     }
     
     @Override
     public void setDate(int colNum, Date date) throws SQLException {
+        TimerService.work();
         try {
 			Client.set_date(colNum, date);
 		} catch (IllegalArgumentException | UnsupportedEncodingException | ConnException e) {
             throw new SQLException(e.getMessage());
-		} setCounter++; 
+		} setCounter++;
+        TimerService.sleep();
     }
 
     @Override
     public void setDate(int colNum, Date date, Calendar cal) throws SQLException {
-    	
+        TimerService.work();
     	try {
 			Client.set_date(colNum, date, cal.getTimeZone().toZoneId());
 		} catch (UnsupportedEncodingException | ConnException e) {
 			e.printStackTrace();
-		} setCounter++; 
+		} setCounter++;
+        TimerService.sleep();
     }
     
     @Override
     public void setTimestamp(int colNum, Timestamp datetime) throws SQLException {
-        
+        TimerService.work();
     	try {
 			Client.set_datetime(colNum, datetime);
 		} catch (UnsupportedEncodingException | ConnException e) {
 			e.printStackTrace();
-		} setCounter++; 
+		} setCounter++;
+        TimerService.sleep();
     }
 
     @Override
     public void setTimestamp(int colNum, Timestamp datetime, Calendar cal) throws SQLException {
-        
+        TimerService.work();
     	try {
 			Client.set_datetime(colNum, datetime, cal.getTimeZone().toZoneId());
 		} catch (UnsupportedEncodingException | ConnException e) {
@@ -256,11 +283,12 @@ public class SQPreparedStatment implements PreparedStatement {
     	// ZonedDateTime zonedDate = datetime.toInstant().atZone(cal.getTimeZone().toZoneId()); 
 		// Client.set_datetime(colNum, Timestamp.valueOf(zonedDate.toLocalDateTime()));
 		// Client.set_date(colNum, Date.valueOf(zonedDate.toLocalDate()));
+        TimerService.sleep();
     }
     
     @Override
     public void setString(int arg0, String arg1) throws SQLException {
-        
+        TimerService.work();
     	String type = getMetaData().getColumnTypeName(arg0);
         if (type.equals("Varchar"))
 			try {
@@ -275,21 +303,24 @@ public class SQPreparedStatment implements PreparedStatement {
 				e.printStackTrace();
 			}
         
-        setCounter++;   
+        setCounter++;
+        TimerService.sleep();
     }
 
     @Override
     public void setNString(int arg0, String arg1) throws SQLException {
+        TimerService.work();
         try {
 			Client.set_nvarchar(arg0, arg1);
 		} catch (UnsupportedEncodingException | ConnException e) {
 			e.printStackTrace();
-		} setCounter++; 
+		} setCounter++;
+        TimerService.work();
     }
     
     @Override
     public void setNull(int arg0, int arg1) throws SQLException {
-        
+        TimerService.work();
     	String type = "";
     	
     	try {
@@ -321,12 +352,13 @@ public class SQPreparedStatment implements PreparedStatement {
     	    setCounter++;   
         } catch (ConnException | UnsupportedEncodingException e) {
 			e.printStackTrace();
-		} 
+		}
+        TimerService.sleep();
     }
 
     @Override
     public void setObject(int colIndex, Object value) throws SQLException {
-        
+        TimerService.work();
         if (value instanceof Boolean) {
             setBoolean(colIndex, ((Boolean) value).booleanValue());
         } else if (value instanceof Byte) {
@@ -349,6 +381,7 @@ public class SQPreparedStatment implements PreparedStatement {
             setString(colIndex, (String) value);
         } else 
             throw new SQLException("Type for setObject not supported");
+        TimerService.sleep();
     }
     
     

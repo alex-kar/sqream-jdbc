@@ -215,6 +215,7 @@ public class SQConnection implements Connection {
 	
 	@Override
 	public PreparedStatement prepareStatement(String sql) throws SQLException {
+		TimerService.work();
 		LOGGER.log(Level.FINE, MessageFormat.format("prepareStatement for sql=[{0}]", sql));
 
 		if (isClosed.get()) {
@@ -226,7 +227,9 @@ public class SQConnection implements Connection {
 			SQPS = new SQPreparedStatment(globalClient, sql, this, dbName);
 		} catch (KeyManagementException | NoSuchAlgorithmException | IOException | SQLException | ScriptException | ConnException e) {
 			throw new SQLException(e);
-		} return SQPS;
+		}
+		TimerService.sleep();
+		return SQPS;
 	}
 
 	@Override
