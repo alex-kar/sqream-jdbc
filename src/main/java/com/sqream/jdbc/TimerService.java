@@ -7,12 +7,15 @@ public class TimerService {
     private static long totalSleep = 0;
     private static long timer = 0;
     private static boolean isWorking = false;
+    private static long start = 0;
 
     public static void work() {
         if (!isWorking) {
             isWorking = true;
             if (timer != 0) {
                 totalSleep += System.currentTimeMillis() - timer;
+            } else {
+                start = System.currentTimeMillis();
             }
             timer = System.currentTimeMillis();
         }
@@ -27,6 +30,8 @@ public class TimerService {
     }
 
     public static String getReport() {
-        return MessageFormat.format("Work time: [{0}], Sleep time: [{1}]", totalWork, totalSleep);
+        long total = System.currentTimeMillis() - start;
+        return MessageFormat.format(
+                "Work time: [{0}], Sleep time: [{1}]. Total time: [{2}]", totalWork, totalSleep, total);
     }
 }
