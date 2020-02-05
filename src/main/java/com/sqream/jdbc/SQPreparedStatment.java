@@ -90,7 +90,9 @@ public class SQPreparedStatment implements PreparedStatement {
         } 
         is_closed = true;
         TimerService.sleep();
-        LOGGER.info(TimerService.getReport());
+        String timeReport = TimerService.getReport();
+        LOGGER.info(timeReport);
+        System.out.println(timeReport);
     }
 
     @Override

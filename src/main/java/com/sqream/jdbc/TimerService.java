@@ -8,24 +8,27 @@ public class TimerService {
     private static long timer = 0;
     private static boolean isWorking = false;
     private static long start = 0;
+    private static long curTime;
 
     public static void work() {
         if (!isWorking) {
             isWorking = true;
+            curTime = System.currentTimeMillis();
             if (timer != 0) {
-                totalSleep += System.currentTimeMillis() - timer;
+                totalSleep += curTime - timer;
             } else {
-                start = System.currentTimeMillis();
+                start = curTime;
             }
-            timer = System.currentTimeMillis();
+            timer = curTime;
         }
     }
 
     public static void sleep() {
+        curTime = System.currentTimeMillis();
         if (isWorking) {
             isWorking = false;
-            totalWork += System.currentTimeMillis() - timer;
-            timer = System.currentTimeMillis();
+            totalWork += curTime - timer;
+            timer = curTime;
         }
     }
 
