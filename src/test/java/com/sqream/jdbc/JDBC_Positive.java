@@ -34,8 +34,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-import com.sqream.jdbc.Connector;
-
 
 public class JDBC_Positive {
     
@@ -295,7 +293,43 @@ public class JDBC_Positive {
 	    
 	    return a_ok;
 	}
-	
+
+    public boolean setMaxRowsTest() throws SQLException {
+        boolean a_ok = false;
+
+        String CREATE_TABLE_SQL = "create or replace table test_max_rows (col1 int);";
+        String INSERT_SQL_TEMPLATE = "insert into test_max_rows values (%s);";
+        String SELECT_ALL_SQL = "select * from test_max_rows;";
+        int maxRows = 3;
+        int totalRows = 10;
+        try (Connection conn = DriverManager.getConnection(url)) {
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(CREATE_TABLE_SQL);
+                for (int i = 0; i < totalRows; i++) {
+                    stmt.executeUpdate(String.format(INSERT_SQL_TEMPLATE, i));
+                }
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(SELECT_ALL_SQL)) {
+                pstmt.setMaxRows(maxRows);
+
+                if (maxRows!=pstmt.getMaxRows()) {
+                    a_ok = false;
+                }
+                ResultSet rs = pstmt.executeQuery();
+                for (int i = 0; i < maxRows; i++) {
+                    if (!rs.next() || i != rs.getInt(1)) {
+                        a_ok = false;
+                    }
+                }
+                if (rs.next()) {
+                    a_ok = false;
+                }
+            }
+        }
+        return a_ok;
+    }
 	
 	public boolean limited_fetch() throws SQLException {
 		boolean a_ok = false;  // The test is visual, pass if ends
@@ -1241,6 +1275,7 @@ public class JDBC_Positive {
         print ("Hundred Million fetch test -  - " + (pos_tests.hundred_mil_fetch() ? "OK" : "Fail"));
         print ("timeZones test - " + (pos_tests.timeZones() ? "OK" : "Fail"));
         print ("Unused fetch test - " + (pos_tests.unused_fetch() ? "OK" : "Fail"));
+        print ("Set max rows on prepared statement test - " + (pos_tests.setMaxRowsTest() ? "OK" : "Fail"));
         print ("Limited fetch test - " + (pos_tests.limited_fetch() ? "OK" : "Fail"));
         print ("logging is off test:" + (pos_tests.is_logging_off() ? "OK" : "Fail"));
         print ("boolean as string test - " + (pos_tests.bool_as_string() ? "OK" : "Fail"));

@@ -436,7 +436,7 @@ public class SQPreparedStatment implements PreparedStatement {
 
     @Override
     public int getMaxRows() throws SQLException {
-        return 0;
+        return Client.get_fetch_limit();
     }
 
     @Override
@@ -754,11 +754,12 @@ public class SQPreparedStatment implements PreparedStatement {
     }
     
     @Override
-    public void setMaxRows(int arg0) throws SQLException {
-        throw new SQLFeatureNotSupportedException("setMaxRows in SQPreparedStatement");
-
-        // if (arg0 != 0) // if zero, use default
-        // serverProcess_chunk_size = arg0;
+    public void setMaxRows(int maxRows) throws SQLException {
+        try {
+            Client.set_fetch_limit(maxRows);
+        } catch (ConnException e) {
+            throw new SQLException("Error in setMaxRows:" + e);
+        }
     }
     
     /*
