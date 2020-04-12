@@ -168,8 +168,6 @@ public class Connector {
     String err;
     
     // JSON parsing related
-    ScriptEngine engine;
-    Bindings engine_bindings;
     ScriptObjectMirror json;
     String json_wrapper = "Java.asJSONCompatible({0})";
     //@SuppressWarnings("rawtypes") // Remove "Map is a raw type"  warning
@@ -570,11 +568,7 @@ public class Connector {
     
     public Connector(String _ip, int _port, boolean _cluster, boolean _ssl) throws IOException, NoSuchAlgorithmException, KeyManagementException, ScriptException, ConnException {
         /* JSON parsing engine setup, initial socket connection */
-        
-    	// https://stackoverflow.com/questions/25332640/getenginebynamenashorn-returns-null
-        engine = new ScriptEngineManager().getEngineByName("javascript");
-        //json = (ScriptObjectMirror) engine.eval("JSON");
-        engine_bindings = engine.getContext().getBindings(ScriptContext.GLOBAL_SCOPE);
+
         port = _port;
         ip = _ip;
         use_ssl = _ssl;
