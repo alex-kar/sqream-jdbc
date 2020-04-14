@@ -53,7 +53,9 @@ public class SQSocket {
             if (useSsl) {
                 tlsChannel.write(data);
             } else {
-                LOGGER.log(Level.FINE, MessageFormat.format("Channel status: [{0}]", socketChannel));
+                LOGGER.log(Level.FINE, MessageFormat.format("Channel status: [{0}], isBlocking = [{1}], " +
+                                "isConnectionPending = [{2}], isOpen = [{3}]",
+                        socketChannel, socketChannel.isBlocking(), socketChannel.isConnectionPending(), socketChannel.isOpen()));
                 socketChannel.write(data);
             }
         } catch (IOException e) {
