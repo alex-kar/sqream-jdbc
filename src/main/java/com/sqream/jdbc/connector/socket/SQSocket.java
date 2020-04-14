@@ -56,6 +56,7 @@ public class SQSocket {
                 LOGGER.log(Level.FINE, MessageFormat.format("Channel status: [{0}], isBlocking = [{1}], " +
                                 "isConnectionPending = [{2}], isOpen = [{3}]",
                         socketChannel, socketChannel.isBlocking(), socketChannel.isConnectionPending(), socketChannel.isOpen()));
+                LOGGER.log(Level.FINE, MessageFormat.format("Try to write data: [{0}]", data));
                 socketChannel.write(data);
             }
         } catch (IOException e) {
