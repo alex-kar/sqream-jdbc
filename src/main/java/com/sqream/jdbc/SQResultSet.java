@@ -124,7 +124,6 @@ class SQResultSet implements ResultSet {
 					if (client.isOpenStatement()) {
 						client.close();
 					}
-					client.closeConnection();
 				}
 			} catch (ConnException e) {
 				throw new SQLException(e);
