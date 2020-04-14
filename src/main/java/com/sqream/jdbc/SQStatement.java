@@ -181,11 +181,13 @@ public class SQStatement implements Statement {
 
 	@Override
 	public void setFetchSize(int fetchSize) throws SQLException {
+		LOGGER.log(Level.FINE, MessageFormat.format("Set fetch size [{0}]", fetchSize));
 		client.setFetchSize(fetchSize);
 	}
 
 	@Override
 	public void setMaxRows(int max_rows) throws SQLException {
+		LOGGER.log(Level.FINE, MessageFormat.format("Set max rows [{0}]", max_rows));
 		try {
 			client.setFetchLimit(max_rows);
 		} catch (Exception e) {
