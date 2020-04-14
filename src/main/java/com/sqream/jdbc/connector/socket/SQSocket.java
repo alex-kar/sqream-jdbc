@@ -76,6 +76,7 @@ public class SQSocket {
                 }
             }
             if (socketChannel.isOpen()) {
+                LOGGER.log(Level.FINE, "Close socket");
                 socketChannel.close();
             }
         } catch (IOException e) {
