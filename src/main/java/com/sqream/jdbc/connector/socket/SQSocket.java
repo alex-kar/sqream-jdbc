@@ -14,8 +14,12 @@ import java.nio.channels.SocketChannel;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
+import java.text.MessageFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SQSocket {
+    private static final Logger LOGGER = Logger.getLogger(SQSocket.class.getName());
     private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
 
     private SocketChannel socketChannel;
@@ -49,6 +53,7 @@ public class SQSocket {
             if (useSsl) {
                 tlsChannel.write(data);
             } else {
+                LOGGER.log(Level.FINE, MessageFormat.format("Channel status: [{0}]", socketChannel));
                 socketChannel.write(data);
             }
         } catch (IOException e) {
