@@ -6,7 +6,10 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.sqream.jdbc.connector.Connector;
 import com.sqream.jdbc.connector.ConnectorFactory;
@@ -15,6 +18,7 @@ import com.sqream.jdbc.connector.ConnException;
 
 
 public class SQStatement implements Statement {
+	private static final Logger LOGGER = Logger.getLogger(SQStatement.class.getName());
 
 	private Connector client;
 	private SQResultSet resultSet = null;
@@ -77,6 +81,7 @@ public class SQStatement implements Statement {
 
 	@Override
 	public void close() throws SQLException {
+		LOGGER.log(Level.FINE, "close SQStatement");
 		try {
 			if(client !=null && client.isOpen()) {
 				if (client.isOpenStatement())
@@ -101,6 +106,8 @@ public class SQStatement implements Statement {
 	
 	@Override
 	public boolean execute(String sql) throws SQLException {
+		LOGGER.log(Level.FINE, MessageFormat.format("execute =[{0}]", sql));
+
 		// Related to bug BG-469 - return true only if this sql should return
 		// result
 		try {
@@ -131,6 +138,7 @@ public class SQStatement implements Statement {
 
 	@Override
 	public ResultSet executeQuery(String sql) throws SQLException {
+		LOGGER.log(Level.FINE, MessageFormat.format("executeQuery = [{0}]", sql));
 		try {
 			statementId = client.execute(sql);
 
@@ -162,6 +170,7 @@ public class SQStatement implements Statement {
 
 	@Override
 	public int executeUpdate(String sql) throws SQLException {
+		LOGGER.log(Level.FINE, MessageFormat.format("executeUpdate = [{0}]", sql));
 		try {
 			statementId = client.execute(sql);
 		} catch (Exception e) {

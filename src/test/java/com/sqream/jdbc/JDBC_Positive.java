@@ -1109,4 +1109,32 @@ public class JDBC_Positive {
             }
         }
     }
+
+    @Test
+    public void h20Test() throws SQLException {
+        String DROP_TABLE = "DROP TABLE table_for_h2o_import;";
+        String FIRST_STATEMENT = "CREATE TABLE table_for_h2o_import AS SELECT * FROM inserttesttable LIMIT 100;";
+        String SECOND_STATEMENT = "SELECT COUNT(1) FROM table_for_h2o_import;";
+        String THIRD_STATEMENT = "SELECT * FROM table_for_h2o_import LIMIT 1;";
+
+        try (Connection conn = createConnection()) {
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(DROP_TABLE);
+            }
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(FIRST_STATEMENT);
+            }
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeQuery(SECOND_STATEMENT);
+            }
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeQuery(THIRD_STATEMENT);
+            }
+
+        }
+    }
 }
