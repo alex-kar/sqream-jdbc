@@ -23,11 +23,14 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.sqream.jdbc.connector.ConnException;
 import com.sqream.jdbc.connector.Connector;
 
 class SQResultSet implements ResultSet {
+	private static final Logger LOGGER = Logger.getLogger(SQResultSet.class.getName());
 
 	private Connector client = null;
 	private String dbName;
@@ -62,6 +65,7 @@ class SQResultSet implements ResultSet {
 	 */
 	@Override
 	public boolean next() throws SQLException {
+		LOGGER.log(Level.FINE, "next");
 		if (empty) {
 			return false;
 		}
@@ -110,10 +114,13 @@ class SQResultSet implements ResultSet {
 	 */
 	@Override
 	public void close() throws SQLException {
+		LOGGER.log(Level.FINE, MessageFormat.format("Close ResultSet: isClosed=[{0}], empty=[{1}], client=[{2}]",
+				isClosed, empty, client));
 		isClosed = true;
 		if (!empty) {  // Empty result sets don't start with a Client
 			try {
 				if (client!= null && client.isOpen()) {
+					LOGGER.log(Level.FINE,"Close open statement");
 					if (client.isOpenStatement()) {
 						client.close();
 					}
