@@ -5,7 +5,7 @@ before_script:
   - "git checkout develop"
   - "git pull"
   - "if make -j7 all; then echo 'COMPILE SUCCESS'; else make clean_all && make -j7 all; fi"
-  - "killall -9 sqreamd metadata_server || echo 'Sqream was not running.'"
+  - "sudo killall -9 sqreamd metadata_server || echo 'Sqream was not running.'"
   - "./build/metadata_server &"
   - "./build/sqreamd &"
   - "cd /home/gitlab-runner/sqream-with-submodules/jdbc-driver/"
