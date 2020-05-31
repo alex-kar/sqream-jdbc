@@ -4,27 +4,23 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.sqream.jdbc.connector.Connector;
 import com.sqream.jdbc.connector.ConnException;
 
 
 public class SQResultSetMetaData implements ResultSetMetaData {
-
-	/**
-	 * @param args
-	 */
+	private static final Logger LOGGER = Logger.getLogger(SQResultSetMetaData.class.getName());
 
 	Connector client;
 	ColumnMetadata[] meta;
 	String dbName;
 	int rowLength;
 	
-	static void print(Object printable) {
-		System.out.println(printable);
-	}
-	
 	SQResultSetMetaData(Connector client, String catalog) throws ConnException {
+		LOGGER.log(Level.FINE, "Construct metadata for catalog[{0}]", catalog);
 		this.client = client;
 		// Fill up meta in a loop using api stuff
 		dbName = catalog;
@@ -43,7 +39,7 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public String getCatalogName(int column) throws SQLException {
-		// TODO Auto-generated method stub
+		LOGGER.log(Level.FINE, "Return catalog name [{0}] for column[{1}]", new Object[]{dbName, column});
 		// return MetaData[column].name;
 		return dbName; // hard-coded for dotan,in future, do it right.
 	}
@@ -56,51 +52,58 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public int getColumnDisplaySize(int column) throws SQLException {
-		
-		return meta[column-1].type.tid.toString().equals("NVarchar") ? meta[column-1].type.size / 4: meta[column-1].type.size;
+		int result = meta[column - 1].type.tid.toString().equals("NVarchar") ? meta[column - 1].type.size / 4 : meta[column - 1].type.size;
+		LOGGER.log(Level.FINE, "getColumnDisplaySize() return [{0}] for column [{1}]", new Object[]{result, column});
+		return result;
 	}
 
 	@Override
 	public String getColumnLabel(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return meta[column-1].name;
+		String result = meta[column - 1].name;
+		LOGGER.log(Level.FINE, "getColumnLabel() return [{0}] for column [{1}]", new Object[]{result, column});
+		return result;
 	}
 
 	@Override
 	public String getColumnName(int column) throws SQLException {
-		return meta[column-1].name;
+		String result = meta[column-1].name;
+		LOGGER.log(Level.FINE, "getColumnName() return [{0}] for column [{1}]", new Object[]{result, column});
+		return result;
 	}
 
 	@Override
 	public int getColumnType(int column) throws SQLException {
-		
-		return meta[column-1].type.tid.getValue();
+		int result = meta[column-1].type.tid.getValue();
+		LOGGER.log(Level.FINE, "getColumnType() return [{0}] for column [{1}]", new Object[]{result, column});
+		return result;
 	}
 
 	@Override
 	public String getColumnTypeName(int column) throws SQLException {
-		
-		return meta[column-1].type.tid.toString();
+		String result = meta[column - 1].type.tid.toString();
+		LOGGER.log(Level.FINE, "getColumnTypeName() return [{0}] for column [{1}]", new Object[]{result, column});
+		return result;
 	}
 
 	@Override
 	public int getPrecision(int column) throws SQLException {
-		
-		return meta[column-1].type.tid.toString().equals("NVarchar") ? meta[column-1].type.size / 4: meta[column-1].type.size;
+		int result = meta[column-1].type.tid.toString().equals("NVarchar") ? meta[column-1].type.size / 4: meta[column-1].type.size;
+		LOGGER.log(Level.FINE, "getPrecision() return [{0}] for column [{1}]", new Object[]{result, column});
+		return result;
 	}
 
 	@Override
 	public int getScale(int column) throws SQLException {
-		
+		LOGGER.log(Level.FINE, "getPrecision() return 0 for column [{1}]", column);
 //		return meta[column-1].scale;
 		return 0;
 	}
 
 	@Override
 	public String getTableName(int column) throws SQLException {
-		// TODO Auto-generated method stub
-
-		return meta[column-1].name;
+		String result = meta[column - 1].name;
+		LOGGER.log(Level.FINE, "getTableName() return [{0}] for column [{1}]", new Object[]{result, column});
+		return result;
 	}
 
 	@Override
@@ -112,9 +115,9 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	
 	@Override
 	public int isNullable(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return meta[column-1].isNul ? 1 : 0;
-		//return 0;
+		int result = meta[column-1].isNul ? 1 : 0;
+		LOGGER.log(Level.FINE, "isNullable() return [{0}] for column [{1}]", new Object[]{result, column});
+		return result;
 	}
 	
 	/*
@@ -130,8 +133,10 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	
 	@Override
 	public boolean isSigned(int column) throws SQLException {
-	    String col_type = meta[column-1].type.tid.toString(); 
-        return Arrays.asList("Smallint", "Int", "Bigint", "Real", "Float").contains(col_type);
+	    String col_type = meta[column-1].type.tid.toString();
+	    boolean result = Arrays.asList("Smallint", "Int", "Bigint", "Real", "Float").contains(col_type);
+		LOGGER.log(Level.FINE, "isSigned() return [{0}] for column [{1}]", new Object[]{result, column});
+        return result;
 	}
 	
 	@Override
