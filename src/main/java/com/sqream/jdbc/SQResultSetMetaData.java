@@ -20,10 +20,6 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	String dbName;
 	int rowLength;
 	
-	static void print(Object printable) {
-		System.out.println(printable);
-	}
-	
 	SQResultSetMetaData(Connector client, String catalog) throws ConnException {
 		this.client = client;
 		// Fill up meta in a loop using api stuff
@@ -56,37 +52,37 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public int getColumnDisplaySize(int column) throws SQLException {
-		
-		return meta[column-1].type.tid.toString().equals("NVarchar") ? meta[column-1].type.size / 4: meta[column-1].type.size;
+
+		return "NVarchar".equals(meta[column-1].getTypeId().toString()) ? meta[column-1].getType().size / 4: meta[column-1].getType().size;
 	}
 
 	@Override
 	public String getColumnLabel(int column) throws SQLException {
 		// TODO Auto-generated method stub
-		return meta[column-1].name;
+		return meta[column-1].getName();
 	}
 
 	@Override
 	public String getColumnName(int column) throws SQLException {
-		return meta[column-1].name;
+		return meta[column-1].getName();
 	}
 
 	@Override
 	public int getColumnType(int column) throws SQLException {
 		
-		return meta[column-1].type.tid.getValue();
+		return meta[column-1].getTypeId().getValue();
 	}
 
 	@Override
 	public String getColumnTypeName(int column) throws SQLException {
 		
-		return meta[column-1].type.tid.toString();
+		return meta[column-1].getTypeId().toString();
 	}
 
 	@Override
 	public int getPrecision(int column) throws SQLException {
 		
-		return meta[column-1].type.tid.toString().equals("NVarchar") ? meta[column-1].type.size / 4: meta[column-1].type.size;
+		return meta[column-1].getTypeId().toString().equals("NVarchar") ? meta[column-1].getType().size / 4: meta[column-1].getType().size;
 	}
 
 	@Override
@@ -100,7 +96,7 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	public String getTableName(int column) throws SQLException {
 		// TODO Auto-generated method stub
 
-		return meta[column-1].name;
+		return meta[column-1].getName();
 	}
 
 	@Override
@@ -113,7 +109,7 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public int isNullable(int column) throws SQLException {
 		// TODO Auto-generated method stub
-		return meta[column-1].isNul ? 1 : 0;
+		return meta[column-1].isNull() ? 1 : 0;
 		//return 0;
 	}
 	
@@ -130,7 +126,7 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 	
 	@Override
 	public boolean isSigned(int column) throws SQLException {
-	    String col_type = meta[column-1].type.tid.toString(); 
+	    String col_type = meta[column-1].getTypeId().toString();
         return Arrays.asList("Smallint", "Int", "Bigint", "Real", "Float").contains(col_type);
 	}
 	
