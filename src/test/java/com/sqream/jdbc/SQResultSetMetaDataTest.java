@@ -63,8 +63,8 @@ public class SQResultSetMetaDataTest {
         assertEquals(10, rsmeta.getColumnDisplaySize(6));
         assertEquals(12, rsmeta.getColumnDisplaySize(7));
         assertEquals(10, rsmeta.getColumnDisplaySize(8));
-        assertEquals(10, rsmeta.getColumnDisplaySize(9));
-        assertEquals(10, rsmeta.getColumnDisplaySize(10));
+        assertEquals(Integer.MAX_VALUE, rsmeta.getColumnDisplaySize(9));
+        assertEquals(Integer.MAX_VALUE, rsmeta.getColumnDisplaySize(10));
         assertEquals(Integer.MAX_VALUE, rsmeta.getColumnDisplaySize(11));
         assertEquals(Integer.MAX_VALUE, rsmeta.getColumnDisplaySize(12));
         assertEquals(10, rsmeta.getColumnDisplaySize(13));
