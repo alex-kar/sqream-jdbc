@@ -75,10 +75,8 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 		if ("Varchar".equals(meta[column-1].getTypeId().toString())) {
 			result = meta[column - 1].getType().size;
 		} else {
-			System.out.println("Check in the map: " + meta[column-1].getTypeId());
 			result = displaySizeMap.get(meta[column-1].getTypeId());
 		}
-		System.out.println(meta[column-1].getTypeId().toString());
 		LOGGER.log(Level.FINE, MessageFormat.format("getColumnDisplaySize() return [{0}] for column [{1}]", result, column));
 		return result;
 	}
