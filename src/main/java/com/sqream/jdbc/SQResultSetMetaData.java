@@ -5,20 +5,38 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sqream.jdbc.connector.Connector;
 import com.sqream.jdbc.connector.ConnException;
+import com.sqream.jdbc.enums.SqreamTypeId;
 
 
 public class SQResultSetMetaData implements ResultSetMetaData {
 	private static final Logger LOGGER = Logger.getLogger(SQResultSetMetaData.class.getName());
+	private static final Map<SqreamTypeId, Integer> displaySizeMap = new HashMap<>();
+
+	static {
+		displaySizeMap.put(SqreamTypeId.Bool, 1);
+		displaySizeMap.put(SqreamTypeId.Tinyint, 3);
+		displaySizeMap.put(SqreamTypeId.Smallint, 6);
+		displaySizeMap.put(SqreamTypeId.Int, 11);
+		displaySizeMap.put(SqreamTypeId.Bigint, 20);
+		displaySizeMap.put(SqreamTypeId.Real, 10);
+		displaySizeMap.put(SqreamTypeId.Float, 12);
+		displaySizeMap.put(SqreamTypeId.Date, 10);
+		displaySizeMap.put(SqreamTypeId.DateTime, 23);
+		displaySizeMap.put(SqreamTypeId.NVarchar, Integer.MAX_VALUE);
+	}
 
 	Connector client;
 	ColumnMetadata[] meta;
 	String dbName;
 	int rowLength;
+
 
 	SQResultSetMetaData(Connector client, String catalog) throws ConnException {
 		LOGGER.log(Level.FINE, MessageFormat.format("Construct metadata for catalog[{0}]", catalog));
@@ -53,7 +71,14 @@ public class SQResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public int getColumnDisplaySize(int column) throws SQLException {
-        int result = "NVarchar".equals(meta[column-1].getTypeId().toString()) ? meta[column-1].getType().size / 4: meta[column-1].getType().size;
+		int result;
+		if ("Varchar".equals(meta[column-1].getTypeId().toString())) {
+			result = meta[column - 1].getType().size;
+		} else {
+			System.out.println("Check in the map: " + meta[column-1].getTypeId());
+			result = displaySizeMap.get(meta[column-1].getTypeId());
+		}
+		System.out.println(meta[column-1].getTypeId().toString());
 		LOGGER.log(Level.FINE, MessageFormat.format("getColumnDisplaySize() return [{0}] for column [{1}]", result, column));
 		return result;
 	}
