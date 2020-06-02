@@ -511,6 +511,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public ParameterMetaData getParameterMetaData() throws SQLException {
+        LOGGER.log(Level.FINE, "getParameterMetaData()");
         return new SQParameterMetaData(client);
     }
 

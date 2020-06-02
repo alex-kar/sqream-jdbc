@@ -3,16 +3,7 @@
  */
 package com.sqream.jdbc;
 
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.StandardOpenOption.APPEND;
-import static java.nio.file.StandardOpenOption.CREATE;
-
 import java.io.IOException;
-import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
@@ -21,7 +12,9 @@ import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.Arrays;
+import java.text.MessageFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.script.ScriptException;
 
@@ -36,19 +29,8 @@ import com.sqream.jdbc.connector.ConnException;
  */
 
 public class SQDatabaseMetaData implements DatabaseMetaData {
+	private static final Logger LOGGER = Logger.getLogger(SQDatabaseMetaData.class.getName());
 
-	Path SQDatabaseMetaData_log = Paths.get("/tmp/SQDatabaseMetaData.txt");
-	boolean log(String line) throws SQLException {
-		try {
-			Files.write(SQDatabaseMetaData_log, Arrays.asList(new String[] {line}), UTF_8, CREATE, APPEND);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new SQLException ("Error writing to SQDatabaseMetaData log");
-		}
-		
-		return true;
-	}
-	
 	private Connector client;
 	private SQConnection conn;
 	private String user;
@@ -61,11 +43,8 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	private String driverVersion = "4.0";
 	private String dbName;
 	
-	static void print(Object printable) {
-        System.out.println(printable);
-    }
-	
 	public SQDatabaseMetaData(Connector client, SQConnection conn, String user_, String catalog) {
+		LOGGER.log(Level.FINE, MessageFormat.format("Construct DatabaseMetaData for catalog [{0}]", catalog));
 		this.client = client;
 		this.conn =conn;
 		user = user_;
@@ -73,7 +52,8 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	}
 	
 	SQResultSet metadataStatement(String sql) throws ConnException, IOException, SQLException, ScriptException, NoSuchAlgorithmException, KeyManagementException {
-		
+		LOGGER.log(Level.FINE, MessageFormat.format("metadataStatement [{0}]", sql));
+
 		Connector client = new ConnectorImpl(conn.getParams().getIp(), conn.getParams().getPort(), conn.getParams().getCluster(), conn.getParams().getUseSsl());
 		client.connect(conn.getParams().getDbName(), conn.getParams().getUser(), conn.getParams().getPassword(), conn.getParams().getService());
 		client.execute(sql);
@@ -83,7 +63,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getCatalogs() throws SQLException {
-
+		LOGGER.log(Level.FINE, "getCatalogs()");
 		try {
 			return metadataStatement("select get_catalogs()");
 		}
@@ -96,7 +76,9 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	
 	@Override
 	public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-
+		LOGGER.log(Level.FINE, MessageFormat.format(
+				"getColumns for catalog [{0}], schemaPattern [{1}], tableNamePattern [{2}], columnNamePattern [{3}]",
+				catalog, schemaPattern, tableNamePattern, columnNamePattern));
 		String sql = "select get_columns(" + CheckNull(catalog) + "," + CheckNull(schemaPattern) + "," + CheckNull(tableNamePattern) + ",'*')";
 		sql = sql.toLowerCase();
 		try {
@@ -111,6 +93,9 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	
 	@Override
 	public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern) throws SQLException {
+		LOGGER.log(Level.FINE, MessageFormat.format(
+				"getProcedures for catalog [{0}], schemaPattern [{1}], procedureNamePattern [{2}]",
+				catalog, schemaPattern, procedureNamePattern));
 		ResultSet rs = null;
 		try {
 			rs = metadataStatement("select database_name as PROCEDURE_CAT, null as PROCEDURE_SCHEM, function_name as PROCEDURE_NAME, null as UNUSED, null as UNUSED2, null as UNUSED3, ' ' as REMARKS, 0 as PROCEDURE_TYPE, function_name as SPECIFIC_NAME from sqream_catalog.user_defined_functions");	
@@ -123,7 +108,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	
 	@Override
 	public ResultSet getSchemas() throws SQLException {
-		
+		LOGGER.log(Level.FINE, "getSchemas()");
 		try {
 			return metadataStatement("select get_schemas()");
 		}
@@ -135,7 +120,10 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	}
 	
 	public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) throws SQLException {
-		
+		LOGGER.log(Level.FINE, MessageFormat.format(
+				"getTables for  catalog [{0}], schemaPattern [{1}], tableNamePattern [{2}], types [{3}]",
+				catalog, schemaPattern, tableNamePattern, types));
+
 		String logTypes = "";
 		if (types != null && types.length > 0) {
 			for (String type : types) {
@@ -213,7 +201,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 	
 	@Override
 	public ResultSet getTypeInfo() throws SQLException {
-
+		LOGGER.log(Level.FINE, "getTypeInfo()");
 		try {
 			return metadataStatement("select get_type_info()");
 		} catch (IOException | ConnException | ScriptException | NoSuchAlgorithmException | KeyManagementException e) {
@@ -251,6 +239,7 @@ public class SQDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getVersionColumns(String catalog, String schema, String table) throws SQLException {
+		LOGGER.log(Level.FINE, "getVersionColumns()");
 		ResultSet rs = null;
 		try {
 			String[] lables = { "catalog", "schema", "table" };
