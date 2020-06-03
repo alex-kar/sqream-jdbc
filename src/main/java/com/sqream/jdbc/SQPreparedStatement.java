@@ -104,6 +104,7 @@ public class SQPreparedStatement implements PreparedStatement {
     @Override
     public void addBatch() throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("Add batch. StatementId=[{0}]", statementId));
+        long startTimer = System.currentTimeMillis();
 
         try {
             client.next();
@@ -113,6 +114,7 @@ public class SQPreparedStatement implements PreparedStatement {
         } catch (Exception e) {
             throw new SQLException(e);
         }
+        SQDriver.movePointerToNextRow += System.currentTimeMillis() - startTimer;
     }
 
     @Override
@@ -138,116 +140,139 @@ public class SQPreparedStatement implements PreparedStatement {
     @Override
     public void setBoolean(int arg0, boolean arg1) throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
+        long startTimer = System.currentTimeMillis();
         try {
 			client.setBoolean(arg0, arg1);
 		} catch (Exception e) {
             throw new SQLException(e);
-		} setCounter++;      
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
 
     @Override
     public void setByte(int arg0, byte arg1) throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
+        long startTimer = System.currentTimeMillis();
     	try {
 			client.setUbyte(arg0, arg1);
 		} catch (Exception e) {
             throw new SQLException(e);
-		} setCounter++; 
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
-    
+
     @Override
     public void setShort(int arg0, short arg1) throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
+        long startTimer = System.currentTimeMillis();
 	    try {
 			client.setShort(arg0, arg1);
 		} catch (Exception e) {
             throw new SQLException(e);
-		} setCounter++;    
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
 
     @Override
     public void setInt(int arg0, int arg1) throws SQLException {
+        long startTimer = System.currentTimeMillis();
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
     	try {
 			client.setInt(arg0, arg1);
 		} catch (Exception e) {
             throw new SQLException(e);
-		} setCounter++;    
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
 
     @Override
     public void setLong(int arg0, long arg1) throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
+        long startTimer = System.currentTimeMillis();
         try {
 			client.setLong(arg0, arg1);
 		} catch (Exception e) {
             throw new SQLException(e);
-		} setCounter++; 
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
-    
+
     @Override
     public void setFloat(int arg0, float arg1) throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
+        long startTimer = System.currentTimeMillis();
         try {
 			client.setFloat(arg0, arg1);
 		} catch (Exception e) {
             throw new SQLException(e);
-		} setCounter++;    
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
-    
+
     @Override
     public void setDouble(int arg0, double arg1) throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
+        long startTimer = System.currentTimeMillis();
          try {
 			client.setDouble(arg0, arg1);
 		} catch (Exception e) {
              throw new SQLException(e);
-		} setCounter++;  
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
-    
+
     @Override
     public void setDate(int colNum, Date date) throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", colNum, date));
+        long startTimer = System.currentTimeMillis();
         try {
 			client.setDate(colNum, date);
 		} catch (Exception e) {
             throw new SQLException(e.getMessage());
-		} setCounter++; 
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
 
     @Override
     public void setDate(int colNum, Date date, Calendar cal) throws SQLException {
+        long startTimer = System.currentTimeMillis();
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], date=[{1}], cal=[{2}]", colNum, date, cal));
     	try {
 			client.setDate(colNum, date, cal.getTimeZone().toZoneId());
 		} catch (Exception e) {
             throw new SQLException(e);
-		} setCounter++; 
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
-    
+
     @Override
     public void setTimestamp(int colNum, Timestamp datetime) throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", colNum, datetime));
+        long startTimer = System.currentTimeMillis();
     	try {
 			client.setDatetime(colNum, datetime);
 		} catch (Exception e) {
             throw new SQLException(e);
-		} setCounter++; 
+		} setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
 
     @Override
     public void setTimestamp(int colNum, Timestamp datetime, Calendar cal) throws SQLException {
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], datetime=[{1}], cal[{2}]", colNum, datetime, cal));
+        long startTimer = System.currentTimeMillis();
     	try {
 			client.setDatetime(colNum, datetime, cal.getTimeZone().toZoneId());
 		} catch (Exception e) {
             throw new SQLException(e);
 		}
     	setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
-    
+
     @Override
     public void setString(int colNum, String value) throws SQLException {
+        long startTimer = System.currentTimeMillis();
         LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", colNum, value));
         String type = getMetaData().getColumnTypeName(colNum);
         try {
@@ -263,7 +288,8 @@ public class SQPreparedStatement implements PreparedStatement {
         } catch (Exception e) {
             throw new SQLException(e);
         }
-        setCounter++;   
+        setCounter++;
+        SQDriver.packingDataTimer += System.currentTimeMillis() - startTimer;
     }
 
     @Override

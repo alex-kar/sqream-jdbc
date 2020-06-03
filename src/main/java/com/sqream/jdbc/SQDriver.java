@@ -25,6 +25,10 @@ public class SQDriver implements java.sql.Driver {
 
 	private DriverPropertyInfo[] DPIArray;
 
+	public static long packingDataTimer = 0;
+	public static long movePointerToNextRow = 0;
+	public static long flushDataTimer = 0;
+
 
 	static {
 		try {

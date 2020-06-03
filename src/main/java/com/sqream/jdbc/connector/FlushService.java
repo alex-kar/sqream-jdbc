@@ -1,5 +1,6 @@
 package com.sqream.jdbc.connector;
 
+import com.sqream.jdbc.SQDriver;
 import com.sqream.jdbc.connector.messenger.Messenger;
 import com.sqream.jdbc.connector.socket.SQSocketConnector;
 import com.sqream.jdbc.utils.Utils;
@@ -34,12 +35,14 @@ public class FlushService {
 
         executorService.submit(() -> {
             try {
+                long startTimer = System.currentTimeMillis();
                 Thread.currentThread().setName(MessageFormat.format("flush-service-{0}", Thread.currentThread().getId()));
                 flush(metadata, block);
 
                 clearBuffers(block);
 
                 byteBufferPool.releaseBlock(block);
+                SQDriver.flushDataTimer += System.currentTimeMillis() - startTimer;
             } catch (Exception e) {
                 throw new RuntimeException("Exception when flush data", e);
             }

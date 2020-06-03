@@ -67,9 +67,12 @@ public class JDBCPerf {
             ps.addBatch();
         }
         ps.close();
+        System.out.println(MessageFormat.format("Packing time: {0} ms", SQDriver.packingDataTimer));
+        System.out.println(MessageFormat.format("Move pointer time: {0} ms", SQDriver.movePointerToNextRow));
+        System.out.println(MessageFormat.format("Flush time: {0} ms", SQDriver.flushDataTimer));
 
         long t1 = System.nanoTime();
-        log.info(MessageFormat.format("Insert for {0} took: {1} ms\n", AMOUNT, (t1-t0)/1_000_000));
+        System.out.println(MessageFormat.format("Insert for {0} took: {1} ms\n", AMOUNT, (t1-t0)/1_000_000));
 
         checkResult(conn);
         conn.close();
