@@ -78,7 +78,7 @@ public class SQPreparedStatement implements PreparedStatement {
         } catch (Exception e) {
             throw new SQLException(e);
         } 
-        is_closed = true;
+        isClosed = true;
     }
 
     @Override
@@ -481,7 +481,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public boolean isClosed() throws SQLException {
-    	return is_closed;
+    	return isClosed;
     }
     
     @Override
