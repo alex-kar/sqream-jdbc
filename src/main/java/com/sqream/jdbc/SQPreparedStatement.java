@@ -103,6 +103,8 @@ public class SQPreparedStatement implements PreparedStatement {
 
     @Override
     public void addBatch() throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("Add batch. StatementId=[{0}]", statementId));
+
         try {
             client.next();
             // Remember how many set commands were issued for this row in case it comes handy
@@ -135,6 +137,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public void setBoolean(int arg0, boolean arg1) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
         try {
 			client.setBoolean(arg0, arg1);
 		} catch (Exception e) {
@@ -144,6 +147,7 @@ public class SQPreparedStatement implements PreparedStatement {
 
     @Override
     public void setByte(int arg0, byte arg1) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
     	try {
 			client.setUbyte(arg0, arg1);
 		} catch (Exception e) {
@@ -153,6 +157,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public void setShort(int arg0, short arg1) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
 	    try {
 			client.setShort(arg0, arg1);
 		} catch (Exception e) {
@@ -162,6 +167,7 @@ public class SQPreparedStatement implements PreparedStatement {
 
     @Override
     public void setInt(int arg0, int arg1) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
     	try {
 			client.setInt(arg0, arg1);
 		} catch (Exception e) {
@@ -171,6 +177,7 @@ public class SQPreparedStatement implements PreparedStatement {
 
     @Override
     public void setLong(int arg0, long arg1) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
         try {
 			client.setLong(arg0, arg1);
 		} catch (Exception e) {
@@ -180,6 +187,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public void setFloat(int arg0, float arg1) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
         try {
 			client.setFloat(arg0, arg1);
 		} catch (Exception e) {
@@ -189,6 +197,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public void setDouble(int arg0, double arg1) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
          try {
 			client.setDouble(arg0, arg1);
 		} catch (Exception e) {
@@ -198,6 +207,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public void setDate(int colNum, Date date) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", colNum, date));
         try {
 			client.setDate(colNum, date);
 		} catch (Exception e) {
@@ -207,6 +217,7 @@ public class SQPreparedStatement implements PreparedStatement {
 
     @Override
     public void setDate(int colNum, Date date, Calendar cal) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], date=[{1}], cal=[{2}]", colNum, date, cal));
     	try {
 			client.setDate(colNum, date, cal.getTimeZone().toZoneId());
 		} catch (Exception e) {
@@ -216,6 +227,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public void setTimestamp(int colNum, Timestamp datetime) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", colNum, datetime));
     	try {
 			client.setDatetime(colNum, datetime);
 		} catch (Exception e) {
@@ -225,6 +237,7 @@ public class SQPreparedStatement implements PreparedStatement {
 
     @Override
     public void setTimestamp(int colNum, Timestamp datetime, Calendar cal) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], datetime=[{1}], cal[{2}]", colNum, datetime, cal));
     	try {
 			client.setDatetime(colNum, datetime, cal.getTimeZone().toZoneId());
 		} catch (Exception e) {
@@ -235,6 +248,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public void setString(int colNum, String value) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", colNum, value));
         String type = getMetaData().getColumnTypeName(colNum);
         try {
             if ("Varchar".equals(type)) {
@@ -254,6 +268,7 @@ public class SQPreparedStatement implements PreparedStatement {
 
     @Override
     public void setNString(int arg0, String arg1) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
         try {
 			client.setNvarchar(arg0, arg1);
 		} catch (Exception e) {
@@ -263,6 +278,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     @Override
     public void setNull(int arg0, int arg1) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", arg0, arg1));
     	String type = "";
     	try {
     	    type = client.getColType(arg0);
@@ -313,6 +329,7 @@ public class SQPreparedStatement implements PreparedStatement {
 
     @Override
     public void setObject(int colNum, Object value) throws SQLException {
+        LOGGER.log(Level.FINEST, MessageFormat.format("col=[{0}], value=[{1}]", colNum, value));
         if (value instanceof Boolean) {
             setBoolean(colNum, (Boolean) value);
         } else if (value instanceof Byte) {
@@ -341,6 +358,7 @@ public class SQPreparedStatement implements PreparedStatement {
     
     
     public ResultSetMetaData getMetaData() throws SQLException {
+        LOGGER.log(Level.FINE, MessageFormat.format("getMetaData for statement [{0}]", statementId));
         if (metaData == null)
             throw new SQLException("MetaData is empty");
         return metaData;
