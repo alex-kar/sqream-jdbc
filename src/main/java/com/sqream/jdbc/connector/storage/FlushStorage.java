@@ -186,10 +186,18 @@ public class FlushStorage {
     }
 
     private void increaseBuffer(int index, int puttingStringLength) {
-        ByteBuffer new_text_buf = ByteBuffer.allocateDirect((curBlock.getDataBuffers()[index].capacity() + puttingStringLength) * 2)
+        ByteBuffer newTextBuf = ByteBuffer.allocateDirect((curBlock.getDataBuffers()[index].capacity() + puttingStringLength) * 2)
                 .order(ByteOrder.LITTLE_ENDIAN);
-        new_text_buf.put(curBlock.getDataBuffers()[index]);
-        curBlock.getDataBuffers()[index] = new_text_buf;
+
+        final ByteBuffer readOnlyCopy = curBlock.getDataBuffers()[index];
+
+        readOnlyCopy.flip();
+        newTextBuf.put(readOnlyCopy);
+
+        newTextBuf.position(readOnlyCopy.position());
+
+        newTextBuf.put(curBlock.getDataBuffers()[index]);
+        curBlock.getDataBuffers()[index] = newTextBuf;
     }
 
     private static long dtToLong(Timestamp ts, ZoneId zone) {  // ZonedDateTime
