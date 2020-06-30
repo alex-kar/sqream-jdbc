@@ -1351,7 +1351,6 @@ public class JDBC_Positive {
             }
             try (Statement stmt = conn.createStatement()) {
                 ResultSet rs = stmt.executeQuery(select);
-                Assert.assertEquals(rowAmount, rs.getMetaData().getColumnCount());
                 int rowCounter = 0;
                 while(rs.next()) {
                     Assert.assertEquals(testValue, rs.getString(1));
