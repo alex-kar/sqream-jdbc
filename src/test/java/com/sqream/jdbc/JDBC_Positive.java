@@ -1327,4 +1327,38 @@ public class JDBC_Positive {
             }
         }
     }
+
+    @Test
+    public void nvarcharBufferLimitTest() throws SQLException {
+	    int rowAmount = 100_000;
+	    int testValueLength = 25_000;
+        String testValue = String.join("", Collections.nCopies(testValueLength, "a"));
+
+        String create = "create or replace table test_text_table (col1 text)";
+        String insert = "insert into test_text_table values(?);";
+        String select = "select * from test_text_table";
+
+        try (Connection conn = createConnection()) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(create);
+            }
+            try (PreparedStatement pstmt = conn.prepareStatement(insert)) {
+                for (int i = 0; i < rowAmount; i++) {
+                    pstmt.setString(1, testValue);
+                    pstmt.addBatch();
+                }
+                pstmt.executeBatch();
+            }
+            try (Statement stmt = conn.createStatement()) {
+                ResultSet rs = stmt.executeQuery(select);
+                Assert.assertEquals(rowAmount, rs.getMetaData().getColumnCount());
+                int rowCounter = 0;
+                while(rs.next()) {
+                    Assert.assertEquals(testValue, rs.getString(1));
+                    rowCounter++;
+                }
+                Assert.assertEquals(rowAmount, rowCounter); // double check amount of rows
+            }
+        }
+    }
 }
