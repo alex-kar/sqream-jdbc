@@ -8,6 +8,7 @@ import com.sqream.jdbc.connector.byteWriters.ByteWriterFactory;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Date;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDateTime;
@@ -139,7 +140,7 @@ public class FlushStorage {
         columns_set.set(colIndex);
     }
 
-    public void setNvarchar(int colIndex, byte[] stringBytes, String originalString) {
+    public void setNvarchar(int colIndex, byte[] stringBytes, String originalString) throws ConnException {
         // Add string length to lengths column
         curBlock.getNvarcLenBuffers()[colIndex].putInt(stringBytes.length);
         // Set actual value
@@ -185,8 +186,19 @@ public class FlushStorage {
         curBlock.getNullBuffers()[index].put((byte) 1);
     }
 
-    private void increaseBuffer(int index, int puttingStringLength) {
-        ByteBuffer newTextBuf = ByteBuffer.allocateDirect((curBlock.getDataBuffers()[index].capacity() + puttingStringLength) * 2)
+    private void increaseBuffer(int index, int puttingStringLength) throws ConnException {
+        int oldSize = curBlock.getDataBuffers()[index].capacity();
+        int newSize;
+        try {
+            newSize = Math.multiplyExact(Math.addExact(oldSize, puttingStringLength), 2);
+        } catch (ArithmeticException e) {
+            if (Integer.MAX_VALUE - oldSize > puttingStringLength) {
+                newSize = Integer.MAX_VALUE;
+            } else {
+                throw new ConnException(MessageFormat.format("Data buffer size exceeds maximum size supported", Integer.MAX_VALUE));
+            }
+        }
+        ByteBuffer newTextBuf = ByteBuffer.allocateDirect(newSize)
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         final ByteBuffer readOnlyCopy = curBlock.getDataBuffers()[index];

@@ -41,6 +41,7 @@ public class FlushService {
 
                 byteBufferPool.releaseBlock(block);
             } catch (Exception e) {
+                LOGGER.warning(e.getMessage());
                 throw new RuntimeException("Exception when flush data", e);
             }
         });
@@ -93,7 +94,7 @@ public class FlushService {
         messenger.put(block.getFillSize());
 
         // Send header with total binary insert
-        ByteBuffer header_buffer = socket.generateHeaderedBuffer(Utils.totalLengthForHeader(metadata, block), false);
+        ByteBuffer header_buffer = socket.generateHeader(Utils.totalLengthForHeader(metadata, block), false);
         socket.sendData(header_buffer, false);
 
         // Send available columns
