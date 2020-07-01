@@ -1347,6 +1347,7 @@ public class JDBC_Positive {
                     pstmt.addBatch();
                 }
             }
+            fail("Should throw exception with correct message");
         } catch (SQLException e) {
             Assert.assertTrue(e.getMessage().contains("Data buffer size exceeds maximum size supported"));
         }
@@ -1380,7 +1381,7 @@ public class JDBC_Positive {
                     Assert.assertEquals(testValue, rs.getString(1));
                     rowCounter++;
                 }
-                Assert.assertEquals(rowAmount, rowCounter); // double check amount of rows
+                Assert.assertEquals(rowAmount, rowCounter);
             }
         }
     }
