@@ -90,11 +90,12 @@ public class FlushService {
                 "Flush data: rowLength=[{0}], metadata=[{2}], block=[{3}]",
                 metadata.getRowLength(), metadata, block));
 
+        // Send header with total binary insert
+        ByteBuffer header_buffer = socket.generateHeader(Utils.totalLengthForHeader(metadata, block), false);
+
         // Send put message
         messenger.put(block.getFillSize());
 
-        // Send header with total binary insert
-        ByteBuffer header_buffer = socket.generateHeader(Utils.totalLengthForHeader(metadata, block), false);
         socket.sendData(header_buffer, false);
 
         // Send available columns
