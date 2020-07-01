@@ -1328,10 +1328,34 @@ public class JDBC_Positive {
         }
     }
 
-    @Test
-    public void nvarcharBufferLimitTest() throws SQLException {
+    @Test()
+    public void nvarcharBufferReachLimitTest() {
 	    int rowAmount = 100_000;
 	    int testValueLength = 25_000;
+        String testValue = String.join("", Collections.nCopies(testValueLength, "a"));
+
+        String create = "create or replace table test_text_table (col1 text)";
+        String insert = "insert into test_text_table values(?);";
+
+        try (Connection conn = createConnection()) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(create);
+            }
+            try (PreparedStatement pstmt = conn.prepareStatement(insert)) {
+                for (int i = 0; i < rowAmount; i++) {
+                    pstmt.setString(1, testValue);
+                    pstmt.addBatch();
+                }
+            }
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getMessage().contains("Data buffer size exceeds maximum size supported"));
+        }
+    }
+
+    @Test
+    public void nvarcharBufferLimitTest() throws SQLException {
+        int rowAmount = 100_000;
+        int testValueLength = 21_474; // 2,147,483,647 (buffer limit) / 100,000 (rows)
         String testValue = String.join("", Collections.nCopies(testValueLength, "a"));
 
         String create = "create or replace table test_text_table (col1 text)";
