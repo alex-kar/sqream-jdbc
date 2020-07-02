@@ -149,14 +149,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <testFailureIgnore>false</testFailureIgnore>
-                    <argLine>-Xmx16g</argLine>
-                    <forkMode>once</forkMode>
-                </configuration>
-            </plugin>
         </plugins>
         <resources>
             <resource>
