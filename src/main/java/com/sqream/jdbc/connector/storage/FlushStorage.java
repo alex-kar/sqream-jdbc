@@ -154,6 +154,9 @@ public class FlushStorage {
         if (originalString == null) {
             markAsNull(colIndex);
         }
+        if (curBlock.getDataBuffers()[colIndex].position() > MAX_BUFFER_SIZE) {
+            curBlock.setLimitReached(true);
+        }
         columns_set.set(colIndex);
     }
 
