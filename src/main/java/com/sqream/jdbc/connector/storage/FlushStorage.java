@@ -8,17 +8,17 @@ import com.sqream.jdbc.connector.byteWriters.ByteWriterFactory;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Date;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.BitSet;
 
 import static com.sqream.jdbc.utils.Utils.*;
 
 public class FlushStorage {
+    private static final int MAX_BUFFER_SIZE = 500_000_000;
+
     private TableMetadata metadata;
     private BlockDto curBlock;
     private BitSet columns_set;
@@ -38,7 +38,7 @@ public class FlushStorage {
                     columns_set.cardinality(), metadata.getRowLength()));
         }
         columns_set.clear();
-        return rowIterator.next();
+        return rowIterator.next() && !curBlock.isLimitReached();
     }
 
     public void setBlock(BlockDto block) {
@@ -189,6 +189,9 @@ public class FlushStorage {
     private void increaseBuffer(int index, int puttingStringLength) throws ConnException {
         int oldSize = curBlock.getDataBuffers()[index].capacity();
         int newSize;
+        if (oldSize >= MAX_BUFFER_SIZE) {
+            curBlock.setLimitReached(true);
+        }
         try {
             newSize = Math.multiplyExact(Math.addExact(oldSize, puttingStringLength), 2);
         } catch (ArithmeticException e) {
