@@ -37,7 +37,7 @@ public class FlushService {
                 Thread.currentThread().setName("flush-service");
                 flush(metadata, block);
 
-                clearBuffers(block);
+                resetBlock(block);
 
                 byteBufferPool.releaseBlock(block);
             } catch (Exception e) {
@@ -45,6 +45,11 @@ public class FlushService {
                 throw new RuntimeException("Exception when flush data", e);
             }
         });
+    }
+
+    private void resetBlock(BlockDto block) {
+        clearBuffers(block);
+        block.setLimitReached(false);
     }
 
     private void clearBuffers(BlockDto block) {
