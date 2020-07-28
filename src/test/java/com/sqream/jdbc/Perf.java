@@ -1,296 +1,208 @@
 package com.sqream.jdbc;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.Date;
-import java.sql.DriverManager;
-import java.sql.Statement;
-import java.sql.Timestamp;
+import de.vandermeer.asciitable.AsciiTable;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.sql.*;
 import java.text.MessageFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
-import javax.script.Bindings;
-import javax.script.Invocable;
-import javax.script.ScriptContext;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.sql.SQLException;
+import static com.sqream.jdbc.Perf.ColType.*;
+import static com.sqream.jdbc.TestEnvironment.createConnection;
 
 public class Perf {
-    
-    // Replace with your respective URL
-    //static final String url_dst = "jdbc:Sqream://192.168.0.223:5000/master;user=sqream;password=sqream;cluster=false;ssl=false";
-    //here sonoo is database name, root is username and password  
-    
-    Connection mysql_con;
-    Connection conn  = null;
-    Statement stmt = null;
-    ResultSet rs = null;
-    DatabaseMetaData dbmeta = null;
-    PreparedStatement ps = null;
-    String sql;
-    
-    int res = 0;
-   
-    static void print(Object printable) {
-        System.out.println(printable);
-    }
-    
-    static String format(String pattern, String value) {
-    	
-    	return MessageFormat.format(pattern, value);
-    	
-    }
-    static void printbuf(ByteBuffer to_print, String description) {
-        System.out.println(description + " : " + to_print);
-    }
-    
-    static long time() {
-        return System.currentTimeMillis();
-    }
-    
-    static Date date_from_tuple(int year, int month, int day) {
-        
-        return Date.valueOf(LocalDate.of(year, month, day));
-    }
-    
-    static Timestamp datetime_from_tuple(int year, int month, int day, int hour, int minutes, int seconds, int ms) {
-            
-        return Timestamp.valueOf(LocalDateTime.of(LocalDate.of(year, month, day), LocalTime.of(hour, minutes, seconds, ms*(int)Math.pow(10, 6))));
+    private static final int[] columnCounts = new int[]{1, 10, 100};
+    private static final int[] varcharSizes = new int[]{10, 100, 400};
+    private static final int[] rowCounts = new int[]{1, 1000, 10000, 100000, 1000000};
+    private static final Map<ColType, BiConsumer<ResultSet, Integer>> gettersMap = new HashMap<>();
+    private static int index = 0;
+    private static AsciiTable resultTable = new AsciiTable();
+
+    enum ColType {
+        BOOL("bool"),
+        TINYINT("tinyint"),
+        SMALLINT("smallint"),
+        INT("int"),
+        BIGINT("bigint"),
+        REAL("real"),
+        DOUBLE("double"),
+        DATE("date"),
+        DATETIME("datetime"),
+        VARCHAR("varchar"),
+        NVARCHAR("nvarchar"),
+        TEXT("text");
+
+        private final String value;
+
+        ColType(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return this.value;
+        }
     }
 
-    public void perf(String url_src) throws SQLException, IOException {
-        
-        conn = DriverManager.getConnection(url_src,"sqream","sqream");
-        //mysql_con=DriverManager.getConnection("jdbc:mysql://192.168.0.219:3306/perf","eliy","bladerfuK~1");  
-        String sql;
-        /*
-        sql = "insert into perf_t2 values (?, ?)";
-        ps = mysql_con.prepareStatement(sql);
-        print ("before network insert");
-        for(int i=1; i < 100000000; i++) {
-            ps.setInt(1, 6);
-            ps.setInt(2, 8);
-            ps.addBatch();
-            //ps.executeUpdate();m
-            if (i % 10000 == 0) {
-                print ("added batch number " + i);
-                //ps.executeBatch();
+    {
+        gettersMap.put(BOOL, this::getBool);
+        gettersMap.put(TINYINT, this::getTinyInt);
+        gettersMap.put(SMALLINT, this::getSmallInt);
+        gettersMap.put(INT, this::getInt);
+        gettersMap.put(BIGINT, this::getBigInt);
+        gettersMap.put(REAL, this::getReal);
+        gettersMap.put(DOUBLE, this::getDouble);
+        gettersMap.put(DATE, this::getDate);
+        gettersMap.put(DATETIME, this::getDatetime);
+        gettersMap.put(VARCHAR, this::getText);
+        gettersMap.put(NVARCHAR, this::getText);
+        gettersMap.put(TEXT, this::getText);
+    }
+
+    @Test
+    public void selectTest() {
+        resultTable.addRow("index", "field", "row length", "columns", "rows", "total ms", "per 1M bytes");
+        resultTable.addRule();
+        Arrays.stream(values()).forEach(colType -> select(colType));
+        System.out.println(resultTable.render());
+    }
+
+    private void select(ColType type) {
+        BiConsumer<ResultSet, Integer> getter = gettersMap.get(type);
+        try (Connection conn = createConnection(); Statement stmt = conn.createStatement()) {
+            for (int colAmount : columnCounts) {
+                for (int rowAmount : rowCounts) {
+                    for (int rowLength : varcharSizes) {
+                        if (isTextType(type) || rowLength == varcharSizes[0]) {
+                            long startTime = System.currentTimeMillis();
+                            stmt.setFetchSize(1);
+                            ResultSet rs = stmt.executeQuery(generateSelectQuery(type, colAmount, rowAmount, rowLength));
+                            int rowCounter = 0;
+                            while (rs.next()) {
+                                for (int i = 0; i < colAmount; i++) {
+                                    getter.accept(rs, i);
+                                }
+                                rowCounter++;
+                            }
+                            long stopTime = System.currentTimeMillis();
+                            resultTable.addRow(index, type, rowLength, colAmount, rowAmount, stopTime - startTime, 0);
+                            Assert.assertEquals(rowAmount, rowCounter);
+                            index++;
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String generateSelectQuery(ColType type, int colAmount, int rowAmount, int rowLength) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("select ");
+        for (int i = 0; i < colAmount; i++) {
+            sb.append(type.getValue());
+            sb.append("?name=col");
+            sb.append(i + 1);
+            if (isTextType(type)) {
+                sb.append("&length=");
+                sb.append(rowLength);
+            }
+            if (i < colAmount - 1) {
+                sb.append(",");
             }
         }
-        print ("after loop");
-        //ps.executeBatch();  // Should be done automatically
-        ps.close();
-        print ("after network insert");
-        //*/
-        
-        //*
-        // create table
-        sql = "create or replace table perf (bools bool, bytes tinyint, shorts smallint, ints int, bigints bigint, floats real, doubles double, strings varchar(10), strangs nvarchar(10))"; //, dates date, dts datetime)";
+        sb.append(" from random limit ");
+        sb.append(rowAmount);
+        sb.append(";");
+        return sb.toString();
+    }
 
-        stmt = conn.createStatement();
-        stmt.execute(sql);
-        stmt.close();
-        
-        // Network insert 10 million rows
-        int amount = (int)Math.pow(10, 7);
-        long start = time();
-        sql = "insert into perf values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        ps = conn.prepareStatement(sql);
-        
-        for (int i=0; i < amount; i++) {
-            ps.setBoolean(1, true);
-            ps.setByte(2, (byte)120);
-            ps.setShort(3, (short) 1400);
-            ps.setInt(4, 140000);
-            ps.setLong(5, (long) 5);
-            ps.setFloat(6, (float)56.0);
-            ps.setDouble(7, 57.0);
-            ps.setString(8, "bla");
-            ps.setString(9, "bla2");
-            // ps.setDate(10, date_from_tuple(2019, 11, 26));
-            // ps.setTimestamp(11, datetime_from_tuple(2019, 11, 26, 16, 45, 23, 45));
-            ps.addBatch();
+    private void getBool(ResultSet rs, int colIndex) {
+        try {
+            rs.getBoolean(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        ps.executeBatch();  // Should be done automatically
-        ps.close();
+    }
 
-        print ("total network insert: " + (time() -start));
-        
-        // Check amount inserted
-        sql = "select count(*) from perf";
-        stmt = conn.createStatement();
-        rs = stmt.executeQuery(sql);
-        while(rs.next()) 
-            print("row count: " + rs.getLong(1));
-        rs.close();
-        stmt.close();
-        //*/
-      
-        /*
-        sql = "create or replace table dt (dt datetime)";
-        stmt = conn.createStatement();
-        stmt.execute(sql);
-        stmt.close();
-        
-        // Network insert 10 million rows
-        sql = "insert into dt values (?)";
-        ps = conn.prepareStatement(sql);
-        Timestamp test = datetime_from_tuple(2018, 3, 23, 3, 54, 38, 0);
-        print (test);
-        
-        for (int i=0; i < 1; i++) {
-            ps.setTimestamp(1, test);
-            ps.addBatch();
+    private void getTinyInt(ResultSet rs, int colIndex) {
+        try {
+            rs.getByte(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        ps.executeBatch();  // Should be done automatically
-        ps.close();
+    }
 
-        
-        // Check amount inserted
-        sql = "select * from dt";
-        stmt = conn.createStatement();
-        rs = stmt.executeQuery(sql);
-        while(rs.next()) 
-            print(rs.getTimestamp(1));
-        rs.close();
-        stmt.close();
-        //*/
-        
-      /*
-        sql = "create or replace table excape (s varchar(50))";
-        stmt = conn.createStatement();
-        stmt.execute(sql);
-        stmt.close();
-        
-        /*
-        // Network insert 10 million rows
-        sql = "insert into excape values (\"bla bla\")";
-        ps = conn.prepareStatement(sql);
-        ps.executeBatch();  // Should be done automatically
-        ps.close();
-		//*/
-        
-        /*  
-        // Check amount inserted
-        // sql = "select case when xint2%2=0 then xdate else '2015-01-01' end from t_a";
-        StringBuilder s_sql = new StringBuilder("create or replace table t_test(x0 int");
-        for(int i = 0; i < 59; i++)
-        {
-        	s_sql.append(",x" + (i+1) + " int");
+    private void getSmallInt(ResultSet rs, int colIndex) {
+        try {
+            rs.getShort(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        s_sql.append(")");
-        stmt = conn.createStatement();
-        rs = stmt.executeQuery(s_sql.toString());
-        while(rs.next()) 
-            print(rs.getInt(1));
-        rs.close();
-        stmt.close();
-        
-        StringBuilder ss_sql = new StringBuilder("insert into t_test values(?");
-        for(int i = 0; i < 59; i++)
-        {
-        	ss_sql.append(",?");
+    }
+
+    private void getInt(ResultSet rs, int colIndex) {
+        try {
+            rs.getInt(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        ss_sql.append(")");
-        PreparedStatement p_stmt = conn.prepareStatement(ss_sql.toString());
-        for(int i=0; i < 10; i++)
-        {
-        	for(int j = 0; j < 60; j++)
-        	{
-        		p_stmt.setInt(j+1, 11);
-        	}
-        	p_stmt.addBatch();
+    }
+
+    private void getBigInt(ResultSet rs, int colIndex) {
+        try {
+            rs.getLong(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        p_stmt.executeBatch();
-        p_stmt.close();
-        
-        //conn.close();
-        //*/
-        
-        
-    	//*/
-    }     
-    
-    public static void main(String[] args) throws SQLException, KeyManagementException, NoSuchAlgorithmException, IOException, ClassNotFoundException, ScriptException, NoSuchMethodException{
-        
-        // Load JDBC driver - not needed with newer version
-        Class.forName("com.sqream.jdbc.SQDriver");
-        //Class.forName("com.mysql.jdbc.Driver");  
-        String url_src = "jdbc:Sqream://192.168.1.4:5000/master;user=sqream;password=sqream;cluster=false;ssl=false";
-        //String url_src = "jdbc:Sqream://192.168.1.4:3108/master;user=sqream;password=sqream;cluster=true;service=sqream";
+    }
 
-        
-        Perf test = new Perf();   
-        test.perf(url_src);
-        
-        /*
-        //  --------
-        String message = "'{'\"bla\":\"bla\"'}'"; 
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName("javascript");
-        
-        Invocable inv = (Invocable) engine;
-        String message = "'{'\"bla\":\"bla\"'}'"; 
-        
-        //engine.put("input", new String(sample));
-        String parse = "JSON.parse({0});";
-        engine.put("input", message);
-        String stringify = "JSON.stringify({0});";
+    private void getReal(ResultSet rs, int colIndex) {
+        try {
+            rs.getFloat(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-        // Object inputjson = engine.eval(MessageFormat.format(parse, message));
-        Object inputjson = engine.eval("JSON.parse(input);");
+    private void getDouble(ResultSet rs, int colIndex) {
+        try {
+            rs.getDouble(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
- 
-        print(inputjson);
-        
-        //print(JSONFunctions.parse((Object)message, (Object)message));
-        
-        //JSONParser parser = new JSONParser(message, Context.getGlobal(), false);        
-        //JSONObject(message).toString();
-        //print(parser.parse());
-        // Map<String, String> map1 = (Map<String, Object>)engine.eval(
-        //"JSON.parse('{ \"x\": 343, \"y\": \"hello\", \"z\": [2,4,5] }');");
-        //print(map1);
-         Map<String, String> prep = new HashMap<>();
-         prep.put("prepareStatement", "insert into excape values (\"bla bla\")");
-         
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName("nashorn");
-        ScriptObjectMirror json = (ScriptObjectMirror) engine.eval("JSON");
-        engine.getContext().getBindings(ScriptContext.GLOBAL_SCOPE).put ("statement", "insert into excape values (\"bla \n bla\")");
+    private void getDate(ResultSet rs, int colIndex) {
+        try {
+            rs.getDate(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-        
-        //String stmt = "{\"prepareStatement\":\"insert into excape values (\\\"bla \\n bla\\\")\", \"chunkSize\":0}";
-        //Bindings bindings = engine.createBindings();
-        //bindings.put("prepareStatement", "insert into excape values (\"bla bla\")");
-        //Object bindingsResult = engine.eval("JSON.parse(prepareStatement)", bindings);
-        
-        //Object parsed = json.callMember("parse", stmt);
+    private void getDatetime(ResultSet rs, int colIndex) {
+        try {
+            rs.getTimestamp(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-        //Object parsed =  json.callMember("stringify", prep);
-        //Object obj = engine.eval("var j = Java.asJSONCompatible({ prepareStatement: 'insert into excape values (\"bla bla\")'}); JSON.stringify(j);");
-        String parsed = (String) engine.eval("var prop = {prepareStatement: statement}; JSON.stringify(prop)");
+    private void getText(ResultSet rs, int colIndex) {
+        try {
+            rs.getString(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-        //Map<String, Object> map = (Map<String, Object>)obj;
-        //print (bindingsResult);
-        //String map_maker = "var prep = {prepareStatement: \"insert into excape values (\"bla bla\")\")};" + 
-      //                 "JSON.Stringify(preps);";
-        
-        print (parsed);
-        //*/
+    private boolean isTextType(ColType type) {
+        return type.equals(VARCHAR) || type.equals(NVARCHAR) || type.equals(TEXT);
     }
 }
 
