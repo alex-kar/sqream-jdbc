@@ -22,7 +22,7 @@ public class Perf {
     private static final int limitForSelectAll = 100000;
     private static final Map<ColType, BiConsumer<ResultSet, Integer>> gettersMap = new HashMap<>();
     private static int index = 0;
-    private static AsciiTable resultTable = new AsciiTable();
+    private static AsciiTable resultTable;
 
     enum ColType {
         BOOL("bool", Byte.BYTES),
@@ -70,10 +70,13 @@ public class Perf {
 
     @Test
     public void selectTest() {
+        resultTable = new AsciiTable();
         resultTable.addRule();
-        resultTable.addRow("index", "field", "row length", "columns", "rows", "total ms", "per 1M bytes");
+        resultTable.addRow("index", "field", "row length", "columns", "rows", "total ms", "per 1Mb");
         resultTable.addRule();
-        Arrays.stream(values()).forEach(this::select);
+        Arrays.stream(values()).forEach(this::select);;
+        int colAmountPerType = selectAllColAmount / ColType.values().length
+        selectAll(colAmountPerType);
         resultTable.addRule();
         System.out.println(resultTable.render());
     }
@@ -104,21 +107,19 @@ public class Perf {
                     }
                 }
             }
-            int colAmountPerType = selectAllColAmount / ColType.values().length;
-            long startTime = System.currentTimeMillis();
-            selectAll(conn, colAmountPerType);
-            long totalTime = System.currentTimeMillis() - startTime;
-            long rowLength = rowLengthAll(colAmountPerType);
-            resultTable.addRow(index, "ALL", rowLength, ColType.values().length * colAmountPerType, limitForSelectAll, totalTime, (1024 * 1024 * totalTime) / (rowLength * limitForSelectAll));
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void selectAll(Connection conn, int colAmountPerType) throws SQLException {
-        try (Statement stmt = conn.createStatement()) {
+    private void selectAll(int colAmountPerType) {
+        try (Connection conn = createConnection();
+             Statement stmt = conn.createStatement()) {
+
+            long startTime = System.currentTimeMillis();
             ResultSet rs = stmt.executeQuery(generateSelectAllQuery(colAmountPerType));
             BiConsumer<ResultSet, Integer> getter;
+            int rowCounter = 0;
             int colIndex;
             while (rs.next()) {
                 colIndex = 0;
@@ -127,9 +128,16 @@ public class Perf {
                     for (int i = 0; i < colAmountPerType; i++) {
                         getter.accept(rs, colIndex);
                         colIndex++;
+                        rowCounter++;
                     }
                 }
             }
+            Assert.assertEquals(limitForSelectAll, rowCounter);
+            long totalTime = System.currentTimeMillis() - startTime;
+            long rowLength = rowLengthAll(colAmountPerType);
+            resultTable.addRow(index, "ALL", rowLength, ColType.values().length * colAmountPerType, limitForSelectAll, totalTime, (1024 * 1024 * totalTime) / (rowLength * limitForSelectAll));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 
