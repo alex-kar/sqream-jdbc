@@ -5,7 +5,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.*;
-import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,27 +22,32 @@ public class Perf {
     private static AsciiTable resultTable = new AsciiTable();
 
     enum ColType {
-        BOOL("bool"),
-        TINYINT("tinyint"),
-        SMALLINT("smallint"),
-        INT("int"),
-        BIGINT("bigint"),
-        REAL("real"),
-        DOUBLE("double"),
-        DATE("date"),
-        DATETIME("datetime"),
-        VARCHAR("varchar"),
-        NVARCHAR("nvarchar"),
-        TEXT("text");
+        BOOL("bool", Byte.BYTES),
+        TINYINT("tinyint", Byte.BYTES),
+        SMALLINT("smallint", Short.BYTES),
+        INT("int", Integer.BYTES),
+        BIGINT("bigint", Long.BYTES),
+        REAL("real", Float.BYTES),
+        DOUBLE("double", Double.BYTES),
+        DATE("date", Integer.BYTES),
+        DATETIME("datetime", Long.BYTES),
+        VARCHAR("varchar", Byte.BYTES),
+        NVARCHAR("nvarchar", Byte.BYTES);
 
         private final String value;
+        private final int size;
 
-        ColType(String value) {
+        ColType(String value, int size) {
             this.value = value;
+            this.size = size;
         }
 
         public String getValue() {
             return this.value;
+        }
+
+        public int getSize() {
+            return this.size;
         }
     }
 
@@ -59,14 +63,15 @@ public class Perf {
         gettersMap.put(DATETIME, this::getDatetime);
         gettersMap.put(VARCHAR, this::getText);
         gettersMap.put(NVARCHAR, this::getText);
-        gettersMap.put(TEXT, this::getText);
     }
 
     @Test
     public void selectTest() {
+        resultTable.addRule();
         resultTable.addRow("index", "field", "row length", "columns", "rows", "total ms", "per 1M bytes");
         resultTable.addRule();
-        Arrays.stream(values()).forEach(colType -> select(colType));
+        Arrays.stream(values()).forEach(this::select);
+        resultTable.addRule();
         System.out.println(resultTable.render());
     }
 
@@ -75,11 +80,11 @@ public class Perf {
         try (Connection conn = createConnection(); Statement stmt = conn.createStatement()) {
             for (int colAmount : columnCounts) {
                 for (int rowAmount : rowCounts) {
-                    for (int rowLength : varcharSizes) {
-                        if (isTextType(type) || rowLength == varcharSizes[0]) {
+                    for (int textLength : varcharSizes) {
+                        if (isTextType(type) || textLength == varcharSizes[0]) {
                             long startTime = System.currentTimeMillis();
                             stmt.setFetchSize(1);
-                            ResultSet rs = stmt.executeQuery(generateSelectQuery(type, colAmount, rowAmount, rowLength));
+                            ResultSet rs = stmt.executeQuery(generateSelectQuery(type, colAmount, rowAmount, textLength));
                             int rowCounter = 0;
                             while (rs.next()) {
                                 for (int i = 0; i < colAmount; i++) {
@@ -87,8 +92,9 @@ public class Perf {
                                 }
                                 rowCounter++;
                             }
-                            long stopTime = System.currentTimeMillis();
-                            resultTable.addRow(index, type, rowLength, colAmount, rowAmount, stopTime - startTime, 0);
+                            long totalTime = System.currentTimeMillis() - startTime;
+                            long rowLength = rowLength(type, colAmount, textLength);
+                            resultTable.addRow(index, type, rowLength, colAmount, rowAmount, totalTime, (1024 * 1024 * totalTime) / (rowLength * rowAmount));
                             Assert.assertEquals(rowAmount, rowCounter);
                             index++;
                         }
@@ -202,8 +208,12 @@ public class Perf {
     }
 
     private boolean isTextType(ColType type) {
-        return type.equals(VARCHAR) || type.equals(NVARCHAR) || type.equals(TEXT);
+        return type.equals(VARCHAR) || type.equals(NVARCHAR);
+    }
+
+    private long rowLength(ColType type, int colAmount, int textLength) {
+        return isTextType(type) ?
+                textLength * Byte.BYTES * colAmount :
+                type.getSize() * colAmount;
     }
 }
-
-
