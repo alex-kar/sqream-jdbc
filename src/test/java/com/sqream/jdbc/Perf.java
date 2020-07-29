@@ -5,6 +5,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.*;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -184,6 +185,11 @@ public class Perf {
                                 for (int rowIndex = 0; rowIndex < rowAmount; rowIndex++) {
                                     for (int colIndex = 0; colIndex < colAmount; colIndex++) {
                                         setter.accept(pstmt, colIndex);
+                                    }
+                                    pstmt.addBatch();
+                                    if (((rowIndex + 1) % 100_000 == 0 && rowIndex > 1) || rowIndex == rowAmount - 1) {
+                                        pstmt.executeBatch();
+                                        System.out.println(MessageFormat.format("Call execute batch for [{0}] rows, colAmount=[{1}], rowAmount=[{2}], type=[{3}]", (rowIndex + 1), colAmount, rowAmount, type));
                                     }
                                     rowCounter++;
                                 }
