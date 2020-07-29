@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import java.sql.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -21,8 +22,13 @@ public class Perf {
     private static final int varcharSizeForSelectAll = 10;
     private static final int limitForSelectAll = 100000;
     private static final Map<ColType, BiConsumer<ResultSet, Integer>> gettersMap = new HashMap<>();
+    private static final Map<ColType, BiConsumer<PreparedStatement, Integer>> settersMap = new HashMap<>();
     private static int index = 0;
     private static AsciiTable resultTable;
+
+    private static final Date testDate = new Date(System.currentTimeMillis());
+    private static final Timestamp testDateTime = new Timestamp(System.currentTimeMillis());
+    private static String testText = "";
 
     enum ColType {
         BOOL("bool", Byte.BYTES),
@@ -66,6 +72,18 @@ public class Perf {
         gettersMap.put(DATETIME, this::getDatetime);
         gettersMap.put(VARCHAR, this::getText);
         gettersMap.put(NVARCHAR, this::getText);
+
+        settersMap.put(BOOL, this::setBool);
+        settersMap.put(TINYINT, this::setTinyInt);
+        settersMap.put(SMALLINT, this::setSmallInt);
+        settersMap.put(INT, this::setInt);
+        settersMap.put(BIGINT, this::setBigInt);
+        settersMap.put(REAL, this::setReal);
+        settersMap.put(DOUBLE, this::setDouble);
+        settersMap.put(DATE, this::setDate);
+        settersMap.put(DATETIME, this::setDatetime);
+        settersMap.put(VARCHAR, this::setText);
+        settersMap.put(NVARCHAR, this::setText);
     }
 
     @Test
@@ -74,8 +92,19 @@ public class Perf {
         resultTable.addRule();
         resultTable.addRow("index", "field", "row length", "columns", "rows", "total ms", "per 1Mb");
         resultTable.addRule();
-        Arrays.stream(values()).forEach(this::select);;
+        Arrays.stream(values()).forEach(this::select);
         selectAll();
+        resultTable.addRule();
+        System.out.println(resultTable.render());
+    }
+
+    @Test
+    public void insertTest() {
+        resultTable = new AsciiTable();
+        resultTable.addRule();
+        resultTable.addRow("index", "field", "row length", "columns", "rows", "total ms", "per 1Mb");
+        resultTable.addRule();
+        Arrays.stream(values()).forEach(this::insert);
         resultTable.addRule();
         System.out.println(resultTable.render());
     }
@@ -128,14 +157,46 @@ public class Perf {
                     for (int i = 0; i < colAmountPerType; i++) {
                         getter.accept(rs, colIndex);
                         colIndex++;
-                        rowCounter++;
                     }
                 }
+                rowCounter++;
             }
             Assert.assertEquals(limitForSelectAll, rowCounter);
             long totalTime = System.currentTimeMillis() - startTime;
             long rowLength = rowLengthAll(colAmountPerType);
             resultTable.addRow(index, "ALL", rowLength, ColType.values().length * colAmountPerType, limitForSelectAll, totalTime, (1024 * 1024 * totalTime) / (rowLength * limitForSelectAll));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void insert(ColType type) {
+        BiConsumer<PreparedStatement, Integer> setter = settersMap.get(type);
+        try (Connection conn = createConnection()) {
+            for (int colAmount : columnCounts) {
+                for (int rowAmount : rowCounts) {
+                    for (int textLength : varcharSizes) {
+                        if (isTextType(type) || textLength == varcharSizes[0]) {
+                            testText = String.join("", Collections.nCopies(textLength, "a"));
+                            try (PreparedStatement pstmt = conn.prepareStatement(generateInsertQuery(type, colAmount, textLength))) {
+                                int rowCounter = 0;
+                                long startTime = System.currentTimeMillis();
+                                for (int rowIndex = 0; rowIndex < rowAmount; rowIndex++) {
+                                    for (int colIndex = 0; colIndex < colAmount; colIndex++) {
+                                        setter.accept(pstmt, colIndex);
+                                    }
+                                    rowCounter++;
+                                }
+                                long totalTime = System.currentTimeMillis() - startTime;
+                                long rowLength = rowLength(type, colAmount, textLength);
+                                resultTable.addRow(index, type, rowLength, colAmount, rowAmount, totalTime, (1024 * 1024 * totalTime) / (rowLength * rowAmount));
+                                Assert.assertEquals(rowAmount, rowCounter);
+                                index++;
+                            }
+                        }
+                    }
+                }
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -153,6 +214,19 @@ public class Perf {
         sb.append(" from random limit ");
         sb.append(rowAmount);
         sb.append(";");
+        return sb.toString();
+    }
+
+    private String generateInsertQuery(ColType type, int colAmount, int textLength) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("insert into random values(");
+        for (int i = 0; i < colAmount; i++) {
+            sb.append(generateColDefinition(type, textLength, i));
+            if (i < colAmount - 1) {
+                sb.append(", ");
+            }
+        }
+        sb.append(");");
         return sb.toString();
     }
 
@@ -261,6 +335,86 @@ public class Perf {
     private void getText(ResultSet rs, int colIndex) {
         try {
             rs.getString(colIndex + 1);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setBool(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setBoolean(colIndex + 1, true);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setTinyInt(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setByte(colIndex + 1, Byte.MAX_VALUE);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setSmallInt(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setShort(colIndex + 1, Short.MAX_VALUE);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setInt(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setInt(colIndex + 1, Integer.MAX_VALUE);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setBigInt(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setLong(colIndex + 1, Long.MAX_VALUE);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setReal(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setFloat(colIndex + 1, Float.MAX_VALUE);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setDouble(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setDouble(colIndex + 1, Double.MAX_VALUE);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setDate(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setDate(colIndex + 1, testDate);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setDatetime(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setTimestamp(colIndex + 1, testDateTime);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setText(PreparedStatement pstmt, int colIndex) {
+        try {
+            pstmt.setString(colIndex + 1, testText);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
