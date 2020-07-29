@@ -17,6 +17,9 @@ public class Perf {
     private static final int[] columnCounts = new int[]{1, 10, 100};
     private static final int[] varcharSizes = new int[]{10, 100, 400};
     private static final int[] rowCounts = new int[]{1, 1000, 10000, 100000, 1000000};
+    private static final int selectAllColAmount = 200;
+    private static final int varcharSizeForSelectAll = 10;
+    private static final int limitForSelectAll = 100000;
     private static final Map<ColType, BiConsumer<ResultSet, Integer>> gettersMap = new HashMap<>();
     private static int index = 0;
     private static AsciiTable resultTable = new AsciiTable();
@@ -101,28 +104,76 @@ public class Perf {
                     }
                 }
             }
+            int colAmountPerType = selectAllColAmount / ColType.values().length;
+            long startTime = System.currentTimeMillis();
+            selectAll(conn, colAmountPerType);
+            long totalTime = System.currentTimeMillis() - startTime;
+            long rowLength = rowLengthAll(colAmountPerType);
+            resultTable.addRow(index, "ALL", rowLength, ColType.values().length * colAmountPerType, limitForSelectAll, totalTime, (1024 * 1024 * totalTime) / (rowLength * limitForSelectAll));
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private String generateSelectQuery(ColType type, int colAmount, int rowAmount, int rowLength) {
+    private void selectAll(Connection conn, int colAmountPerType) throws SQLException {
+        try (Statement stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery(generateSelectAllQuery(colAmountPerType));
+            BiConsumer<ResultSet, Integer> getter;
+            int colIndex;
+            while (rs.next()) {
+                colIndex = 0;
+                for (ColType type : ColType.values()) {
+                    getter = gettersMap.get(type);
+                    for (int i = 0; i < colAmountPerType; i++) {
+                        getter.accept(rs, colIndex);
+                        colIndex++;
+                    }
+                }
+            }
+        }
+    }
+
+    private String generateSelectQuery(ColType type, int colAmount, int rowAmount, int textLength) {
         StringBuilder sb = new StringBuilder();
         sb.append("select ");
         for (int i = 0; i < colAmount; i++) {
-            sb.append(type.getValue());
-            sb.append("?name=col");
-            sb.append(i + 1);
-            if (isTextType(type)) {
-                sb.append("&length=");
-                sb.append(rowLength);
-            }
+            sb.append(generateColDefinition(type, textLength, i));
             if (i < colAmount - 1) {
-                sb.append(",");
+                sb.append(", ");
             }
         }
         sb.append(" from random limit ");
         sb.append(rowAmount);
+        sb.append(";");
+        return sb.toString();
+    }
+
+    private String generateColDefinition(ColType colType, int textLength, int colIndex) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(colType.getValue());
+        sb.append("?name=col");
+        sb.append(colIndex + 1);
+        if (isTextType(colType)) {
+            sb.append("&length=");
+            sb.append(textLength);
+        }
+        return sb.toString();
+    }
+
+    private String generateSelectAllQuery(int colAmountPerType) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("select ");
+        for (ColType type : ColType.values()) {
+            for (int i = 0; i < colAmountPerType; i++) {
+                sb.append(generateColDefinition(type, varcharSizeForSelectAll, i));
+                if (i < colAmountPerType - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append(", ");
+        }
+        sb.append(" from random limit ");
+        sb.append(limitForSelectAll);
         sb.append(";");
         return sb.toString();
     }
@@ -215,5 +266,17 @@ public class Perf {
         return isTextType(type) ?
                 textLength * Byte.BYTES * colAmount :
                 type.getSize() * colAmount;
+    }
+
+    private long rowLengthAll(int colAmountPerType) {
+        long result = 0;
+        for (ColType colType: ColType.values()) {
+            for (int i = 0; i < colAmountPerType; i++) {
+                result += isTextType(colType) ?
+                        varcharSizeForSelectAll * Byte.BYTES :
+                        colType.getSize();
+            }
+        }
+        return result;
     }
 }

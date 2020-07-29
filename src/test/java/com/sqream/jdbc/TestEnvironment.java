@@ -7,8 +7,10 @@ import java.text.MessageFormat;
 
 public class TestEnvironment {
 
+//    public static final String IP = "192.168.0.158";
     public static final String IP = "127.0.0.1";
-    public static final int PORT = 5000;
+//    public static final int PORT = 5000;
+    public static final int PORT = 6000;
     public static final String DATABASE = "master";
     public static boolean CLUSTER = false;
     public static boolean SSL = false;
@@ -23,11 +25,12 @@ public class TestEnvironment {
     public static final String SHORT_URL = MessageFormat.format(
             "jdbc:Sqream://{0}:{1}/{2};user={3};password={4}", IP, String.valueOf(PORT), DATABASE, USER, PASS);
 
-    public static Connection createConnection() {
+    public static Connection createConnection() throws SQLException {
         try {
             Class.forName("com.sqream.jdbc.SQDriver");
             return DriverManager.getConnection(URL,USER,PASS);
-        } catch (SQLException | ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }

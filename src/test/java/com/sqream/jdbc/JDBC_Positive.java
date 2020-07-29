@@ -1444,4 +1444,66 @@ public class JDBC_Positive {
             assertFalse(rs.wasNull());
         }
     }
+
+    @Test
+    public void wrongCopyFromFilePathTest() throws SQLException {
+        try (Connection conn = createConnection();
+             Statement stmt = conn.createStatement()) {
+
+            stmt.executeUpdate("create or replace table wrong_path_test (col1 int);");
+            try {
+                stmt.executeUpdate("copy wrong_path_test from '' with delimiter '|';");
+            } catch (SQLException e) {
+                /*NOP*/
+            }
+            ResultSet rs = stmt.executeQuery("select 1;");
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+        }
+    }
+
+    @Test
+    public void fetchTest() throws SQLException {
+//        int limit = 1_000_123_456;
+//	    int limit = 10000567;
+//	    int limit = 10_000_000;
+	    int limit = 100;
+
+        try (Connection conn = createConnection();
+             Statement stmt = conn.createStatement()) {
+
+            stmt.setFetchSize(1);
+            ResultSet rs = stmt.executeQuery(MessageFormat.format(
+                    "select int?name=col1, tinyint?name=col2, bool?name=col3, smallint?name=col4, " +
+                            "bigint?name=col5, real?name=col6, double?name=col7, date?name=col8, datetime?name=col9, " +
+                            "varchar?name=col10&length=100, varchar?name=col11&length=400, nvarchar?name=col12&length=100, " +
+                            "nvarchar?name=col13&length=400, text?name=col14&length=100, text?name=col15&length=400 " +
+                            "from test_table limit {0, number,#};", limit));
+            int counter = 0;
+            while (rs.next()) {
+                rs.getInt(1);
+                rs.getByte(2);
+                rs.getBoolean(3);
+                rs.getShort(4);
+                rs.getLong(5);
+                rs.getFloat(6);
+                rs.getDouble(7);
+                assertEquals("1955-11-05", rs.getDate(8).toString());
+                assertEquals("1955-11-05 01:24:00.0", rs.getTimestamp(9).toString());
+                assertEquals(100, rs.getString(10).length());
+                assertEquals(400, rs.getString(11).length());
+                assertEquals(100, rs.getString(12).length());
+                assertEquals(400, rs.getString(13).length());
+                assertEquals(100, rs.getString(14).length());
+                assertEquals(400, rs.getString(15).length());
+                counter++;
+            }
+            assertEquals(limit, counter);
+        } catch (Exception e) {
+            /*NOP*/
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
 }
