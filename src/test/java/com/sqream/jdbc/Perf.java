@@ -75,8 +75,7 @@ public class Perf {
         resultTable.addRow("index", "field", "row length", "columns", "rows", "total ms", "per 1Mb");
         resultTable.addRule();
         Arrays.stream(values()).forEach(this::select);;
-        int colAmountPerType = selectAllColAmount / ColType.values().length
-        selectAll(colAmountPerType);
+        selectAll();
         resultTable.addRule();
         System.out.println(resultTable.render());
     }
@@ -112,7 +111,8 @@ public class Perf {
         }
     }
 
-    private void selectAll(int colAmountPerType) {
+    private void selectAll() {
+        int colAmountPerType = selectAllColAmount / ColType.values().length;
         try (Connection conn = createConnection();
              Statement stmt = conn.createStatement()) {
 
