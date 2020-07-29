@@ -189,7 +189,7 @@ public class Perf {
                                     pstmt.addBatch();
                                     if (((rowIndex + 1) % 100_000 == 0 && rowIndex > 1) || rowIndex == rowAmount - 1) {
                                         pstmt.executeBatch();
-                                        System.out.println(MessageFormat.format("Call execute batch for [{0}] rows, colAmount=[{1}], rowAmount=[{2}], type=[{3}]", (rowIndex + 1), colAmount, rowAmount, type));
+                                        System.out.println(MessageFormat.format("Call execute batch for [{0}] rows, colAmount=[{1}], rowAmount=[{2}], type=[{3}], length=[{4}]", (rowIndex + 1), colAmount, rowAmount, type, textLength));
                                     }
                                     rowCounter++;
                                 }
