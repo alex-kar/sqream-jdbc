@@ -176,12 +176,12 @@ public class Perf {
         try (Connection conn = createConnection()) {
             for (int colAmount : columnCounts) {
                 for (int rowAmount : rowCounts) {
-                    for (int textLength : varcharSizes) {
-                        if (isTextType(type) || textLength == varcharSizes[0]) {
-                            testText = String.join("", Collections.nCopies(textLength, "a"));
-                            try (PreparedStatement pstmt = conn.prepareStatement(generateInsertQuery(type, colAmount, textLength))) {
-                                int rowCounter = 0;
-                                long startTime = System.currentTimeMillis();
+//                    for (int textLength : varcharSizes) {
+                        if (!isTextType(type) || colAmount <= 10) {
+                            testText = String.join("", Collections.nCopies(varcharSizes[0], "a"));
+                            int rowCounter = 0;
+                            long startTime = System.currentTimeMillis();
+                            try (PreparedStatement pstmt = conn.prepareStatement(generateInsertQuery(type, colAmount, varcharSizes[0]))) {
                                 for (int rowIndex = 0; rowIndex < rowAmount; rowIndex++) {
                                     for (int colIndex = 0; colIndex < colAmount; colIndex++) {
                                         setter.accept(pstmt, colIndex);
@@ -189,17 +189,16 @@ public class Perf {
                                     pstmt.addBatch();
                                     if (((rowIndex + 1) % 100_000 == 0 && rowIndex > 1) || rowIndex == rowAmount - 1) {
                                         pstmt.executeBatch();
-                                        System.out.println(MessageFormat.format("Call execute batch for [{0}] rows, colAmount=[{1}], rowAmount=[{2}], type=[{3}], length=[{4}]", (rowIndex + 1), colAmount, rowAmount, type, textLength));
                                     }
                                     rowCounter++;
                                 }
-                                long totalTime = System.currentTimeMillis() - startTime;
-                                long rowLength = rowLength(type, colAmount, textLength);
-                                resultTable.addRow(index, type, rowLength, colAmount, rowAmount, totalTime, (1024 * 1024 * totalTime) / (rowLength * rowAmount));
-                                Assert.assertEquals(rowAmount, rowCounter);
-                                index++;
                             }
-                        }
+                            long totalTime = System.currentTimeMillis() - startTime;
+                            long rowLength = rowLength(type, colAmount, varcharSizes[0]);
+                            resultTable.addRow(index, type, rowLength, colAmount, rowAmount, totalTime, (1024 * 1024 * totalTime) / (rowLength * rowAmount));
+                            Assert.assertEquals(rowAmount, rowCounter);
+                            index++;
+//                        }
                     }
                 }
             }
