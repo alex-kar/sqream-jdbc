@@ -1444,21 +1444,4 @@ public class JDBC_Positive {
             assertFalse(rs.wasNull());
         }
     }
-
-    @Test
-    public void wrongCopyFromFilePathTest() throws SQLException {
-        try (Connection conn = createConnection();
-             Statement stmt = conn.createStatement()) {
-
-            stmt.executeUpdate("create or replace table wrong_path_test (col1 int);");
-            try {
-                stmt.executeUpdate("copy wrong_path_test from '' with delimiter '|';");
-            } catch (SQLException e) {
-                /*NOP*/
-            }
-            ResultSet rs = stmt.executeQuery("select 1;");
-            assertTrue(rs.next());
-            assertEquals(1, rs.getInt(1));
-        }
-    }
 }
