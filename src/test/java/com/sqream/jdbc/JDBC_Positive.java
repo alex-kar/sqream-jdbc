@@ -1444,4 +1444,13 @@ public class JDBC_Positive {
             assertFalse(rs.wasNull());
         }
     }
+
+    @Test
+    public void SQ_3484_test() throws SQLException {
+        try (Connection conn = createConnection()) {
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("create or replace table test_table (col1 int);");
+            stmt.executeUpdate("copy test_table from '' with delimiter '|';");
+        }
+    }
 }
