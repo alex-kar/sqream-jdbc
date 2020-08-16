@@ -264,10 +264,21 @@ public class SQStatement implements Statement {
 
 	@Override
 	public void setQueryTimeout(int seconds) throws SQLException {
+		if (this.isClosed) {
+			throw new SQLException("Called setQueryTimeout() on closed statement");
+		}
 		if (seconds < 0) {
-			throw new SQLException(MessageFormat.format("query timeout [{0}] should be positive or 0", seconds));
+			throw new SQLException(MessageFormat.format("Query timeout [{0}] must be a value greater than or equals to 0.", seconds));
 		}
 		this.queryTimeout = seconds;
+	}
+
+	@Override
+	public int getQueryTimeout() throws SQLException {
+		if (this.isClosed) {
+			throw new SQLException("Called getQueryTimeout() on closed statement");
+		}
+		return this.queryTimeout;
 	}
 
 	@Override
@@ -358,11 +369,6 @@ public class SQStatement implements Statement {
 	@Override
 	public int getMaxFieldSize() throws SQLException {
 		throw new SQLFeatureNotSupportedException("getMaxFieldSize in SQStatement");
-	}
-	
-	@Override
-	public int getQueryTimeout() throws SQLException {
-		return this.queryTimeout;
 	}
 
 	@Override
