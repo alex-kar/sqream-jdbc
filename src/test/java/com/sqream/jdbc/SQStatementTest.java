@@ -1,8 +1,11 @@
 package com.sqream.jdbc;
 
+import com.sqream.jdbc.connector.ConnectorFactory;
 import com.sqream.jdbc.connector.ConnectorImpl;
+import com.sqream.jdbc.connector.messenger.MessengerImpl;
 import org.junit.Assert;
 import org.junit.Test;
+import org.powermock.api.mockito.PowerMockito;
 
 import java.sql.*;
 import java.text.MessageFormat;
@@ -11,6 +14,8 @@ import java.util.concurrent.Executors;
 
 import static com.sqream.jdbc.TestEnvironment.*;
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.powermock.api.mockito.PowerMockito.when;
 
 public class SQStatementTest {
 
@@ -380,6 +385,16 @@ public class SQStatementTest {
 
             stmt.setQueryTimeout(timeout);
             Assert.assertEquals(timeout, stmt.getQueryTimeout());
+        }
+    }
+
+    @Test
+    public void queryTimeoutTest() throws SQLException {
+        try (Connection conn = createConnection();
+             Statement stmt = conn.createStatement()) {
+
+            stmt.setQueryTimeout(1);
+            stmt.executeQuery("select 1;");
         }
     }
 }

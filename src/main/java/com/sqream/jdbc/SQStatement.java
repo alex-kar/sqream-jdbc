@@ -1,18 +1,10 @@
 package com.sqream.jdbc;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
+import java.sql.*;
 import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.sqream.jdbc.connector.Connector;
-import com.sqream.jdbc.connector.ConnectorFactory;
-import com.sqream.jdbc.connector.ConnectorImpl;
-import com.sqream.jdbc.connector.ConnException;
+import com.sqream.jdbc.connector.*;
 
 
 public class SQStatement implements Statement {
@@ -155,6 +147,8 @@ public class SQStatement implements Statement {
 			
 			return resultSet;
 
+		} catch (ConnTimeoutException e) {
+			throw new SQLTimeoutException(e);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			throw new SQLException(e.getMessage(), e);
