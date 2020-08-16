@@ -80,6 +80,8 @@ public class ConnectorImpl implements Connector {
     private FetchService fetchService;
     private ByteBufferPool byteBufferPool;
 
+    private int timeout = 0;
+
     public ConnectorImpl(String ip, int port, boolean cluster, boolean ssl) throws ConnException {
         /* JSON parsing engine setup, initial socket connection */
         useSsl = ssl;
@@ -467,6 +469,11 @@ public class ConnectorImpl implements Connector {
         return getDatetime(tableMetadata.getColNumByName(colName), zone);
     }
 
+    @Override
+    public int getTimeout() {
+        return this.timeout;
+    }
+
     // Sets
     // ----
 
@@ -564,6 +571,11 @@ public class ConnectorImpl implements Connector {
     @Override
     public boolean setDatetime(int colNum, Timestamp value) {
         return setDatetime(colNum, value, SYSTEM_TZ); // system_tz, UTC
+    }
+
+    @Override
+    public void setTimeout(int seconds) {
+        this.timeout = seconds;
     }
 
     // Metadata

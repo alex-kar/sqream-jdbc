@@ -24,7 +24,6 @@ public class SQStatement implements Statement {
 	private AtomicBoolean IsCancelStatement = new AtomicBoolean(false);
 	private String dbName;
 	private boolean isClosed;
-	private int queryTimeout = 0; // in seconds
 
 	SQStatement(SQConnection conn, ConnectionParams connParams) throws ConnException {
 		this.connection = conn;
@@ -270,7 +269,7 @@ public class SQStatement implements Statement {
 		if (seconds < 0) {
 			throw new SQLException(MessageFormat.format("Query timeout [{0}] must be a value greater than or equals to 0.", seconds));
 		}
-		this.queryTimeout = seconds;
+		this.client.setTimeout(seconds);
 	}
 
 	@Override
@@ -278,7 +277,7 @@ public class SQStatement implements Statement {
 		if (this.isClosed) {
 			throw new SQLException("Called getQueryTimeout() on closed statement");
 		}
-		return this.queryTimeout;
+		return this.client.getTimeout();
 	}
 
 	@Override
