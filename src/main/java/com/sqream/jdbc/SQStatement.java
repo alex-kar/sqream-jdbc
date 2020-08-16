@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.sqream.jdbc.connector.Connector;
@@ -23,6 +24,7 @@ public class SQStatement implements Statement {
 	private AtomicBoolean IsCancelStatement = new AtomicBoolean(false);
 	private String dbName;
 	private boolean isClosed;
+	private int queryTimeout = 0; // in seconds
 
 	SQStatement(SQConnection conn, ConnectionParams connParams) throws ConnException {
 		this.connection = conn;
@@ -261,9 +263,11 @@ public class SQStatement implements Statement {
 	}
 
 	@Override
-	public void setQueryTimeout(int arg0) throws SQLException {
-		if (arg0 !=0)  // 0 means unlimited timeout
-			throw new SQLFeatureNotSupportedException("setQueryTimeout in SQStatement");
+	public void setQueryTimeout(int seconds) throws SQLException {
+		if (seconds < 0) {
+			throw new SQLException(MessageFormat.format("query timeout [{0}] should be positive or 0", seconds));
+		}
+		this.queryTimeout = seconds;
 	}
 
 	@Override
@@ -358,7 +362,7 @@ public class SQStatement implements Statement {
 	
 	@Override
 	public int getQueryTimeout() throws SQLException {
-		throw new SQLFeatureNotSupportedException("getQueryTimeout in SQStatement");
+		return this.queryTimeout;
 	}
 
 	@Override

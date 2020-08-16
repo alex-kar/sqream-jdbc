@@ -1,7 +1,7 @@
 package com.sqream.jdbc;
 
 import com.sqream.jdbc.connector.ConnectorImpl;
-import com.sqream.jdbc.connector.enums.StatementType;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.*;
@@ -357,6 +357,29 @@ public class SQStatementTest {
              Statement stmt = conn.createStatement()) {
 
             assertEquals(FETCH_SIZE, stmt.getFetchSize());
+        }
+    }
+
+    @Test
+    public void whenQueryTimeoutWasNotSpecifiedThenGetQueryTimeoutReturnZeroTest() throws SQLException {
+        int unlimited = 0;
+
+        try (Connection conn = createConnection();
+             Statement stmt = conn.createStatement()) {
+
+            Assert.assertEquals(unlimited, stmt.getQueryTimeout());
+        }
+    }
+
+    @Test
+    public void whenQueryTimeoutWasSpecifiedThenGetQueryTimeoutReturnCurrentValueTest() throws SQLException {
+        int timeout = 10;
+
+        try (Connection conn = createConnection();
+             Statement stmt = conn.createStatement()) {
+
+            stmt.setQueryTimeout(timeout);
+            Assert.assertEquals(timeout, stmt.getQueryTimeout());
         }
     }
 }
