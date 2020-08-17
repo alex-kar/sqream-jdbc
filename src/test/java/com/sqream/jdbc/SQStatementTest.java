@@ -387,14 +387,4 @@ public class SQStatementTest {
             Assert.assertEquals(timeout, stmt.getQueryTimeout());
         }
     }
-
-    @Test
-    public void queryTimeoutTest() throws SQLException {
-        try (Connection conn = createConnection();
-             Statement stmt = conn.createStatement()) {
-
-            stmt.setQueryTimeout(1);
-            stmt.executeQuery("select 1;");
-        }
-    }
 }
