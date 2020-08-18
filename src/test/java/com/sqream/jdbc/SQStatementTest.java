@@ -467,7 +467,7 @@ public class SQStatementTest {
             Statement stmt = conn.createStatement()) {
 
             ResultSet rs = stmt.executeQuery(select);
-            return rs.next() && ("Execute".equals(rs.getString(12)) && !rs.next());
+            return rs.next() && ("Executing".equals(rs.getString(12)) && !rs.next());
         }
     }
 }
